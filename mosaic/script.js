@@ -66,7 +66,7 @@ document.addEventListener("DOMContentLoaded", () => {
   let startX = 0;
   let startY = 0;
   let selectionRect = null; // { x, y, width, height } in original image coordinates
-  let currentCensorType = CENSOR_TYPE_PIXELATE; // 'pixelate' or 'blur'
+  let currentCensorType = CENSOR_TYPE_PIXELATE_BLUR; // 'pixelate' or 'blur'
   let activeTool = ACTIVE_TOOL_BRUSH; // 'rectangle' or 'brush', default to brush
   let brushMode = BRUSH_MODE_DRAW; // 'draw' or 'erase'
   let currentBrushSize = parseInt(brushSizeRange.value);
@@ -884,35 +884,62 @@ document.addEventListener("DOMContentLoaded", () => {
         ctx.putImageData(targetImageData, 0, 0);
       } else if (region) {
         // Rectangle selection for blur
-        const tempRectCanvas = document.createElement("canvas");
-        tempRectCanvas.width = region.width;
-        tempRectCanvas.height = region.height;
-        const tempRectCtx = tempRectCanvas.getContext("2d");
+        const padding = Math.ceil(blurRadius * 2.5); // Padding to avoid edge clipping
 
-        tempRectCtx.drawImage(
+        // Canvas to hold the source region with padding
+        const tempSourcePaddedCanvas = document.createElement("canvas");
+        tempSourcePaddedCanvas.width = region.width + 2 * padding;
+        tempSourcePaddedCanvas.height = region.height + 2 * padding;
+        const tempSourcePaddedCtx = tempSourcePaddedCanvas.getContext("2d");
+
+        // Draw the source image region into the *center* of this padded canvas
+        tempSourcePaddedCtx.drawImage(
           uploadedImage,
-          region.x,
-          region.y,
-          region.width,
-          region.height,
-          0,
-          0,
-          region.width,
-          region.height
+          region.x, // Source X from original image
+          region.y, // Source Y from original image
+          region.width, // Source Width
+          region.height, // Source Height
+          padding, // Destination X on tempSourcePaddedCanvas (center it)
+          padding, // Destination Y on tempSourcePaddedCanvas (center it)
+          region.width, // Destination Width on tempSourcePaddedCanvas
+          region.height // Destination Height on tempSourcePaddedCanvas
         );
-        tempRectCtx.filter = `blur(${blurRadius}px)`;
-        tempRectCtx.drawImage(tempRectCanvas, 0, 0);
-        tempRectCtx.filter = "none";
-        ctx.drawImage(tempRectCanvas, region.x, region.y);
+
+        // Canvas to hold the blurred result
+        const tempBlurredResultCanvas = document.createElement("canvas");
+        tempBlurredResultCanvas.width = tempSourcePaddedCanvas.width;
+        tempBlurredResultCanvas.height = tempSourcePaddedCanvas.height;
+        const tempBlurredResultCtx = tempBlurredResultCanvas.getContext("2d");
+
+        // Apply blur by drawing the source padded canvas to the result padded canvas
+        tempBlurredResultCtx.filter = `blur(${blurRadius}px)`;
+        tempBlurredResultCtx.drawImage(tempSourcePaddedCanvas, 0, 0);
+        tempBlurredResultCtx.filter = "none";
+
+        // Draw the correctly blurred region (without the padding) back to the main canvas
+        ctx.drawImage(
+          tempBlurredResultCanvas,
+          padding, // Source X from tempBlurredResultCanvas (skip the blurred padding)
+          padding, // Source Y from tempBlurredResultCanvas (skip the blurred padding)
+          region.width, // Source Width (original region width)
+          region.height, // Source Height (original region height)
+          region.x, // Destination X on main ctx
+          region.y, // Destination Y on main ctx
+          region.width, // Destination Width
+          region.height // Destination Height
+        );
       } else {
         // No selection, blur whole image (if this case is ever reached)
         ctx.filter = `blur(${blurRadius}px)`;
-        ctx.drawImage(uploadedImage, 0, 0, originalWidth, originalHeight);
+        ctx.drawImage(uploadedImage, 0, 0, originalWidth, originalHeight); // Filter applies as image is drawn
         ctx.filter = "none";
       }
     } else if (currentCensorType === CENSOR_TYPE_PIXELATE_BLUR) {
-      const pixelBlockSize = effectValue;
-      const blurRadius = Math.max(1, Math.round(pixelBlockSize * 0.6)); // Increased blur strength
+      // Make pixelate-blur less potent for a given effectValue
+      // Reduce pixelBlockSize: e.g., 70% of effectValue
+      const pixelBlockSize = Math.max(1, Math.round(effectValue * 0.5));
+      // Reduce blurRadius relative to the new pixelBlockSize: e.g., 40% of new pixelBlockSize
+      const blurRadius = Math.max(1, Math.round(pixelBlockSize * 0.7));
 
       // --- 1. Apply Pixelation ---
       // This part is similar to CENSOR_TYPE_PIXELATE
@@ -1068,10 +1095,10 @@ document.addEventListener("DOMContentLoaded", () => {
         ctx.putImageData(targetImageData, 0, 0);
       } else if (region) {
         // Rectangle selection
-        // tempCombinedEffectCanvas now holds the fully blurred version of the pixelated canvas.
+        // blurredOutputCanvas now holds the fully blurred version of the pixelated canvas.
         // We only need to draw the relevant region from it.
         ctx.drawImage(
-          tempCombinedEffectCanvas,
+          blurredOutputCanvas,
           region.x,
           region.y,
           region.width,
@@ -1083,7 +1110,7 @@ document.addEventListener("DOMContentLoaded", () => {
         );
       } else {
         // Whole image (already pixelated, now blur the whole thing)
-        ctx.drawImage(tempCombinedEffectCanvas, 0, 0);
+        ctx.drawImage(blurredOutputCanvas, 0, 0);
       }
     }
   }
@@ -1538,28 +1565,41 @@ document.addEventListener("DOMContentLoaded", () => {
   loadFaceApiModels();
 
   // Service Worker Registration and Share Target Handling
-  if ('serviceWorker' in navigator) {
-    window.addEventListener('load', () => {
+  if ("serviceWorker" in navigator) {
+    window.addEventListener("load", () => {
       // Adjust the path to your service-worker.js file as needed.
       // If script.js and service-worker.js are in the same 'mosaic' directory:
-      navigator.serviceWorker.register('./service-worker.js')
-        .then(registration => {
-          console.log('ServiceWorker registration successful with scope: ', registration.scope);
+      navigator.serviceWorker
+        .register("./service-worker.js")
+        .then((registration) => {
+          console.log(
+            "ServiceWorker registration successful with scope: ",
+            registration.scope
+          );
         })
-        .catch(err => {
-          console.error('ServiceWorker registration failed: ', err);
+        .catch((err) => {
+          console.error("ServiceWorker registration failed: ", err);
         });
     });
 
-    navigator.serviceWorker.addEventListener('message', event => {
-      if (event.data && event.data.type === 'shared-image-file' && event.data.file) {
+    navigator.serviceWorker.addEventListener("message", (event) => {
+      if (
+        event.data &&
+        event.data.type === "shared-image-file" &&
+        event.data.file
+      ) {
         const file = event.data.file;
         showToast("Image received via share. Loading...", 4000);
         if (file instanceof File && file.type.startsWith("image/")) {
           handleImageFile(file); // This function handles disabling/enabling controls
         } else {
-          console.warn("Received shared item is not a valid image File object:", file);
-          showMessageBox("Received shared file is not a valid image format or type.");
+          console.warn(
+            "Received shared item is not a valid image File object:",
+            file
+          );
+          showMessageBox(
+            "Received shared file is not a valid image format or type."
+          );
           setControlsDisabled(false); // Ensure controls are enabled if processing fails
         }
       }
