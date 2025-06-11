@@ -1,0 +1,969 @@
+<!DOCTYPE html>
+<html lang="ja">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Link！Like！ラブライブ！イベント＆応募期間 ガントチャート</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Font Awesome for icons -->
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css"
+    />
+    <!-- FileSaver.js for saving files -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
+    <!-- html2canvas for saving DOM as image -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <style>
+      body {
+        font-family: "Inter", sans-serif;
+        background-color: #f0f4f8; /* Light blue-gray background */
+        color: #334155; /* Dark slate gray text */
+      }
+      /* Custom scrollbar for better aesthetics */
+      ::-webkit-scrollbar {
+        width: 8px;
+      }
+      ::-webkit-scrollbar-track {
+        background: #e2e8f0;
+        border-radius: 10px;
+      }
+      ::-webkit-scrollbar-thumb {
+        background: #94a3b8;
+        border-radius: 10px;
+      }
+      ::-webkit-scrollbar-thumb:hover {
+        background: #64748b;
+      }
+
+      /* Gantt chart specific styles */
+      .gantt-chart-wrapper {
+        overflow-x: auto; /* Enable horizontal scrolling for the entire chart */
+        padding-bottom: 20px; /* Space for scrollbar */
+        background-color: #f8fafc; /* Light gray background for the wrapper */
+        border-radius: 0.5rem; /* rounded-lg */
+        box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.06); /* shadow-inner */
+        border: 1px solid #e2e8f0; /* border border-gray-200 */
+      }
+
+      .gantt-chart-grid {
+        display: grid;
+        grid-template-columns: 200px 1fr; /* Fixed width for labels, fluid for chart data */
+        min-width: 1200px; /* Minimum width for the entire grid to enable scrolling */
+        position: relative;
+        padding-top: 10px;
+      }
+
+      .gantt-labels-column {
+        display: flex;
+        flex-direction: column;
+        padding-right: 10px; /* Space between labels and chart */
+        border-right: 1px solid #e2e8f0; /* Separator line */
+        padding-top: 50px; /* Space to align with chart rows below header */
+      }
+
+      .gantt-labels-item {
+        height: 40px; /* Match min-height of gantt-row-data-item */
+        display: flex;
+        align-items: center;
+        justify-content: flex-end; /* Align text to the right */
+        font-size: 0.875rem; /* text-sm */
+        font-weight: 500;
+        color: #475569; /* Slate 700 */
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        padding-bottom: 8px; /* Match row padding */
+        border-bottom: 1px dashed #e2e8f0; /* Match row separator */
+      }
+
+      .gantt-data-column {
+        position: relative; /* For absolute positioning of bars within its rows */
+        min-width: calc(
+          1200px - 200px
+        ); /* Adjust based on min-width of chart-grid */
+      }
+
+      .gantt-header {
+        position: sticky; /* Make header sticky when scrolling horizontally */
+        top: 0;
+        background-color: #f8fafc; /* Match wrapper background */
+        z-index: 10; /* Ensure header is above chart bars */
+        height: 50px; /* Fixed height for header */
+        width: 100%; /* Take full width of its column */
+        border-bottom: 2px solid #cbd5e1; /* Gray line below months */
+        position: relative; /* For positioning month divs absolutely within */
+      }
+
+      .gantt-month {
+        position: absolute; /* Absolute positioning within gantt-header */
+        text-align: center;
+        font-weight: bold;
+        color: #475569; /* Slate 700 */
+        height: 100%; /* Take full height of header */
+        display: flex; /* To center text vertically */
+        align-items: flex-end; /* Align month names at the bottom */
+        justify-content: center;
+        padding-bottom: 5px; /* Little padding from bottom border */
+        box-sizing: border-box; /* Include padding in width/height calculations */
+      }
+
+      .gantt-rows-data {
+        display: flex;
+        flex-direction: column;
+      }
+
+      .gantt-row-data-item {
+        display: flex;
+        align-items: center;
+        padding: 8px 0;
+        min-height: 40px; /* Ensure consistent row height */
+        border-bottom: 1px dashed #e2e8f0; /* Light dashed separator */
+        position: relative; /* For positioning gantt-bar inside */
+      }
+
+      .gantt-bar {
+        position: absolute;
+        height: 20px; /* Bar height */
+        border-radius: 4px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 0.75rem; /* text-xs */
+        font-weight: 600;
+        color: white;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        padding: 0 5px;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+      }
+
+      /* Styles for date text outside small bars */
+      .gantt-date-outside {
+        position: absolute;
+        top: 50%; /* Center vertically */
+        transform: translateY(-50%);
+        font-size: 0.65rem; /* Slightly smaller text for outside label */
+        color: #64748b; /* slate-600 */
+        white-space: nowrap;
+        padding-left: 8px; /* Small offset from the bar */
+        z-index: 2; /* Ensure it's above other bars if overlapping */
+      }
+
+      /* Vertical Gridlines */
+      .gantt-gridlines-container {
+        position: absolute;
+        top: 0px; /* Aligned with the top of the header */
+        left: 0;
+        right: 0;
+        bottom: 0; /* Extends to the bottom of the data rows */
+        overflow: hidden;
+        pointer-events: none; /* Allow clicks to pass through to bars */
+        z-index: 0; /* Behind bars and labels */
+      }
+
+      .gantt-vertical-line {
+        position: absolute;
+        top: 0;
+        bottom: 0;
+        width: 1px; /* Thin line */
+        background-color: #cbd5e1; /* Light gray grid line */
+        z-index: 0; /* Ensure it's behind bars */
+      }
+      .gantt-weekly-line {
+        background-color: #e2e8f0; /* Lighter grey for weekly lines */
+        opacity: 0.7; /* Slightly transparent */
+      }
+
+      /* Color classes for different types */
+      .bg-type-event {
+        background-color: #d946ef;
+      } /* fuchsia-500 */
+      .bg-type-application {
+        background-color: #4f46e5;
+      } /* indigo-600 */
+      .bg-type-result {
+        background-color: #10b981;
+      } /* emerald-500 */
+      .bg-type-payment {
+        background-color: #f59e0b;
+      } /* amber-500 */
+      .bg-type-cd-release {
+        background-color: #0ea5e9;
+      } /* sky-500 */
+      .bg-type-unknown {
+        background-color: #a1a1aa;
+      } /* zinc-400 */
+
+      /* Legend styles */
+      .legend-item {
+        display: flex;
+        align-items: center;
+        margin-right: 1.5rem; /* Equivalent to mr-6 */
+      }
+      .legend-color-box {
+        width: 1.25rem; /* Equivalent to w-5 */
+        height: 1.25rem; /* Equivalent to h-5 */
+        border-radius: 0.25rem; /* Equivalent to rounded-sm */
+        margin-right: 0.5rem; /* Equivalent to mr-2 */
+        border: 1px solid rgba(0, 0, 0, 0.1);
+      }
+
+      /* Responsive adjustments for smaller screens */
+      @media (max-width: 768px) {
+        .gantt-chart-grid {
+          grid-template-columns: 110px 1fr; /* Adjusted label width for mobile */
+          min-width: 900px; /* Smaller min-width for mobile */
+        }
+        .gantt-labels-column {
+          padding-right: 5px;
+          padding-top: 50px;
+        }
+        .gantt-labels-item {
+          font-size: 0.75rem; /* text-xs */
+          height: 40px;
+        }
+        .gantt-data-column {
+          min-width: calc(900px - 110px); /* Adjust based on mobile min-width */
+        }
+        .gantt-header {
+          height: 50px;
+        }
+        .gantt-month {
+          font-size: 0.8rem;
+        }
+        .gantt-row-data-item {
+          min-height: 40px;
+        }
+        .gantt-bar {
+          font-size: 0.65rem; /* even smaller text */
+          padding: 0 2px; /* Reduce padding for small bars */
+        }
+        .gantt-date-outside {
+          font-size: 0.6rem;
+          padding-left: 5px;
+        }
+        .legend-item {
+          margin-bottom: 0.5rem;
+          margin-right: 1rem;
+        }
+      }
+    </style>
+  </head>
+  <body class="p-4 md:p-8 lg:p-12">
+    <div
+      class="max-w-6xl mx-auto bg-white rounded-xl shadow-lg p-6 md:p-8 lg:p-10 border border-gray-200"
+    >
+      <h1
+        class="text-3xl md:text-4xl lg:text-5xl font-extrabold text-center mb-8 md:mb-10 text-transparent bg-clip-text bg-gradient-to-r from-purple-600 to-pink-600"
+      >
+        <i class="fas fa-calendar-alt text-purple-500 mr-3"></i
+        >Link！Like！ラブライブ！イベント＆応募期間
+      </h1>
+
+      <!-- Gantt Chart Section -->
+      <div class="mb-12">
+        <h2
+          class="text-2xl md:text-3xl font-bold mb-6 text-gray-800 border-b-2 border-purple-400 pb-2"
+        >
+          <i class="fas fa-chart-bar text-purple-500 mr-2"></i
+          >期間ガントチャート
+        </h2>
+        <div class="gantt-chart-wrapper">
+          <div class="gantt-chart-grid" id="ganttChartGrid">
+            <div class="gantt-labels-column" id="ganttLabelsColumn">
+              <!-- Labels will be dynamically generated here -->
+            </div>
+            <div class="gantt-data-column">
+              <div class="gantt-header" id="ganttHeader"></div>
+              <!-- New container for vertical gridlines -->
+              <div
+                class="gantt-gridlines-container"
+                id="ganttGridlinesContainer"
+              ></div>
+              <div class="gantt-rows-data" id="ganttRowsData"></div>
+            </div>
+          </div>
+        </div>
+        <p class="text-sm text-gray-600 mt-4 italic text-center">
+          ※神奈川Day.1＋Day.2公演のスケジュールは後日発表のため、チャートには含まれていません。<br />
+          ※短い期間のバーは、日付がバーの右側に表示されます。
+        </p>
+
+        <!-- Legend -->
+        <div class="mt-8">
+          <h3 class="text-xl font-semibold mb-3 text-gray-700">
+            <i class="fas fa-info-circle mr-2 text-purple-500"></i>凡例
+          </h3>
+          <div class="flex flex-wrap justify-center sm:justify-start">
+            <div class="legend-item">
+              <div class="legend-color-box bg-type-event"></div>
+              <span class="text-gray-700">公演</span>
+            </div>
+            <div class="legend-item">
+              <div class="legend-color-box bg-type-application"></div>
+              <span class="text-gray-700">抽選受付</span>
+            </div>
+            <div class="legend-item">
+              <div class="legend-color-box bg-type-result"></div>
+              <span class="text-gray-700">当落発表</span>
+            </div>
+            <div class="legend-item">
+              <div class="legend-color-box bg-type-payment"></div>
+              <span class="text-gray-700">入金期間</span>
+            </div>
+            <div class="legend-item">
+              <div class="legend-color-box bg-type-cd-release"></div>
+              <span class="text-gray-700">CD発売</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Save HTML Button -->
+        <div class="text-center mt-8">
+          <button
+            id="saveImageBtn"
+            class="bg-purple-600 hover:bg-purple-700 text-white font-bold py-2 px-6 rounded-lg shadow-md transition-all duration-300 transform hover:scale-105 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-opacity-75"
+          >
+            <i class="fas fa-image mr-2"></i>チャートを画像保存
+          </button>
+        </div>
+      </div>
+
+      <!-- Original Events Section (kept for detailed info) -->
+      <div class="mb-12">
+        <h2
+          class="text-2xl md:text-3xl font-bold mb-6 text-gray-800 border-b-2 border-purple-400 pb-2"
+        >
+          <i class="fas fa-music text-purple-500 mr-2"></i>公演日程
+        </h2>
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 gap-6">
+          <!-- みらくらぱーく！ presents Heart Stage -->
+          <div
+            class="bg-gradient-to-br from-pink-100 to-purple-100 p-6 rounded-lg shadow-md hover:shadow-xl transition-shadow duration-300 transform hover:-translate-y-1 border border-pink-200"
+          >
+            <h3 class="text-xl font-semibold mb-2 text-purple-700">
+              みらくらぱーく！ presents Heart Stage
+            </h3>
+            <p class="text-lg text-gray-700 mb-1">
+              <i class="fas fa-calendar mr-2 text-pink-500"></i
+              ><span class="font-medium">Day.1:</span> 2025年10月4日（土）
+            </p>
+            <p class="text-lg text-gray-700 mb-3">
+              <i class="fas fa-calendar-day mr-2 text-pink-500"></i
+              ><span class="font-medium">Day.2:</span> 2025年10月5日（日）
+            </p>
+            <p class="text-md text-gray-600">
+              <i class="fas fa-map-marker-alt mr-2 text-purple-500"></i
+              ><span class="font-medium">会場:</span>
+              東京・国立代々木競技場　第一体育館
+            </p>
+            <p class="text-sm text-gray-500 mt-2 italic">
+              ※本公演のみ、演出としてメンバーによるバーチャルライブを一部想定しております。
+            </p>
+          </div>
+
+          <!-- DOLLCHESTRA presents Diamond Stage -->
+          <div
+            class="bg-gradient-to-br from-blue-100 to-cyan-100 p-6 rounded-lg shadow-md hover:shadow-xl transition-shadow duration-300 transform hover:-translate-y-1 border border-blue-200"
+          >
+            <h3 class="text-xl font-semibold mb-2 text-blue-700">
+              DOLLCHESTRA presents Diamond Stage
+            </h3>
+            <p class="text-lg text-gray-700 mb-1">
+              <i class="fas fa-calendar mr-2 text-cyan-500"></i
+              ><span class="font-medium">Day.1:</span> 2025年11月8日（土）
+            </p>
+            <p class="text-lg text-gray-700 mb-3">
+              <i class="fas fa-calendar-day mr-2 text-cyan-500"></i
+              ><span class="font-medium">Day.2:</span> 2025年11月9日（日）
+            </p>
+            <p class="text-md text-gray-600">
+              <i class="fas fa-map-marker-alt mr-2 text-blue-500"></i
+              ><span class="font-medium">会場:</span> 愛知・Aichi Sky
+              Expo（愛知県国際展示場）ホールA
+            </p>
+          </div>
+
+          <!-- Edel Note presents Spade Stage -->
+          <div
+            class="bg-gradient-to-br from-green-100 to-lime-100 p-6 rounded-lg shadow-md hover:shadow-xl transition-shadow duration-300 transform hover:-translate-y-1 border border-green-200"
+          >
+            <h3 class="text-xl font-semibold mb-2 text-green-700">
+              Edel Note presents Spade Stage
+            </h3>
+            <p class="text-lg text-gray-700 mb-1">
+              <i class="fas fa-calendar mr-2 text-lime-500"></i
+              ><span class="font-medium">Day.1:</span> 2025年11月19日（水）
+            </p>
+            <p class="text-lg text-gray-700 mb-3">
+              <i class="fas fa-calendar-day mr-2 text-lime-500"></i
+              ><span class="font-medium">Day.2:</span> 2025年11月20日（木）
+            </p>
+            <p class="text-md text-gray-600">
+              <i class="fas fa-map-marker-alt mr-2 text-green-500"></i
+              ><span class="font-medium">会場:</span> 大阪・大阪城ホール
+            </p>
+          </div>
+
+          <!-- スリーズブーケ presents Clover Stage -->
+          <div
+            class="bg-gradient-to-br from-yellow-100 to-orange-100 p-6 rounded-lg shadow-md hover:shadow-xl transition-shadow duration-300 transform hover:-translate-y-1 border border-yellow-200"
+          >
+            <h3 class="text-xl font-semibold mb-2 text-yellow-700">
+              スリーズブーケ presents Clover Stage
+            </h3>
+            <p class="text-lg text-gray-700 mb-1">
+              <i class="fas fa-calendar mr-2 text-orange-500"></i
+              ><span class="font-medium">Day.1:</span> 2025年12月6日（土）
+            </p>
+            <p class="text-lg text-gray-700 mb-3">
+              <i class="fas fa-calendar-day mr-2 text-orange-500"></i
+              ><span class="font-medium">Day.2:</span> 2025年12月7日（日）
+            </p>
+            <p class="text-md text-gray-600">
+              <i class="fas fa-map-marker-alt mr-2 text-yellow-500"></i
+              ><span class="font-medium">会場:</span> 神奈川・Ｋアリーナ横浜
+            </p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Original Application Deadlines Section (kept for detailed info) -->
+      <div>
+        <h2
+          class="text-2xl md:text-3xl font-bold mb-6 text-gray-800 border-b-2 border-purple-400 pb-2"
+        >
+          <i class="fas fa-ticket-alt text-purple-500 mr-2"></i>最速先行抽選
+          応募期間
+        </h2>
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 gap-6">
+          <!-- 東京Day.1公演 申込 -->
+          <div
+            class="bg-indigo-50 p-6 rounded-lg shadow-md hover:shadow-xl transition-shadow duration-300 transform hover:-translate-y-1 border border-indigo-200"
+          >
+            <h3 class="text-xl font-semibold mb-2 text-indigo-700">
+              <i class="fas fa-star mr-2 text-indigo-500"></i>東京Day.1公演
+            </h3>
+            <p class="text-md text-gray-700 mb-1">
+              <span class="font-medium">申込方法:</span>
+              スマートフォン向けアプリ「Link！Like！ラブライブ！」にて受付
+            </p>
+            <p class="text-sm text-gray-500 italic">
+              ※詳細は後日ご案内いたします。
+            </p>
+          </div>
+
+          <!-- 東京Day.2公演 申込 -->
+          <div
+            class="bg-indigo-50 p-6 rounded-lg shadow-md hover:shadow-xl transition-shadow duration-300 transform hover:-translate-y-1 border border-indigo-200"
+          >
+            <h3 class="text-xl font-semibold mb-2 text-indigo-700">
+              <i class="fas fa-star mr-2 text-indigo-500"></i>東京Day.2公演
+            </h3>
+            <p class="text-md text-gray-700 mb-1">
+              <span class="font-medium">参照CD:</span>
+              蓮ノ空女学院スクールアイドルクラブ ユニットスプリットシングル
+              「タイトル未定」
+            </p>
+            <p class="text-md text-gray-700 mb-3">（2025年7月2日（水）発売）</p>
+            <p class="text-lg text-gray-700 mb-1">
+              <i class="fas fa-hourglass-start mr-2 text-indigo-500"></i
+              ><span class="font-medium">受付期間:</span>
+              2025年7月2日（水）12:00 ～ 8月17日（日）23:59
+            </p>
+            <p class="text-lg text-gray-700 mb-1">
+              <i class="fas fa-bell mr-2 text-indigo-500"></i
+              ><span class="font-medium">当落発表:</span>
+              2025年8月23日（土）13:00～
+            </p>
+            <p class="text-lg text-gray-700 mb-1">
+              <i class="fas fa-wallet mr-2 text-indigo-500"></i
+              ><span class="font-medium">入金期間:</span>
+              2025年8月23日（土）13:00 ～ 8月26日（火）21:00
+            </p>
+            <p class="text-sm text-gray-500 mt-2 italic">
+              ※『シリアルNo.』1つにつき、2枚までお申込み可能。
+            </p>
+          </div>
+
+          <!-- 愛知Day.1公演 申込 -->
+          <div
+            class="bg-blue-50 p-6 rounded-lg shadow-md hover:shadow-xl transition-shadow duration-300 transform hover:-translate-y-1 border border-blue-200"
+          >
+            <h3 class="text-xl font-semibold mb-2 text-blue-700">
+              <i class="fas fa-star mr-2 text-blue-500"></i>愛知Day.1公演
+            </h3>
+            <p class="text-md text-gray-700 mb-1">
+              <span class="font-medium">参照CD:</span>
+              蓮ノ空女学院スクールアイドルクラブ 7thシングル 「タイトル未定」
+            </p>
+            <p class="text-md text-gray-700 mb-3">（2025年7月9日（水）発売）</p>
+            <p class="text-lg text-gray-700 mb-1">
+              <i class="fas fa-hourglass-start mr-2 text-blue-500"></i
+              ><span class="font-medium">受付期間:</span>
+              2025年7月9日（水）12:00 ～ 8月17日（日）23:59
+            </p>
+            <p class="text-lg text-gray-700 mb-1">
+              <i class="fas fa-bell mr-2 text-blue-500"></i
+              ><span class="font-medium">当落発表:</span>
+              2025年8月23日（土）13:00～
+            </p>
+            <p class="text-lg text-gray-700 mb-1">
+              <i class="fas fa-wallet mr-2 text-blue-500"></i
+              ><span class="font-medium">入金期間:</span>
+              2025年8月23日（土）13:00 ～ 8月26日（火）21:00
+            </p>
+            <p class="text-sm text-gray-500 mt-2 italic">
+              ※『シリアルNo.』1つにつき、2枚までお申込み可能。
+            </p>
+          </div>
+
+          <!-- 愛知Day.2公演 申込 -->
+          <div
+            class="bg-blue-50 p-6 rounded-lg shadow-md hover:shadow-xl transition-shadow duration-300 transform hover:-translate-y-1 border border-blue-200"
+          >
+            <h3 class="text-xl font-semibold mb-2 text-blue-700">
+              <i class="fas fa-star mr-2 text-blue-500"></i>愛知Day.2公演
+            </h3>
+            <p class="text-md text-gray-700 mb-1">
+              <span class="font-medium">参照CD:</span> スリーズブーケ
+              6thシングル「タイトル未定」
+            </p>
+            <p class="text-md text-gray-700 mb-3">
+              （2025年8月20日（水）発売）
+            </p>
+            <p class="text-lg text-gray-700 mb-1">
+              <i class="fas fa-hourglass-start mr-2 text-blue-500"></i
+              ><span class="font-medium">受付期間:</span>
+              2025年8月20日（水）12:00 ～ 9月28日（日）23:59
+            </p>
+            <p class="text-lg text-gray-700 mb-1">
+              <i class="fas fa-bell mr-2 text-blue-500"></i
+              ><span class="font-medium">当落発表:</span>
+              2025年10月4日（土）13:00～
+            </p>
+            <p class="text-lg text-gray-700 mb-1">
+              <i class="fas fa-wallet mr-2 text-blue-500"></i
+              ><span class="font-medium">入金期間:</span>
+              2025年10月4日（土）13:00 ～ 10月7日（火）21:00
+            </p>
+            <p class="text-sm text-gray-500 mt-2 italic">
+              ※『シリアルNo.』1つにつき、2枚までお申込み可能。
+            </p>
+          </div>
+
+          <!-- 大阪Day.1公演 申込 -->
+          <div
+            class="bg-emerald-50 p-6 rounded-lg shadow-md hover:shadow-xl transition-shadow duration-300 transform hover:-translate-y-1 border border-emerald-200"
+          >
+            <h3 class="text-xl font-semibold mb-2 text-emerald-700">
+              <i class="fas fa-star mr-2 text-emerald-500"></i>大阪Day.1公演
+            </h3>
+            <p class="text-md text-gray-700 mb-1">
+              <span class="font-medium">参照CD:</span> DOLLCHESTRA 6thシングル
+              「タイトル未定」
+            </p>
+            <p class="text-md text-gray-700 mb-3">
+              （2025年8月20日（水）発売）
+            </p>
+            <p class="text-lg text-gray-700 mb-1">
+              <i class="fas fa-hourglass-start mr-2 text-emerald-500"></i
+              ><span class="font-medium">受付期間:</span>
+              2025年8月20日（水）12:00 ～ 9月28日（日）23:59
+            </p>
+            <p class="text-lg text-gray-700 mb-1">
+              <i class="fas fa-bell mr-2 text-emerald-500"></i
+              ><span class="font-medium">当落発表:</span>
+              2025年10月4日（土）13:00～
+            </p>
+            <p class="text-lg text-gray-700 mb-1">
+              <i class="fas fa-wallet mr-2 text-emerald-500"></i
+              ><span class="font-medium">入金期間:</span>
+              2025年10月4日（土）13:00 ～ 10月7日（火）21:00
+            </p>
+            <p class="text-sm text-gray-500 mt-2 italic">
+              ※『シリアルNo.』1つにつき、2枚までお申込み可能。
+            </p>
+          </div>
+
+          <!-- 大阪Day.2公演 申込 -->
+          <div
+            class="bg-emerald-50 p-6 rounded-lg shadow-md hover:shadow-xl transition-shadow duration-300 transform hover:-translate-y-1 border border-emerald-200"
+          >
+            <h3 class="text-xl font-semibold mb-2 text-emerald-700">
+              <i class="fas fa-star mr-2 text-emerald-500"></i>大阪Day.2公演
+            </h3>
+            <p class="text-md text-gray-700 mb-1">
+              <span class="font-medium">参照CD:</span>
+              蓮ノ空女学院スクールアイドルクラブ 2ndユニットスプリットシングル
+              「タイトル未定」
+            </p>
+            <p class="text-md text-gray-700 mb-3">（2025年9月3日（水）発売）</p>
+            <p class="text-lg text-gray-700 mb-1">
+              <i class="fas fa-hourglass-start mr-2 text-emerald-500"></i
+              ><span class="font-medium">受付期間:</span>
+              2025年9月3日（水）12:00 ～ 10月5日（日）23:59
+            </p>
+            <p class="text-lg text-gray-700 mb-1">
+              <i class="fas fa-bell mr-2 text-emerald-500"></i
+              ><span class="font-medium">当落発表:</span>
+              2025年10月11日（土）13:00～
+            </p>
+            <p class="text-lg text-gray-700 mb-1">
+              <i class="fas fa-wallet mr-2 text-emerald-500"></i
+              ><span class="font-medium">入金期間:</span>
+              2025年10月11日（土）13:00 ～ 10月14日（火）21:00
+            </p>
+            <p class="text-sm text-gray-500 mt-2 italic">
+              ※『シリアルNo.』1つにつき、2枚までお申込み可能。
+            </p>
+          </div>
+
+          <!-- 神奈川Day.1＋Day.2公演 申込 -->
+          <div
+            class="bg-orange-50 p-6 rounded-lg shadow-md hover:shadow-xl transition-shadow duration-300 transform hover:-translate-y-1 border border-orange-200"
+          >
+            <h3 class="text-xl font-semibold mb-2 text-orange-700">
+              <i class="fas fa-star mr-2 text-orange-500"></i
+              >神奈川Day.1＋Day.2公演
+            </h3>
+            <p class="text-md text-gray-700 mb-1">
+              <span class="font-medium">申込期間:</span> 後日発表
+            </p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <script>
+      document.addEventListener("DOMContentLoaded", function () {
+        // Define all events with their types and dates
+        const events = [
+          {
+            name: "東京Day.2 CD発売",
+            type: "cd-release",
+            start: "2025-07-02",
+            end: "2025-07-02"
+          },
+          {
+            name: "東京Day.2 抽選受付",
+            type: "application",
+            start: "2025-07-02",
+            end: "2025-08-17"
+          },
+          {
+            name: "愛知Day.1 CD発売",
+            type: "cd-release",
+            start: "2025-07-09",
+            end: "2025-07-09"
+          },
+          {
+            name: "愛知Day.1 抽選受付",
+            type: "application",
+            start: "2025-07-09",
+            end: "2025-08-17"
+          },
+          {
+            name: "東京Day.2 & 愛知Day.1 当落発表",
+            type: "result",
+            start: "2025-08-23",
+            end: "2025-08-23"
+          },
+          {
+            name: "東京Day.2 & 愛知Day.1 入金期間",
+            type: "payment",
+            start: "2025-08-23",
+            end: "2025-08-26"
+          },
+          {
+            name: "愛知Day.2 & 大阪Day.1 CD発売",
+            type: "cd-release",
+            start: "2025-08-20",
+            end: "2025-08-20"
+          },
+          {
+            name: "愛知Day.2 & 大阪Day.1 抽選受付",
+            type: "application",
+            start: "2025-08-20",
+            end: "2025-09-28"
+          },
+          {
+            name: "大阪Day.2 CD発売",
+            type: "cd-release",
+            start: "2025-09-03",
+            end: "2025-09-03"
+          },
+          {
+            name: "大阪Day.2 抽選受付",
+            type: "application",
+            start: "2025-09-03",
+            end: "2025-10-05"
+          },
+          {
+            name: "みらくらぱーく！ Heart Stage",
+            type: "event",
+            start: "2025-10-04",
+            end: "2025-10-05"
+          },
+          {
+            name: "愛知Day.2 & 大阪Day.1 当落発表",
+            type: "result",
+            start: "2025-10-04",
+            end: "2025-10-04"
+          },
+          {
+            name: "愛知Day.2 & 大阪Day.1 入金期間",
+            type: "payment",
+            start: "2025-10-04",
+            end: "2025-10-07"
+          },
+          {
+            name: "大阪Day.2 当落発表",
+            type: "result",
+            start: "2025-10-11",
+            end: "2025-10-11"
+          },
+          {
+            name: "大阪Day.2 入金期間",
+            type: "payment",
+            start: "2025-10-11",
+            end: "2025-10-14"
+          },
+          {
+            name: "DOLLCHESTRA Diamond Stage",
+            type: "event",
+            start: "2025-11-08",
+            end: "2025-11-09"
+          },
+          {
+            name: "Edel Note Spade Stage",
+            type: "event",
+            start: "2025-11-19",
+            end: "2025-11-20"
+          },
+          {
+            name: "スリーズブーケ Clover Stage",
+            type: "event",
+            start: "2025-12-06",
+            end: "2025-12-07"
+          }
+        ];
+
+        // Define the overall timeline for the Gantt chart
+        const chartStartDate = new Date("2025-06-25T00:00:00"); // A few days before the first event
+        const chartEndDate = new Date("2025-12-15T23:59:59"); // A few days after the last known event
+        const totalMilliseconds =
+          chartEndDate.getTime() - chartStartDate.getTime();
+        const totalChartDays =
+          (chartEndDate.getTime() - chartStartDate.getTime()) /
+          (1000 * 60 * 60 * 24);
+
+        const ganttHeader = document.getElementById("ganttHeader");
+        const ganttLabelsColumn = document.getElementById("ganttLabelsColumn");
+        const ganttRowsData = document.getElementById("ganttRowsData");
+        const ganttGridlinesContainer = document.getElementById(
+          "ganttGridlinesContainer"
+        ); // Get the new gridlines container
+        const saveImageBtn = document.getElementById("saveImageBtn"); // Get the save image button
+
+        // Function to calculate position and width of bars
+        function calculateBarProperties(startDateStr, endDateStr) {
+          const start = new Date(startDateStr + "T00:00:00");
+          const end = new Date(endDateStr + "T23:59:59"); // Include the whole end day
+
+          const startOffsetMilliseconds =
+            start.getTime() - chartStartDate.getTime();
+          let durationMilliseconds = end.getTime() - start.getTime();
+
+          // Ensure single-day events have a visible width (e.g., minimum of 1 day equivalent)
+          if (durationMilliseconds === 0) {
+            durationMilliseconds = 24 * 60 * 60 * 1000; // Treat as 1 day for visibility
+          }
+
+          const leftPercentage =
+            (startOffsetMilliseconds / totalMilliseconds) * 100;
+          const widthPercentage =
+            (durationMilliseconds / totalMilliseconds) * 100;
+
+          return { left: leftPercentage, width: widthPercentage };
+        }
+
+        // Generate Months Header and Vertical Gridlines
+        const months = [
+          "1月",
+          "2月",
+          "3月",
+          "4月",
+          "5月",
+          "6月",
+          "7月",
+          "8月",
+          "9月",
+          "10月",
+          "11月",
+          "12月"
+        ];
+        let currentMonthIterator = new Date(
+          chartStartDate.getFullYear(),
+          chartStartDate.getMonth(),
+          1
+        ); // Start from the first day of the chart's start month
+
+        while (currentMonthIterator <= chartEndDate) {
+          const monthStart = new Date(
+            currentMonthIterator.getFullYear(),
+            currentMonthIterator.getMonth(),
+            1
+          );
+          let nextMonth = new Date(
+            currentMonthIterator.getFullYear(),
+            currentMonthIterator.getMonth() + 1,
+            1
+          );
+          // Adjust nextMonth if it goes beyond chartEndDate
+          if (nextMonth > chartEndDate) {
+            nextMonth = new Date(
+              chartEndDate.getFullYear(),
+              chartEndDate.getMonth(),
+              chartEndDate.getDate() + 1
+            ); // One day after chartEndDate
+          }
+
+          const monthDurationMilliseconds =
+            nextMonth.getTime() - monthStart.getTime();
+          const monthLeftPercentage =
+            ((monthStart.getTime() - chartStartDate.getTime()) /
+              totalMilliseconds) *
+            100;
+          const monthWidthPercentage =
+            (monthDurationMilliseconds / totalMilliseconds) * 100;
+
+          const monthDiv = document.createElement("div");
+          monthDiv.className = "gantt-month";
+          monthDiv.textContent = months[currentMonthIterator.getMonth()];
+          monthDiv.style.left = `${monthLeftPercentage}%`; // Position using 'left' instead of flexBasis
+          monthDiv.style.width = `${monthWidthPercentage}%`; // Set width
+          ganttHeader.appendChild(monthDiv);
+
+          // Add vertical gridline for the start of each month
+          const verticalLineMonth = document.createElement("div");
+          verticalLineMonth.className = "gantt-vertical-line";
+          verticalLineMonth.style.left = `${monthLeftPercentage}%`;
+          ganttGridlinesContainer.appendChild(verticalLineMonth);
+
+          currentMonthIterator.setMonth(currentMonthIterator.getMonth() + 1);
+        }
+
+        // Determine the minimum percentage width for text display inside the bar
+        const MIN_BAR_WIDTH_FOR_TEXT_PX = 60; // Minimum pixels for text to fit
+
+        // Generate Gantt Rows and Bars
+        events.forEach((event) => {
+          // Add label to the labels column
+          const labelDiv = document.createElement("div");
+          labelDiv.className = "gantt-labels-item";
+          labelDiv.textContent = event.name;
+          ganttLabelsColumn.appendChild(labelDiv);
+
+          // Add data item (container for bars) to the data column
+          const rowDataItem = document.createElement("div");
+          rowDataItem.className = "gantt-row-data-item";
+
+          const barDiv = document.createElement("div");
+          barDiv.className = `gantt-bar bg-type-${event.type}`;
+
+          const { left, width } = calculateBarProperties(
+            event.start,
+            event.end
+          );
+          barDiv.style.left = `${left}%`;
+          barDiv.style.width = `${width}%`;
+
+          // Determine the text content for the bar or external label
+          let dateText;
+          if (event.start === event.end) {
+            dateText = event.start.substring(5); // Only MM-DD
+          } else {
+            dateText = `${event.start.substring(5)} - ${event.end.substring(
+              5
+            )}`;
+          }
+
+          // Calculate actual pixel width of the bar to decide if text fits
+          // It's important to get the current clientWidth of the gantt-data-column
+          // as its width can change due to responsiveness or user resizing.
+          const dataColumnWidth = ganttRowsData.clientWidth;
+          const barPixelWidth = (width / 100) * dataColumnWidth;
+
+          // Conditionally set text content inside the bar
+          if (barPixelWidth >= MIN_BAR_WIDTH_FOR_TEXT_PX) {
+            barDiv.textContent = dateText;
+          } else {
+            barDiv.textContent = ""; // Hide text if bar is too small
+            // Create and append external date label
+            const dateLabelOutside = document.createElement("span");
+            dateLabelOutside.className = "gantt-date-outside";
+            dateLabelOutside.textContent = dateText;
+            // Position it just after the bar
+            dateLabelOutside.style.left = `${left + width}%`; // Position at the end of the bar
+            rowDataItem.appendChild(dateLabelOutside);
+          }
+
+          // Add tooltips for full date range regardless of text visibility
+          barDiv.title = `${event.name}: ${event.start} から ${event.end}`;
+
+          rowDataItem.appendChild(barDiv);
+          ganttRowsData.appendChild(rowDataItem);
+        });
+
+        // Save Image button functionality
+        saveImageBtn.addEventListener("click", async () => {
+          const chartElement = document.querySelector(".gantt-chart-wrapper");
+          if (chartElement) {
+            // Create a temporary container to render the full chart off-screen
+            const tempContainer = document.createElement("div");
+            tempContainer.style.position = "absolute";
+            tempContainer.style.left = "-9999px"; // Position off-screen
+            tempContainer.style.top = "0";
+            tempContainer.style.width = "auto"; // Allow content to dictate width
+            tempContainer.style.height = "auto"; // Allow content to dictate height
+            tempContainer.style.overflow = "visible"; // Ensure no clipping
+
+            // Clone the chart element
+            const chartClone = chartElement.cloneNode(true);
+
+            // Temporarily adjust styles on the clone to ensure full rendering
+            chartClone.style.overflow = "visible"; // Remove scrolling
+            chartClone.style.width = `${chartElement.scrollWidth}px`; // Set width to scrollWidth
+
+            const gridClone = chartClone.querySelector(".gantt-chart-grid");
+            if (gridClone) {
+              gridClone.style.minWidth = "auto"; // Remove min-width constraint
+              gridClone.style.width = `${gridClone.scrollWidth}px`; // Set grid width to its scrollWidth
+            }
+
+            tempContainer.appendChild(chartClone);
+            document.body.appendChild(tempContainer);
+
+            try {
+              const canvas = await html2canvas(chartClone, {
+                useCORS: true,
+                logging: false
+              });
+              canvas.toBlob((blob) => {
+                saveAs(blob, "LinkLike_LoveLive_Gantt_Chart.png");
+              }, "image/png");
+            } finally {
+              document.body.removeChild(tempContainer); // Clean up the temporary element
+            }
+          } else {
+            console.error("Gantt chart element not found for saving image.");
+          }
+        });
+      });
+    </script>
+  </body>
+</html>

@@ -1,0 +1,20 @@
+{
+  "short_name": "Pixelator",
+  "name": "Image Pixelator",
+  "icons": [
+    {
+      "src": "icon-192x192.png",
+      "type": "image/png",
+      "sizes": "192x192"
+    },
+    {
+      "src": "icon-512x512.png",
+      "type": "image/png",
+      "sizes": "512x512"
+    }
+  ],
+  "start_url": ".",
+  "display": "standalone",
+  "background_color": "#f0f4f8",
+  "theme_color": "#4a90e2"
+}
