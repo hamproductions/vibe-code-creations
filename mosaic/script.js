@@ -1537,35 +1537,42 @@ document.addEventListener("DOMContentLoaded", () => {
   updateEffectControls(); // Initialize effect controls based on default type
   loadFaceApiModels();
 
-  // Handle incoming shares if the app was launched as a share target
-  if ("launchQueue" in window && window.launchQueue) {
-    window.launchQueue.setConsumer(async (launchParams) => {
-      if (!launchParams) return;
+  // Service Worker Registration and Share Target Handling
+  if ('serviceWorker' in navigator) {
+    window.addEventListener('load', () => {
+      // Adjust the path to your service-worker.js file as needed.
+      // If script.js and service-worker.js are in the same 'mosaic' directory:
+      navigator.serviceWorker.register('./service-worker.js')
+        .then(registration => {
+          console.log('ServiceWorker registration successful with scope: ', registration.scope);
+        })
+        .catch(err => {
+          console.error('ServiceWorker registration failed: ', err);
+        });
+    });
 
-      if (launchParams.files && launchParams.files.length > 0) {
+    navigator.serviceWorker.addEventListener('message', event => {
+      if (event.data && event.data.type === 'shared-image-file' && event.data.file) {
+        const file = event.data.file;
         showToast("Image received via share. Loading...", 4000);
-        try {
-          const fileHandle = launchParams.files[0]; // Process the first file
-          const file = await fileHandle.getFile();
-
-          if (file && file.type.startsWith("image/")) {
-            handleImageFile(file); // This function handles disabling/enabling controls during its process
-          } else {
-            showMessageBox("Received shared file is not a valid image.");
-            setControlsDisabled(false); // Ensure controls are enabled if we don't proceed
-          }
-        } catch (err) {
-          console.error("Error handling shared file:", err);
-          showMessageBox(
-            "Could not process the shared image. Please try again."
-          );
-          setControlsDisabled(false); // Ensure controls are enabled on error
+        if (file instanceof File && file.type.startsWith("image/")) {
+          handleImageFile(file); // This function handles disabling/enabling controls
+        } else {
+          console.warn("Received shared item is not a valid image File object:", file);
+          showMessageBox("Received shared file is not a valid image format or type.");
+          setControlsDisabled(false); // Ensure controls are enabled if processing fails
         }
       }
     });
-  } else {
-    console.warn(
-      "Launch Queue API not available. PWA share target handling might be limited."
-    );
   }
+  // The Launch Queue API handling has been replaced by the Service Worker approach.
+  // if ("launchQueue" in window && window.launchQueue) {
+  // window.launchQueue.setConsumer(async (launchParams) => {
+  // ... (old launchQueue code removed) ...
+  // });
+  // } else {
+  // console.warn(
+  // "Launch Queue API not available. PWA share target handling might be limited."
+  // );
+  // }
 });
