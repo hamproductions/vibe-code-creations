@@ -1485,8 +1485,8 @@ document.addEventListener("DOMContentLoaded", () => {
           const detections = await faceapi.detectAllFaces(
             uploadedImage,
             new faceapi.TinyFaceDetectorOptions({
-              scoreThreshold: 0.5,
-              inputSize: 512
+              scoreThreshold: 0.45,
+              inputSize: 608
             })
           );
 
