@@ -1291,19 +1291,68 @@ document.addEventListener("DOMContentLoaded", () => {
   window.addEventListener("resize", () => {
     if (uploadedImage) {
       requestAnimationFrame(() => {
-        if (!uploadedImage) return;
-        if (originalImage.clientWidth === 0 || originalImage.clientHeight === 0)
+        if (
+          !uploadedImage ||
+          originalImage.clientWidth === 0 ||
+          originalImage.clientHeight === 0
+        )
           return;
 
+        const hadBrushSelection = !isSelectionCanvasEmpty();
+        let tempBrushCanvas = null;
+        if (hadBrushSelection) {
+          tempBrushCanvas = document.createElement("canvas");
+          tempBrushCanvas.width = selectionCanvas.width;
+          tempBrushCanvas.height = selectionCanvas.height;
+          const tempCtx = tempBrushCanvas.getContext("2d");
+          tempCtx.drawImage(selectionCanvas, 0, 0);
+        }
+
+        const oldSelectionRect = selectionRect ? { ...selectionRect } : null;
+
         setupCanvasesForImage(uploadedImage);
-        // Re-applying the effect is better than just clearing,
-        // as the user expects the censorship to persist through resize.
-        // However, selection might become misaligned.
-        // For simplicity now, clear selection and re-apply (which means no effect if no selection)
-        // A more advanced solution would transform the selection coordinates.
-        clearSelection(); // This will also call applyEffect which will draw original if no selection
+
+        // Restore selection based on the new canvas size
+        if (oldSelectionRect) {
+          // Recalculate rectangle selection based on new image dimensions
+          const scaleX = uploadedImage.naturalWidth / originalImage.clientWidth;
+          const scaleY =
+            uploadedImage.naturalHeight / originalImage.clientHeight;
+          // Need to recalculate the selectionRect based on the *new* display size
+          // and then scale back to original image coordinates.
+          // Or, store selectionRect in display coordinates and scale to original only for effect application.
+          // Let's stick to storing in original coordinates and recalculating based on display size change.
+          // This requires knowing the old display size. Simpler: clear and let user re-select if rect.
+          // However, the goal is to *not* lose selection. Let's try scaling the original coords.
+          // This is tricky because the aspect ratio might change slightly depending on CSS object-fit.
+          // A more robust way is to store selection in percentage or relative coordinates.
+          // For now, let's clear rectangle selection on resize as it's hard to scale accurately.
+          // Reverting to clearing rect selection, but keeping brush.
+          selectionRect = null; // Clear rectangle selection on resize
+          selectionCtx.clearRect(
+            0,
+            0,
+            selectionCanvas.width,
+            selectionCanvas.height
+          ); // Clear selection canvas
+        } else if (hadBrushSelection && tempBrushCanvas) {
+          // Redraw the old brush mask onto the new canvas size
+          selectionCtx.drawImage(
+            tempBrushCanvas,
+            0,
+            0,
+            tempBrushCanvas.width,
+            tempBrushCanvas.height,
+            0,
+            0,
+            selectionCanvas.width,
+            selectionCanvas.height
+          );
+        }
+
+        saveSelectionState(); // Save the state after resize/restore
+        applyEffect(); // Re-apply effect based on the restored/cleared selection
         updateToolUI();
-        // applyEffect(); // applyEffect is called by clearSelection if image exists
       });
     }
   });
