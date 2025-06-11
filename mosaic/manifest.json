@@ -2,7 +2,7 @@
   "name": "Pixelator",
   "short_name": "Pixelator",
   "description": "Pixelate and blur images, with face detection and sharing.",
-  "start_url": "./index.html",
+  "start_url": "./",
   "display": "standalone",
   "background_color": "#ffffff",
   "theme_color": "#317EFB",
@@ -458,12 +458,12 @@
     }
   ],
   "share_target": {
-    "action": "./index.html",
+    "action": "./",
     "method": "POST",
     "enctype": "multipart/form-data",
     "params": {
-      "title": "title",
-      "text": "text",
+      "title": "Pixelate Image",
+      "text": "Pixelage Image before sharing",
       "files": [
         {
           "name": "shared_image",
