@@ -6,6 +6,7 @@
     <title>Image Pixelator</title>
     <!-- Tailwind CSS CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
+    <script defer src="./lib/face-api.min.js"></script>
     <link
       href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap"
       rel="stylesheet"
@@ -95,28 +96,48 @@
         id="controlsContainer"
         class="bg-gray-100 p-4 rounded-lg shadow-inner space-y-3"
       >
-        <!-- Row 1: Main Pixelation & Tool Selection -->
+        <!-- Row 1: Main Effect Controls & Tool Selection -->
         <div class="flex flex-wrap items-center justify-between gap-4">
-          <!-- Pixelation Level Group -->
+          <!-- Censor Type Selection Group -->
+          <div class="flex items-center gap-2">
+            <label
+              for="censorType"
+              class="text-gray-700 font-medium whitespace-nowrap"
+              >Type:</label
+            >
+            <select
+              id="censorType"
+              class="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm rounded-md"
+            >
+              <option value="pixelate-blur">Pixelate & Blur</option>
+              <option value="pixelate">Pixelate</option>
+              <option value="blur">Blur</option>
+              <!-- Add this line -->
+            </select>
+          </div>
+
+          <!-- Effect Level Group -->
           <div class="flex items-center gap-2 flex-grow sm:flex-grow-0">
             <label
-              for="pixelationRange"
+              for="effectLevelRange"
+              id="effectLevelLabel"
               class="text-gray-700 font-medium whitespace-nowrap"
-              >Level:</label
+              >Strength:</label
             >
             <input
               type="range"
-              id="pixelationRange"
+              id="effectLevelRange"
               min="1"
-              max="50"
-              value="10"
-              class="flex-grow w-full md:w-auto h-2 rounded-lg appearance-none cursor-pointer bg-blue-200"
+              max="100"
+              value="35"
+              class="flex-grow w-full md:w-auto h-2 rounded-lg appearance-none cursor-pointer bg-gray-300"
               oninput="this.nextElementSibling.value = this.value"
             />
             <output
-              for="pixelationRange"
-              class="text-blue-600 font-bold w-10 text-center"
-              >10</output
+              for="effectLevelRange"
+              id="effectLevelOutput"
+              class="text-gray-700 font-bold w-10 text-center"
+              >35</output
             >
           </div>
 
@@ -136,6 +157,12 @@
               title="Brush Selection Tool"
             >
               <i class="fas fa-paint-brush"></i>
+            </button>
+            <button
+              id="detectFacesBtn"
+              class="hidden bg-purple-500 hover:bg-purple-700 text-white font-bold py-2 px-4 rounded mr-2"
+            >
+              <i class="fas fa-users"></i> Detect Faces
             </button>
           </div>
         </div>
@@ -217,6 +244,15 @@
           </button>
         </div>
       </div>
+    </div>
+
+    <!-- Add this somewhere in your HTML body -->
+    <div
+      id="toast-container"
+      class="fixed bottom-4 right-4 p-3 bg-gray-800 text-white rounded shadow-md hidden z-50 transition-opacity duration-300 ease-in-out"
+      style="min-width: 200px; text-align: center"
+    >
+      <p id="toast-message"></p>
     </div>
 
     <script src="./script.js"></script>
