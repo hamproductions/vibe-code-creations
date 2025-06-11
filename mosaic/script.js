@@ -728,7 +728,9 @@ document.addEventListener("DOMContentLoaded", () => {
     // Draw the original image as the base for the censored canvas
     ctx.drawImage(uploadedImage, 0, 0, originalWidth, originalHeight);
 
-    const effectValue = parseInt(effectLevelRange.value);
+    const effectValue = effectLevelRange
+      ? parseInt(effectLevelRange.value)
+      : 10;
 
     if (currentCensorType === CENSOR_TYPE_PIXELATE) {
       const pixelBlockSize = effectValue; // Strength 1-100 maps to 1-100px pixel size

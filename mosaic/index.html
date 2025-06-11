@@ -85,15 +85,19 @@
           <div class="flex flex-row items-center justify-center gap-4 mt-4">
             <button
               id="downloadBtn"
-              class="bg-green-500 hover:bg-green-600 text-white font-semibold py-2 px-4 rounded-lg shadow-md transition duration-300 ease-in-out hidden flex items-center"
+              class="bg-green-500 hover:bg-green-600 text-white font-semibold py-2 px-3 sm:px-4 rounded-lg shadow-md transition duration-300 ease-in-out hidden flex items-center"
+              title="Download Image"
             >
-              <i class="fas fa-download mr-2"></i>Download
+              <i class="fas fa-download sm:mr-2"></i
+              ><span class="hidden sm:inline">Download</span>
             </button>
             <button
               id="shareBtn"
-              class="bg-sky-500 hover:bg-sky-600 text-white font-semibold py-2 px-4 rounded-lg shadow-md transition duration-300 ease-in-out hidden flex items-center"
+              class="bg-sky-500 hover:bg-sky-600 text-white font-semibold py-2 px-3 sm:px-4 rounded-lg shadow-md transition duration-300 ease-in-out hidden flex items-center"
+              title="Share Image"
             >
-              <i class="fas fa-share-alt mr-2"></i>Share
+              <i class="fas fa-share-alt sm:mr-2"></i
+              ><span class="hidden sm:inline">Share</span>
             </button>
           </div>
         </div>
@@ -168,9 +172,11 @@
             </button>
             <button
               id="detectFacesBtn"
-              class="hidden bg-purple-500 hover:bg-purple-700 text-white font-bold py-2 px-4 rounded mr-2"
+              class="hidden bg-purple-500 hover:bg-purple-700 text-white font-bold py-2 px-3 sm:px-4 rounded mr-2 flex items-center"
+              title="Detect Faces"
             >
-              <i class="fas fa-users"></i> Detect Faces
+              <i class="fas fa-users sm:mr-2"></i
+              ><span class="hidden sm:inline">Detect Faces</span>
             </button>
           </div>
         </div>
@@ -220,17 +226,19 @@
         >
           <button
             id="clearSelectionBtn"
-            class="bg-red-500 hover:bg-red-600 text-white font-semibold py-2 px-3 rounded-lg shadow-md transition duration-300 ease-in-out hidden"
+            class="bg-red-500 hover:bg-red-600 text-white font-semibold py-2 px-3 rounded-lg shadow-md transition duration-300 ease-in-out hidden flex items-center"
             title="Clear Selection"
           >
-            <i class="fas fa-trash-alt"></i> Clear
+            <i class="fas fa-trash-alt sm:mr-1"></i
+            ><span class="hidden sm:inline">Clear</span>
           </button>
           <button
             id="undoBtn"
-            class="bg-yellow-500 hover:bg-yellow-600 text-white font-semibold py-2 px-3 rounded-lg shadow-md transition duration-300 ease-in-out hidden"
+            class="bg-yellow-500 hover:bg-yellow-600 text-white font-semibold py-2 px-3 rounded-lg shadow-md transition duration-300 ease-in-out hidden flex items-center"
             title="Undo"
           >
-            <i class="fas fa-undo"></i> Undo
+            <i class="fas fa-undo sm:mr-1"></i
+            ><span class="hidden sm:inline">Undo</span>
           </button>
         </div>
       </div>
