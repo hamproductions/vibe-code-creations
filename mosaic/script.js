@@ -25,7 +25,10 @@ const pixelatedImageContainer = document.getElementById(
 );
 
 let uploadedImage = null; // Stores the Image object once uploaded
+let currentOriginalFilename = "image.png"; // Stores the original filename for download
 const ctx = pixelatedCanvas.getContext("2d"); // Context for pixelated image
+let currentImagePixelData = null; // Cache for the source image's pixel data
+let currentImageForPixelData = null; // Tracks the image associated with currentImagePixelData
 const selectionCtx = selectionCanvas.getContext("2d", {
   willReadFrequently: true
 });
@@ -36,8 +39,10 @@ const ACTIVE_TOOL_RECTANGLE = "rectangle";
 const ACTIVE_TOOL_BRUSH = "brush";
 const BRUSH_MODE_DRAW = "draw";
 const BRUSH_MODE_ERASE = "erase";
-const MIN_RECT_SELECTION_SIZE = 5;
-const MASK_ALPHA_THRESHOLD = 50;
+const MIN_RECT_SELECTION_SIZE = 5; // Minimum size for a rectangle selection to be valid
+const BRUSH_DRAW_COLOR = "rgb(0, 123, 255)"; // Opaque color for brush strokes
+const BRUSH_VISUAL_OPACITY = 0.25; // Visual opacity for the selection canvas when brush is active
+const MASK_ALPHA_THRESHOLD = 25; // Lowered to detect more translucent strokes
 
 // Selection variables
 let isSelecting = false;
@@ -54,6 +59,16 @@ const MAX_HISTORY_SIZE = 20;
 let selectionHistory = [];
 let currentHistoryIndex = -1;
 
+// Utility function for debouncing
+function debounce(func, delay) {
+  let timeoutId;
+  return function (...args) {
+    clearTimeout(timeoutId);
+    timeoutId = setTimeout(() => {
+      func.apply(this, args);
+    }, delay);
+  };
+}
 // Function to show a custom message box instead of alert()
 function showMessageBox(message) {
   messageText.textContent = message;
@@ -67,6 +82,8 @@ closeMessageBtn.addEventListener("click", () => {
 
 function resetImageState() {
   uploadedImage = null;
+  currentImagePixelData = null;
+  currentImageForPixelData = null;
   originalImage.src = "";
   originalImage.classList.add(HIDDEN_CLASS);
   uploadPrompt.classList.remove(HIDDEN_CLASS);
@@ -139,7 +156,7 @@ function isSelectionCanvasEmpty() {
   ).data;
   for (let i = 3; i < data.length; i += 4) {
     // Check alpha channel
-    if (data[i] > 50) return false; // Found a sufficiently non-transparent pixel
+    if (data[i] > MASK_ALPHA_THRESHOLD) return false; // Found a pixel above the mask threshold
   }
   return true;
 }
@@ -181,12 +198,12 @@ function drawBrushStroke(x1, y1, x2, y2) {
   if (brushMode === BRUSH_MODE_ERASE) {
     selectionCtx.globalCompositeOperation = "destination-out";
   } else {
-    selectionCtx.globalCompositeOperation = BRUSH_MODE_DRAW; // "source-over"
+    selectionCtx.globalCompositeOperation = "source-over"; // Allow stroke to build up, fixes disappearing strokes
   }
   selectionCtx.beginPath();
   selectionCtx.moveTo(x1, y1);
   selectionCtx.lineTo(x2, y2);
-  selectionCtx.strokeStyle = "rgba(0, 123, 255, 0.25)"; // More transparent blue for mask
+  selectionCtx.strokeStyle = BRUSH_DRAW_COLOR;
   selectionCtx.lineWidth = currentBrushSize;
   selectionCtx.lineCap = "round";
   selectionCtx.lineJoin = "round";
@@ -199,6 +216,12 @@ function updateToolUI() {
 
   brushToolBtn.classList.toggle("bg-pink-700", isBrushTool);
   rectangleToolBtn.classList.toggle("bg-indigo-700", !isBrushTool);
+
+  if (isBrushTool) {
+    selectionCanvas.style.opacity = String(BRUSH_VISUAL_OPACITY);
+  } else {
+    selectionCanvas.style.opacity = "1";
+  }
 
   brushSpecificControls.classList.toggle(HIDDEN_CLASS, !isBrushTool);
   brushSpecificControls.classList.toggle("flex", isBrushTool);
@@ -256,12 +279,12 @@ function handlePointerDown(clientX, clientY) {
     if (brushMode === BRUSH_MODE_ERASE) {
       selectionCtx.globalCompositeOperation = "destination-out";
     } else {
-      selectionCtx.globalCompositeOperation = BRUSH_MODE_DRAW; // "source-over"
+      selectionCtx.globalCompositeOperation = "source-over"; // Allow stroke to build up, fixes disappearing strokes
     }
 
     selectionCtx.beginPath();
     selectionCtx.arc(currentX, currentY, currentBrushSize / 2, 0, Math.PI * 2);
-    selectionCtx.fillStyle = "rgba(0, 123, 255, 0.25)"; // TODO: Use constant
+    selectionCtx.fillStyle = BRUSH_DRAW_COLOR;
     selectionCtx.fill();
     selectionCtx.restore();
     updateSelectionButtonsVisibility();
@@ -399,6 +422,8 @@ function setupCanvasesForImage(img) {
 function initializeImageUI(img, imgSrc) {
   uploadedImage = img;
   originalImage.src = imgSrc;
+  currentImagePixelData = null; // Invalidate cache for new image
+  currentImageForPixelData = null;
   originalImage.classList.remove(HIDDEN_CLASS);
   uploadPrompt.classList.add(HIDDEN_CLASS);
   originalImageContainer.classList.remove("items-center", "justify-center");
@@ -413,6 +438,7 @@ function initializeImageUI(img, imgSrc) {
 
 function handleImageFile(file) {
   if (!file || !file.type.startsWith("image/")) {
+    imageUpload.value = null; // Reset file input if validation fails early
     showMessageBox(
       file ? "Invalid file type. Please upload an image." : "No file selected."
     );
@@ -420,6 +446,7 @@ function handleImageFile(file) {
   }
 
   const reader = new FileReader();
+  currentOriginalFilename = file.name; // Store original filename
   reader.onload = (e) => {
     const img = new Image();
     img.onload = () => {
@@ -482,11 +509,10 @@ function autoPixelate() {
   pixelateImage(regionToPixelate, useBrushMaskForPixelation);
 }
 
-// Function to pixelate the image or a portion of it
-// Takes an optional 'region' argument { x, y, width, height } in original image coordinates
-// Takes an optional 'useBrushMask' boolean
 function pixelateImage(region = null, useBrushMask = false) {
   if (!uploadedImage) {
+    // This check might be redundant if autoPixelate already checks,
+    // but good for direct calls if any.
     showMessageBox("Please upload an image first.");
     return;
   }
@@ -497,21 +523,28 @@ function pixelateImage(region = null, useBrushMask = false) {
   const originalWidth = uploadedImage.naturalWidth;
   const originalHeight = uploadedImage.naturalHeight;
 
-  // Draw original image onto a temporary canvas to get pixel data
-  const tempCanvas = document.createElement("canvas");
-  const tempCtx = tempCanvas.getContext("2d", {
-    willReadFrequently: true
-  });
-  tempCanvas.width = originalWidth;
-  tempCanvas.height = originalHeight;
-  tempCtx.drawImage(uploadedImage, 0, 0);
+  let sourcePixelArray; // This will hold the .data from ImageData
+
+  if (currentImageForPixelData === uploadedImage && currentImagePixelData) {
+    sourcePixelArray = currentImagePixelData.data;
+    // originalWidth and originalHeight (from uploadedImage.naturalWidth/Height) are still correct
+  } else {
+    const tempCanvas = document.createElement("canvas");
+    const tempCtx = tempCanvas.getContext("2d"); // willReadFrequently not needed if caching
+    tempCanvas.width = originalWidth;
+    tempCanvas.height = originalHeight;
+    tempCtx.drawImage(uploadedImage, 0, 0, originalWidth, originalHeight);
+    currentImagePixelData = tempCtx.getImageData(
+      0,
+      0,
+      originalWidth,
+      originalHeight
+    );
+    currentImageForPixelData = uploadedImage;
+    sourcePixelArray = currentImagePixelData.data;
+  }
 
   const pixelSize = parseInt(pixelationRange.value);
-
-  // The base image (original) should already be drawn on pixelatedCanvas by autoPixelate or other callers.
-  // This function now focuses on applying pixelation to the specified part or whole.
-
-  // For region or brush mask, assume pixelatedCanvas already has the base (e.g., original image)
 
   if (useBrushMask) {
     const scaleXOriginalToDisplay = originalImage.clientWidth / originalWidth;
@@ -552,14 +585,17 @@ function pixelateImage(region = null, useBrushMask = false) {
             selectionMaskData[maskPixelIndex + 3] > MASK_ALPHA_THRESHOLD
           ) {
             // Check alpha of brush stroke
-            pixelateBlock(
-              tempCtx,
+            const blockW = Math.min(pixelSize, originalWidth - xOrig);
+            const blockH = Math.min(pixelSize, originalHeight - yOrig);
+            if (blockW <= 0 || blockH <= 0) continue;
+            pixelateBlockOptimized(
               ctx,
+              sourcePixelArray,
+              originalWidth,
               xOrig,
               yOrig,
-              pixelSize,
-              originalWidth,
-              originalHeight
+              blockW,
+              blockH
             );
           }
         }
@@ -578,15 +614,17 @@ function pixelateImage(region = null, useBrushMask = false) {
 
     for (let y = startPixelY; y < endPixelY; y += pixelSize) {
       for (let x = startPixelX; x < endPixelX; x += pixelSize) {
-        pixelateBlock(
-          tempCtx,
+        const blockW = Math.min(pixelSize, endPixelX - x);
+        const blockH = Math.min(pixelSize, endPixelY - y);
+        if (blockW <= 0 || blockH <= 0) continue;
+        pixelateBlockOptimized(
           ctx,
+          sourcePixelArray,
+          originalWidth, // sourceTotalImageWidth is originalWidth as sourceImageData is for the whole image
           x,
           y,
-          pixelSize,
-          endPixelX,
-          endPixelY,
-          region
+          blockW,
+          blockH
         );
       }
     }
@@ -594,36 +632,17 @@ function pixelateImage(region = null, useBrushMask = false) {
 }
 
 function pixelateBlock(
-  sourceContext,
   targetContext,
-  x,
-  y,
-  blockSize,
-  maxX,
-  maxY,
-  region = null
+  sourcePixelDataArray, // ImageData.data
+  sourceDataWidth, // Width of the source ImageData
+  blockXInSource, // Top-left X of the block in the source ImageData
+  blockYInSource, // Top-left Y of the block in the source ImageData
+  blockWidth, // Width of the block to process
+  blockHeight // Height of the block to process
+  // targetDrawX and targetDrawY are implicitly blockXInSource, blockYInSource
+  // as we draw onto a canvas (ctx) aligned with the source.
 ) {
-  const blockX = x;
-  const blockY = y;
-  // Adjust block dimensions if it's near the edge of the image or region
-  const blockWidth = Math.min(
-    blockSize,
-    (region ? region.x + region.width : maxX) - blockX
-  );
-  const blockHeight = Math.min(
-    blockSize,
-    (region ? region.y + region.height : maxY) - blockY
-  );
-
   if (blockWidth <= 0 || blockHeight <= 0) return;
-
-  const imageData = sourceContext.getImageData(
-    blockX,
-    blockY,
-    blockWidth,
-    blockHeight
-  );
-  const pixels = imageData.data;
 
   let red = 0;
   let green = 0;
@@ -631,33 +650,49 @@ function pixelateBlock(
   let alpha = 0;
   let count = 0;
 
-  // Calculate average color for the block
-  for (let i = 0; i < pixels.length; i += 4) {
-    red += pixels[i];
-    green += pixels[i + 1];
-    blue += pixels[i + 2];
-    alpha += pixels[i + 3];
-    count++;
+  for (let y = 0; y < blockHeight; y++) {
+    for (let x = 0; x < blockWidth; x++) {
+      const sourcePixelX = blockXInSource + x;
+      const sourcePixelY = blockYInSource + y;
+
+      const R_INDEX = (sourcePixelY * sourceDataWidth + sourcePixelX) * 4;
+      red += sourcePixelDataArray[R_INDEX];
+      green += sourcePixelDataArray[R_INDEX + 1];
+      blue += sourcePixelDataArray[R_INDEX + 2];
+      alpha += sourcePixelDataArray[R_INDEX + 3];
+      count++;
+    }
   }
 
   if (count > 0) {
     red = Math.floor(red / count);
     green = Math.floor(green / count);
     blue = Math.floor(blue / count);
-    alpha = Math.floor(alpha / count);
+    alpha = Math.floor(alpha / count); // Average alpha too
   }
 
   // Draw a rectangle with the average color onto the visible pixelated canvas
   targetContext.fillStyle = `rgba(${red}, ${green}, ${blue}, ${alpha / 255})`;
-  targetContext.fillRect(blockX, blockY, blockWidth, blockHeight);
+  targetContext.fillRect(
+    blockXInSource,
+    blockYInSource,
+    blockWidth,
+    blockHeight
+  );
 }
+
+// Renaming for clarity during transition, can be reverted to pixelateBlock if old one is fully removed
+const pixelateBlockOptimized = pixelateBlock;
 
 // Event listener for clear selection button
 clearSelectionBtn.addEventListener("click", clearSelection);
 
+// Debounce autoPixelate for slider input
+const debouncedAutoPixelate = debounce(autoPixelate, 200); // 200ms delay
+
 // Event listener for slider change
 pixelationRange.addEventListener("input", () => {
-  autoPixelate();
+  debouncedAutoPixelate();
 });
 
 // Event listener for download button
@@ -672,10 +707,15 @@ downloadBtn.addEventListener("click", () => {
     );
     return;
   }
+  const dotIndex = currentOriginalFilename.lastIndexOf(".");
+  const baseName =
+    dotIndex === -1
+      ? currentOriginalFilename
+      : currentOriginalFilename.substring(0, dotIndex);
   const dataURL = pixelatedCanvas.toDataURL("image/png"); // Get image data as PNG
   const a = document.createElement("a");
   a.href = dataURL;
-  a.download = "pixelated-image.png"; // Suggested filename
+  a.download = `${baseName}-pixelated.png`; // New filename
   document.body.appendChild(a);
   a.click();
   document.body.removeChild(a);
