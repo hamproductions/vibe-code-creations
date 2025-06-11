@@ -29,6 +29,7 @@ document.addEventListener("DOMContentLoaded", () => {
   const pixelatedImageContainer = document.getElementById(
     "pixelatedImageContainer"
   );
+  const shareBtn = document.getElementById("shareBtn");
   const controlsContainer = document.getElementById("controlsContainer");
   const detectFacesBtn = document.getElementById("detectFacesBtn"); // New button for face detection
 
@@ -82,6 +83,7 @@ document.addEventListener("DOMContentLoaded", () => {
     censorTypeSelect,
     effectLevelRange,
     downloadBtn,
+    shareBtn,
     rectangleToolBtn,
     brushToolBtn,
     brushSizeRange,
@@ -223,6 +225,7 @@ document.addEventListener("DOMContentLoaded", () => {
     pixelatedImageContainer.style.minHeight = ""; // Revert to CSS defined
     canvasPrompt.classList.remove(HIDDEN_CLASS);
     if (downloadBtn) downloadBtn.classList.add(HIDDEN_CLASS);
+    if (shareBtn) shareBtn.classList.add(HIDDEN_CLASS);
 
     clearSelection(); // This also calls saveSelectionState and autoPixelate (which will do nothing if no image)
     selectionHistory = [];
@@ -694,6 +697,9 @@ document.addEventListener("DOMContentLoaded", () => {
 
     if (canvasPrompt) canvasPrompt.classList.add(HIDDEN_CLASS);
     downloadBtn.classList.remove(HIDDEN_CLASS);
+    if (navigator.share && shareBtn) {
+      shareBtn.classList.remove(HIDDEN_CLASS);
+    }
 
     const originalWidth = uploadedImage.naturalWidth;
     const originalHeight = uploadedImage.naturalHeight;
@@ -1209,6 +1215,76 @@ document.addEventListener("DOMContentLoaded", () => {
     }, 10);
   });
 
+  // Event listener for Share button
+  if (shareBtn) {
+    shareBtn.addEventListener("click", async () => {
+      if (
+        !uploadedImage ||
+        !pixelatedCanvas ||
+        pixelatedCanvas.width <= 1 ||
+        pixelatedCanvas.height <= 1
+      ) {
+        showMessageBox(
+          "No processed image to share. Please upload and process an image first."
+        );
+        return;
+      }
+
+      if (!navigator.share) {
+        showMessageBox("Web Share API is not supported in your browser.");
+        return;
+      }
+
+      setButtonLoading(
+        shareBtn,
+        true,
+        '<i class="fas fa-spinner fa-spin mr-2"></i>Preparing Share...'
+      );
+      setControlsDisabled(true, [shareBtn]);
+
+      pixelatedCanvas.toBlob(async (blob) => {
+        if (!blob) {
+          showMessageBox(
+            "Could not create image blob for sharing. The canvas might be tainted or an error occurred."
+          );
+          setButtonLoading(shareBtn, false);
+          setControlsDisabled(false);
+          return;
+        }
+
+        const dotIndex = currentOriginalFilename.lastIndexOf(".");
+        const baseName =
+          dotIndex === -1
+            ? currentOriginalFilename
+            : currentOriginalFilename.substring(0, dotIndex);
+        const fileName = `${baseName}-${currentCensorType}-shared.png`;
+        const file = new File([blob], fileName, { type: "image/png" });
+
+        const shareData = {
+          files: [file],
+          title: "Pixelated Image",
+          text: `Check out this image I pixelated! Original: ${currentOriginalFilename}`
+        };
+
+        try {
+          await navigator.share(shareData);
+          showToast("Image shared successfully!");
+        } catch (err) {
+          if (err.name !== "AbortError") {
+            // Don't show error if user cancelled share
+            console.error("Error sharing:", err);
+            showMessageBox(`Could not share image: ${err.message}`);
+          } else {
+            showToast("Share cancelled.", 2000);
+          }
+        } finally {
+          setButtonLoading(shareBtn, false);
+          setControlsDisabled(false);
+        }
+      }, "image/png");
+    });
+  }
+
   // Ensure canvas and image containers resize responsively
   window.addEventListener("resize", () => {
     if (uploadedImage) {
@@ -1399,7 +1475,9 @@ document.addEventListener("DOMContentLoaded", () => {
   if (originalImageContainer)
     originalImageContainer.classList.add("items-center", "justify-center");
   if (originalImage) originalImage.classList.add(HIDDEN_CLASS);
+  // Note: shareBtn is already hidden by default in HTML, this is just for consistency if HTML changes
   if (downloadBtn) downloadBtn.classList.add(HIDDEN_CLASS);
+  if (shareBtn) shareBtn.classList.add(HIDDEN_CLASS);
   if (clearSelectionBtn) clearSelectionBtn.classList.add(HIDDEN_CLASS);
   if (undoBtn) undoBtn.classList.add(HIDDEN_CLASS);
   if (detectFacesBtn) detectFacesBtn.classList.add(HIDDEN_CLASS);
@@ -1407,4 +1485,36 @@ document.addEventListener("DOMContentLoaded", () => {
   updateToolUI();
   updateEffectControls(); // Initialize effect controls based on default type
   loadFaceApiModels();
+
+  // Handle incoming shares if the app was launched as a share target
+  if ("launchQueue" in window && window.launchQueue) {
+    window.launchQueue.setConsumer(async (launchParams) => {
+      if (!launchParams) return;
+
+      if (launchParams.files && launchParams.files.length > 0) {
+        showToast("Image received via share. Loading...", 4000);
+        try {
+          const fileHandle = launchParams.files[0]; // Process the first file
+          const file = await fileHandle.getFile();
+
+          if (file && file.type.startsWith("image/")) {
+            handleImageFile(file); // This function handles disabling/enabling controls during its process
+          } else {
+            showMessageBox("Received shared file is not a valid image.");
+            setControlsDisabled(false); // Ensure controls are enabled if we don't proceed
+          }
+        } catch (err) {
+          console.error("Error handling shared file:", err);
+          showMessageBox(
+            "Could not process the shared image. Please try again."
+          );
+          setControlsDisabled(false); // Ensure controls are enabled on error
+        }
+      }
+    });
+  } else {
+    console.warn(
+      "Launch Queue API not available. PWA share target handling might be limited."
+    );
+  }
 });
