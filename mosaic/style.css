@@ -1,0 +1,29 @@
+body {
+  font-family: "Inter", sans-serif;
+  background-color: #f0f4f8; /* Light gray background */
+}
+/* Custom scrollbar for better aesthetics */
+::-webkit-scrollbar {
+  width: 8px;
+}
+::-webkit-scrollbar-track {
+  background: #e2e8f0;
+  border-radius: 10px;
+}
+::-webkit-scrollbar-thumb {
+  background: #94a3b8;
+  border-radius: 10px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #64748b;
+}
+
+/* Overlay canvas for selection */
+.selection-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  /* width and height will be set by canvas attributes or JS, allowing them to match originalImage.clientWidth/Height */
+  pointer-events: none; /* Allows clicks to pass through to the image below when not drawing */
+  z-index: 10; /* Ensures it's above the image */
+}
