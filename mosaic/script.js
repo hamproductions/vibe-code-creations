@@ -408,6 +408,13 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   function redrawSelectionLayer() {
+    // If the brush tool is active, the selection canvas itself contains the persistent brush strokes.
+    // This function is primarily for drawing ephemeral selection indicators (like rectangles),
+    // which need to be cleared and redrawn. Brush strokes should not be cleared by this function
+    // as they are managed by direct drawing operations and restored during resize.
+    if (activeTool === ACTIVE_TOOL_BRUSH) {
+      return;
+    }
     selectionCtx.clearRect(0, 0, selectionCanvas.width, selectionCanvas.height);
 
     if (activeTool === ACTIVE_TOOL_RECTANGLE) {
@@ -1553,6 +1560,15 @@ document.addEventListener("DOMContentLoaded", () => {
         )
           return;
 
+        const oldSelectionCanvasWidth = selectionCanvas.width;
+        const oldSelectionCanvasHeight = selectionCanvas.height;
+        const oldCurrentDrawingRect = currentDrawingRect
+          ? { ...currentDrawingRect }
+          : null;
+        const oldStartX = startX;
+        const oldStartY = startY;
+        const oldLastBrushPoint = lastBrushPoint ? { ...lastBrushPoint } : null;
+
         const hadBrushSelection = !isSelectionCanvasEmpty();
         let tempBrushCanvas = null;
         if (hadBrushSelection && activeTool === ACTIVE_TOOL_BRUSH) {
@@ -1568,8 +1584,39 @@ document.addEventListener("DOMContentLoaded", () => {
 
         setupCanvasesForImage(uploadedImage);
 
+        const scaleX =
+          oldSelectionCanvasWidth > 0
+            ? selectionCanvas.width / oldSelectionCanvasWidth
+            : 1;
+        const scaleY =
+          oldSelectionCanvasHeight > 0
+            ? selectionCanvas.height / oldSelectionCanvasHeight
+            : 1;
+
         selectionRects = oldSelectionRects; // Restore original image coordinate rects
-        currentDrawingRect = null;
+
+        if (isSelecting && oldCurrentDrawingRect) {
+          // Restore and scale in-progress rectangle drawing state
+          currentDrawingRect = {
+            x: oldCurrentDrawingRect.x * scaleX,
+            y: oldCurrentDrawingRect.y * scaleY,
+            width: oldCurrentDrawingRect.width * scaleX,
+            height: oldCurrentDrawingRect.height * scaleY
+          };
+          startX = oldStartX * scaleX;
+          startY = oldStartY * scaleY;
+        } else {
+          currentDrawingRect = null; // No active rectangle drawing or reset if it was null
+        }
+
+        if (isBrushing && oldLastBrushPoint) {
+          // Restore and scale last brush point for continuous drawing
+          lastBrushPoint = {
+            x: oldLastBrushPoint.x * scaleX,
+            y: oldLastBrushPoint.y * scaleY
+          };
+        }
+        // If not isBrushing, lastBrushPoint remains as it was, or null if never set.
 
         if (activeTool === ACTIVE_TOOL_RECTANGLE) {
           redrawSelectionLayer();
