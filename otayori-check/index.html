@@ -1,0 +1,694 @@
+<!DOCTYPE html>
+<html lang="ja">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>お便りチェッカー - 単一HTMLファイル版</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Inter Font (Optional) -->
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      body {
+        font-family: "Inter", sans-serif;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="root"></div>
+
+    <!-- React CDN -->
+    <script
+      src="https://unpkg.com/react@18/umd/react.development.js"
+      crossorigin
+    ></script>
+    <script
+      src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"
+      crossorigin
+    ></script>
+    <!-- Babel CDN (JSXを変換するために必要) -->
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+
+    <script type="text/babel">
+      const { useState, useEffect } = React;
+      const App = () => {
+        // localStorageから初期値を読み込むか、空文字列をデフォルトとする
+        const [inputText, setInputText] = useState(() => {
+          return localStorage.getItem("letterChecker_inputText") || "";
+        });
+        const [programTheme, setProgramTheme] = useState(() => {
+          return localStorage.getItem("letterChecker_programTheme") || "";
+        });
+        const [topicTheme, setTopicTheme] = useState(() => {
+          return localStorage.getItem("letterChecker_topicTheme") || "";
+        });
+        const [geminiApiKey, setGeminiApiKey] = useState(() => {
+          return localStorage.getItem("letterChecker_geminiApiKey") || "";
+        });
+
+        // 新しい状態変数
+        const [fullyCorrectedText, setFullyCorrectedText] = useState(""); // 完全に修正されたテキスト
+        const [comments, setComments] = useState(""); // 新しい状態変数：コメント
+        const [improvements, setImprovements] = useState(""); // 新しい状態変数：改善点
+        const [acceptanceRate, setAcceptanceRate] = useState(null); // 新しい状態変数：採用率
+        const [safetyFeedback, setSafetyFeedback] = useState([]);
+        const [savedResponses, setSavedResponses] = useState(() => {
+          try {
+            const storedResponses = localStorage.getItem(
+              "letterChecker_savedResponses"
+            );
+            return storedResponses ? JSON.parse(storedResponses) : [];
+          } catch (e) {
+            console.error(
+              "Failed to parse saved responses from localStorage",
+              e
+            );
+            return [];
+          }
+        });
+        const [generatedPrompt, setGeneratedPrompt] = useState(""); // 新しい状態変数：生成されたプロンプト
+        const [apiPromptState, setApiPromptState] = useState(""); // APIに送信するプロンプト
+
+        const [loading, setLoading] = useState(false);
+        const [error, setError] = useState("");
+        const [originalTextForDisplay, setOriginalTextForDisplay] =
+          useState(""); // To show the "before" for current check result
+
+        // inputText, programTheme, topicTheme の変更をlocalStorageに保存する副作用
+        useEffect(() => {
+          localStorage.setItem("letterChecker_inputText", inputText);
+        }, [inputText]);
+
+        useEffect(() => {
+          localStorage.setItem("letterChecker_programTheme", programTheme);
+        }, [programTheme]);
+
+        useEffect(() => {
+          localStorage.setItem("letterChecker_topicTheme", topicTheme);
+        }, [topicTheme]);
+
+        useEffect(() => {
+          localStorage.setItem("letterChecker_geminiApiKey", geminiApiKey);
+        }, [geminiApiKey]);
+
+        useEffect(() => {
+          try {
+            localStorage.setItem(
+              "letterChecker_savedResponses",
+              JSON.stringify(savedResponses)
+            );
+          } catch (e) {
+            console.error("Failed to save responses to localStorage", e);
+          }
+        }, [savedResponses]);
+
+        // inputText, programTheme, topicTheme の変更を監視し、プロンプトを生成
+        useEffect(() => {
+          const evaluationCriteria = `
+- 自然な日本語・表現（修正が必要な場合は、修正後のテキストに反映してください。元のテキストのトーンを可能な限り維持し、厳しめに評価してください。）
+- お題に合っているか
+- 採用率（100点満点で評価し、数字のみを返してください）
+- 不適切な内容（ヘイトスピーチ、ハラスメント、自傷行為、性的内容、危険な内容など）が含まれていないか
+`;
+
+          const outputFormatInstructions = `
+修正後のテキストは、評価基準に基づいて最適化された内容にしてください。もし修正点がなければ、元のテキストをそのまま返してください。
+改善点は箇条書き形式で具体的に記述してください。改善点がなければ「なし」と記述してください。
+`;
+
+          const jsonSchema = `
+JSON出力の形式は以下に従ってください:
+`;
+
+          const apiPrompt = `以下のテキストを評価し、JSON形式で結果を返してください。
+評価基準：${evaluationCriteria}
+番組のテーマ: "${programTheme}"
+お題のテーマ: "${topicTheme}"
+
+テキスト: "${inputText}"
+
+${outputFormatInstructions}
+${jsonSchema}`;
+
+          const displayPrompt = `## お便り評価リクエスト
+
+**番組のテーマ:** ${programTheme || "なし"}
+**お題のテーマ:** ${topicTheme || "なし"}
+
+**評価してほしいお便り:**
+
+\`\`\`
+${inputText}
+\`\`\`
+
+**評価基準:**
+- 自然な日本語・表現（修正が必要な場合は、修正後のテキストに反映。元のテキストのトーンを可能な限り維持し、厳しめに評価）
+- お題に合っているか
+- 採用率（100点満点）
+- 不適切な内容（ヘイトスピーチ、ハラスメント、自傷行為、性的内容、危険な内容など）が含まれていないか
+
+**出力してほしい内容:**
+- **修正後のテキスト:** 評価基準に基づいて最適化された内容。修正点がなければ元のテキストをそのまま。
+- **コメント:** 全体的な評価や感想。
+- **改善点:** 具体的な改善提案（箇条書き）。改善点がなければ「なし」。
+- **採用率:** 100点満点の数字のみ。
+- **安全性評価:** 不適切な内容に関するフィードバック。`;
+
+          setGeneratedPrompt(displayPrompt);
+          setApiPromptState(apiPrompt);
+        }, [inputText, programTheme, topicTheme]);
+
+        /**
+         * Gemini APIを呼び出してテキストを処理する関数
+         * 入力されたお便りを要約し、安全性を評価し、コメント、改善点、採用率を生成します。
+         */
+        const checkLetter = async () => {
+          setLoading(true);
+          setError("");
+          // 結果表示に関わる状態をリセット
+          setFullyCorrectedText("");
+          setComments("");
+          setImprovements("");
+          setAcceptanceRate(null);
+          setSafetyFeedback([]);
+          setOriginalTextForDisplay(inputText); // 現在の入力内容を「編集前」として保存
+
+          // 入力テキストが空の場合は処理を停止し、エラーメッセージを表示
+          if (!inputText.trim()) {
+            setError("テキストを入力してください。");
+            setLoading(false);
+            return;
+          }
+
+          try {
+            // APIキーはCanvas環境で自動的に提供されるため、ここでは空文字列でOK
+            const apiKey = geminiApiKey;
+            const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`;
+
+            // Gemini APIへのリクエストペイロードを作成
+            const chatHistory = [
+              { role: "user", parts: [{ text: apiPromptState }] }
+            ];
+            const payload = {
+              contents: chatHistory,
+              generationConfig: {
+                responseMimeType: "application/json",
+                responseSchema: {
+                  type: "OBJECT",
+                  properties: {
+                    fullyCorrectedText: { type: "STRING" }, // 完全に修正されたテキスト
+                    comments: { type: "STRING" },
+                    improvements: { type: "STRING" }, // 具体的な改善点 (箇条書き)
+                    acceptanceRate: { type: "NUMBER" },
+                    safetyFeedback: {
+                      type: "ARRAY",
+                      items: { type: "STRING" }
+                    }
+                  },
+                  required: [
+                    "fullyCorrectedText",
+                    "comments",
+                    "improvements",
+                    "acceptanceRate",
+                    "safetyFeedback"
+                  ]
+                }
+              }
+            };
+
+            // API呼び出しの実行
+            const response = await fetch(apiUrl, {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify(payload)
+            });
+
+            const result = await response.json();
+
+            // APIからの応答を処理
+            if (
+              result.candidates &&
+              result.candidates.length > 0 &&
+              result.candidates[0].content &&
+              result.candidates[0].content.parts &&
+              result.candidates[0].content.parts.length > 0
+            ) {
+              const jsonString = result.candidates[0].content.parts[0].text;
+
+              try {
+                const parsedJson = JSON.parse(jsonString);
+                setFullyCorrectedText(parsedJson.fullyCorrectedText || "");
+                setComments(parsedJson.comments || "");
+                setImprovements(parsedJson.improvements || "");
+                setAcceptanceRate(
+                  parsedJson.acceptanceRate !== undefined
+                    ? parsedJson.acceptanceRate
+                    : null
+                );
+                setSafetyFeedback(parsedJson.safetyFeedback || []);
+              } catch (jsonParseError) {
+                setError(
+                  "APIからの応答の解析に失敗しました。無効なJSON形式です。"
+                );
+                console.error("JSON Parse Error:", jsonParseError);
+                console.log("Received JSON String:", jsonString);
+              }
+            } else {
+              setError("APIからの応答がありませんでした。");
+              console.log("No candidates or content in API response:", result);
+            }
+          } catch (err) {
+            console.error("Gemini API呼び出しエラー:", err);
+            setError(
+              "お便りのチェック中にエラーが発生しました。インターネット接続を確認するか、後でもう一度お試しください。"
+            );
+          } finally {
+            setLoading(false); // ローディング状態を解除
+          }
+        };
+
+        /**
+         * 「要約を編集に反映する」ボタンのハンドラ
+         * 要約されたテキストを入力エリアにコピーし、結果表示をリセットします。
+         */
+        const applySummary = () => {
+          if (fullyCorrectedText) {
+            setInputText(fullyCorrectedText); // 修正されたテキストを入力エリアにコピー
+            // 結果表示をリセット
+            setFullyCorrectedText("");
+            setComments("");
+            setImprovements("");
+            setAcceptanceRate(null);
+            setSafetyFeedback([]);
+            setOriginalTextForDisplay("");
+            setError("");
+          }
+        };
+
+        const saveCurrentResponse = () => {
+          if (originalTextForDisplay && fullyCorrectedText) {
+            const newSavedResponse = {
+              timestamp: new Date().toLocaleString(),
+              originalText: originalTextForDisplay,
+              correctedText: fullyCorrectedText,
+              comments: comments,
+              improvements: improvements,
+              acceptanceRate: acceptanceRate,
+              safetyFeedback: safetyFeedback
+            };
+            setSavedResponses((prevResponses) => [
+              newSavedResponse,
+              ...prevResponses
+            ]);
+            alert("現在の結果を保存しました！");
+          } else {
+            alert("保存する結果がありません。");
+          }
+        };
+
+        const deleteSavedResponse = (indexToDelete) => {
+          if (
+            window.confirm("この保存された結果を削除してもよろしいですか？")
+          ) {
+            setSavedResponses((prevResponses) =>
+              prevResponses.filter((_, index) => index !== indexToDelete)
+            );
+            alert("保存された結果を削除しました。");
+          }
+        };
+
+        return (
+          <div className="min-h-screen bg-gradient-to-br from-purple-400 via-pink-500 to-red-500 flex items-center justify-center p-4 font-inter">
+            <div className="bg-white p-8 rounded-xl shadow-2xl w-full max-w-2xl transform transition-all duration-300 hover:scale-[1.01] border-4 border-white">
+              <h1 className="text-4xl font-extrabold text-center text-gray-800 mb-6 drop-shadow-lg">
+                📮 お便りチェッカー 📮
+              </h1>
+
+              {/* 番組のテーマ入力フィールド */}
+              <div className="mb-4">
+                <label
+                  htmlFor="programTheme"
+                  className="block text-gray-700 text-base font-semibold mb-2"
+                >
+                  番組のテーマ (オプション):
+                </label>
+                <input
+                  id="programTheme"
+                  type="text"
+                  className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent outline-none transition-all duration-200 text-gray-800 text-base shadow-sm"
+                  placeholder="例: こども向け科学番組"
+                  value={programTheme}
+                  onChange={(e) => setProgramTheme(e.target.value)}
+                />
+              </div>
+              {/* お題のテーマ入力フィールド */}
+              <div className="mb-6">
+                <label
+                  htmlFor="topicTheme"
+                  className="block text-gray-700 text-base font-semibold mb-2"
+                >
+                  お題のテーマ (オプション):
+                </label>
+                <input
+                  id="topicTheme"
+                  type="text"
+                  className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent outline-none transition-all duration-200 text-gray-800 text-base shadow-sm"
+                  placeholder="例: 将来の夢"
+                  value={topicTheme}
+                  onChange={(e) => setTopicTheme(e.target.value)}
+                />
+              </div>
+
+              {/* Gemini API Key入力フィールド */}
+              <div className="mb-6">
+                <label
+                  htmlFor="geminiApiKey"
+                  className="block text-gray-700 text-base font-semibold mb-2"
+                >
+                  Gemini API Key:
+                </label>
+                <input
+                  id="geminiApiKey"
+                  type="password"
+                  className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent outline-none transition-all duration-200 text-gray-800 text-base shadow-sm"
+                  placeholder="YOUR_GEMINI_API_KEY"
+                  value={geminiApiKey}
+                  onChange={(e) => setGeminiApiKey(e.target.value)}
+                />
+              </div>
+
+              {/* お便り入力エリア（編集前） */}
+              <div className="mb-6">
+                <label
+                  htmlFor="letterInput"
+                  className="block text-gray-700 text-lg font-semibold mb-2"
+                >
+                  お便り・メッセージを入力してください (修正前)：
+                </label>
+                <textarea
+                  id="letterInput"
+                  className="w-full p-4 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent outline-none transition-all duration-200 text-gray-800 text-base shadow-sm"
+                  rows="8"
+                  placeholder="ここにメッセージを入力してください..."
+                  value={inputText}
+                  onChange={(e) => setInputText(e.target.value)}
+                ></textarea>
+              </div>
+
+              {/* チェックボタン */}
+              <button
+                onClick={checkLetter}
+                className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-6 rounded-full text-xl transition-all duration-300 transform hover:-translate-y-1 hover:shadow-lg focus:outline-none focus:ring-4 focus:ring-blue-500 focus:ring-opacity-50 flex items-center justify-center space-x-2"
+                disabled={loading} // ローディング中はボタンを無効化
+              >
+                {loading ? (
+                  <>
+                    <svg
+                      className="animate-spin h-5 w-5 text-white"
+                      xmlns="http://www.w3.org/2000/svg"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                    >
+                      <circle
+                        className="opacity-25"
+                        cx="12"
+                        cy="12"
+                        r="10"
+                        stroke="currentColor"
+                        strokeWidth="4"
+                      ></circle>
+                      <path
+                        className="opacity-75"
+                        fill="currentColor"
+                        d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                      ></path>
+                    </svg>
+                    <span>チェック中...</span>
+                  </>
+                ) : (
+                  <>
+                    <span>💌 チェックする 💌</span>
+                  </>
+                )}
+              </button>
+
+              {/* プロンプトコピーセクション */}
+              {generatedPrompt && (
+                <div className="mt-6 p-4 bg-gray-100 border border-gray-300 rounded-lg shadow-md">
+                  <label
+                    htmlFor="generatedPrompt"
+                    className="block text-gray-700 text-base font-semibold mb-2"
+                  >
+                    生成されたプロンプト
+                    (コピーして他のチャットアプリに貼り付け):
+                  </label>
+                  <textarea
+                    id="generatedPrompt"
+                    className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-gray-500 focus:border-transparent outline-none transition-all duration-200 text-gray-800 text-sm shadow-sm"
+                    rows="6"
+                    readOnly
+                    value={generatedPrompt}
+                  ></textarea>
+                  <button
+                    onClick={() =>
+                      navigator.clipboard.writeText(generatedPrompt)
+                    }
+                    className="mt-3 w-full bg-gray-600 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded-full text-base transition-all duration-300 transform hover:-translate-y-0.5 hover:shadow-lg focus:outline-none focus:ring-4 focus:ring-gray-500 focus:ring-opacity-50"
+                  >
+                    📋 プロンプトをコピー
+                  </button>
+                </div>
+              )}
+
+              {/* エラーメッセージ表示 */}
+              {error && (
+                <div className="mt-6 p-4 bg-red-100 border border-red-400 text-red-700 rounded-lg text-center text-base shadow-md">
+                  エラー: {error}
+                </div>
+              )}
+
+              {/* 結果表示エリア */}
+              {!loading &&
+                (fullyCorrectedText ||
+                  safetyFeedback.length > 0 ||
+                  originalTextForDisplay) && (
+                  <div className="mt-8 p-6 bg-purple-50 border border-purple-200 rounded-xl shadow-lg transition-all duration-300 transform hover:translate-x-1">
+                    <h2 className="text-2xl font-bold text-purple-800 mb-4 flex items-center">
+                      <span className="mr-2">✨</span> 結果
+                    </h2>
+
+                    {/* 修正前のお便り表示 */}
+                    {originalTextForDisplay && (
+                      <div className="mb-4">
+                        <h3 className="text-xl font-semibold text-gray-700 mb-2">
+                          修正前：
+                        </h3>
+                        <p className="text-gray-800 text-base leading-relaxed bg-white p-3 rounded-lg border border-gray-200 shadow-sm whitespace-pre-wrap">
+                          {originalTextForDisplay}
+                        </p>
+                      </div>
+                    )}
+
+                    {/* 修正後のお便り表示 */}
+                    {fullyCorrectedText && (
+                      <div className="mb-4">
+                        <h3 className="text-xl font-semibold text-gray-700 mb-2">
+                          修正後：
+                        </h3>
+                        <p className="text-gray-800 text-base leading-relaxed bg-white p-3 rounded-lg border border-gray-200 shadow-sm whitespace-pre-wrap">
+                          {fullyCorrectedText}
+                        </p>
+                      </div>
+                    )}
+
+                    {/* 改善点表示 */}
+                    {improvements && (
+                      <div className="mb-4">
+                        <h3 className="text-xl font-semibold text-gray-700 mb-2">
+                          改善点：
+                        </h3>
+                        <p className="text-gray-800 text-base leading-relaxed bg-white p-3 rounded-lg border border-gray-200 shadow-sm whitespace-pre-wrap">
+                          {improvements}
+                        </p>
+                      </div>
+                    )}
+
+                    {/* コメント表示 */}
+                    {comments && (
+                      <div className="mb-4">
+                        <h3 className="text-xl font-semibold text-gray-700 mb-2">
+                          コメント：
+                        </h3>
+                        <p className="text-gray-800 text-base leading-relaxed bg-white p-3 rounded-lg border border-gray-200 shadow-sm whitespace-pre-wrap">
+                          {comments}
+                        </p>
+                      </div>
+                    )}
+
+                    {/* 採用率表示 */}
+                    {acceptanceRate !== null && (
+                      <div className="mb-4">
+                        <h3 className="text-xl font-semibold text-gray-700 mb-2">
+                          採用率：
+                        </h3>
+                        <p className="text-gray-800 text-base leading-relaxed bg-white p-3 rounded-lg border border-gray-200 shadow-sm">
+                          <span className="text-2xl font-bold text-blue-700">
+                            {acceptanceRate}%
+                          </span>
+                        </p>
+                      </div>
+                    )}
+
+                    {/* 安全性評価の表示 */}
+                    {safetyFeedback.length > 0 && (
+                      <div>
+                        <h3 className="text-xl font-semibold text-gray-700 mb-2">
+                          安全性評価：
+                        </h3>
+                        <div className="flex flex-wrap gap-2">
+                          {safetyFeedback.map((feedback, index) => (
+                            <span
+                              key={index}
+                              className={`py-2 px-4 rounded-full font-semibold text-sm shadow-md
+                                    ${
+                                      feedback === "問題ありません"
+                                        ? "bg-green-100 text-green-700 border border-green-300"
+                                        : "bg-red-100 text-red-700 border border-red-300 animate-pulse"
+                                    }`}
+                            >
+                              {feedback}
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* 要約を編集に反映するボタン */}
+                    {fullyCorrectedText && ( // 修正されたテキストがある場合のみボタンを表示
+                      <button
+                        onClick={applySummary}
+                        className="mt-6 w-full bg-green-600 hover:bg-green-700 text-white font-bold py-3 px-6 rounded-full text-xl transition-all duration-300 transform hover:-translate-y-1 hover:shadow-lg focus:outline-none focus:ring-4 focus:ring-green-500 focus:ring-opacity-50 flex items-center justify-center space-x-2"
+                      >
+                        <span>📝 修正を編集に反映する 📝</span>
+                      </button>
+                    )}
+
+                    {fullyCorrectedText && ( // 修正されたテキストがある場合のみボタンを表示
+                      <button
+                        onClick={saveCurrentResponse}
+                        className="mt-4 w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 px-6 rounded-full text-xl transition-all duration-300 transform hover:-translate-y-1 hover:shadow-lg focus:outline-none focus:ring-4 focus:ring-indigo-500 focus:ring-opacity-50 flex items-center justify-center space-x-2"
+                      >
+                        <span>💾 現在の結果を保存する 💾</span>
+                      </button>
+                    )}
+                  </div>
+                )}
+
+              {/* 保存された結果の表示エリア */}
+              {savedResponses.length > 0 && (
+                <div className="mt-8 p-6 bg-blue-50 border border-blue-200 rounded-xl shadow-lg">
+                  <h2 className="text-2xl font-bold text-blue-800 mb-4 flex items-center">
+                    <span className="mr-2">📚</span> 保存された結果
+                  </h2>
+                  {savedResponses.map((response, index) => (
+                    <div
+                      key={index}
+                      className="bg-white p-4 rounded-lg shadow-md mb-4 border border-blue-100"
+                    >
+                      <p className="text-sm text-gray-500 mb-2">
+                        保存日時: {response.timestamp}
+                      </p>
+                      <h3 className="text-lg font-semibold text-gray-700 mb-2">
+                        修正前：
+                      </h3>
+                      <p className="text-gray-800 text-base leading-relaxed bg-gray-50 p-3 rounded-lg whitespace-pre-wrap mb-2">
+                        {response.originalText}
+                      </p>
+                      <h3 className="text-lg font-semibold text-gray-700 mb-2">
+                        修正後：
+                      </h3>
+                      <p className="text-gray-800 text-base leading-relaxed bg-gray-50 p-3 rounded-lg whitespace-pre-wrap mb-2">
+                        {response.correctedText}
+                      </p>
+                      {response.comments && (
+                        <div className="mb-2">
+                          <h3 className="text-lg font-semibold text-gray-700 mb-1">
+                            コメント：
+                          </h3>
+                          <p className="text-gray-800 text-base leading-relaxed bg-gray-50 p-3 rounded-lg whitespace-pre-wrap">
+                            {response.comments}
+                          </p>
+                        </div>
+                      )}
+                      {response.improvements && (
+                        <div className="mb-2">
+                          <h3 className="text-lg font-semibold text-gray-700 mb-1">
+                            改善点：
+                          </h3>
+                          <p className="text-gray-800 text-base leading-relaxed bg-gray-50 p-3 rounded-lg whitespace-pre-wrap">
+                            {response.improvements}
+                          </p>
+                        </div>
+                      )}
+                      {response.acceptanceRate !== null && (
+                        <div className="mb-2">
+                          <h3 className="text-lg font-semibold text-gray-700 mb-1">
+                            採用率：
+                          </h3>
+                          <p className="text-gray-800 text-base leading-relaxed bg-gray-50 p-3 rounded-lg">
+                            <span className="text-xl font-bold text-blue-700">
+                              {response.acceptanceRate}%
+                            </span>
+                          </p>
+                        </div>
+                      )}
+                      {response.safetyFeedback.length > 0 && (
+                        <div>
+                          <h3 className="text-lg font-semibold text-gray-700 mb-1">
+                            安全性評価：
+                          </h3>
+                          <div className="flex flex-wrap gap-2">
+                            {response.safetyFeedback.map(
+                              (feedback, fbIndex) => (
+                                <span
+                                  key={fbIndex}
+                                  className={`py-1 px-3 rounded-full font-semibold text-xs
+                                      ${
+                                        feedback === "問題ありません"
+                                          ? "bg-green-100 text-green-700 border border-green-300"
+                                          : "bg-red-100 text-red-700 border border-red-300"
+                                      }
+                                      `}
+                                >
+                                  {feedback}
+                                </span>
+                              )
+                            )}
+                          </div>
+                        </div>
+                      )}
+                      <button
+                        onClick={() => deleteSavedResponse(index)}
+                        className="mt-4 bg-red-500 hover:bg-red-600 text-white font-bold py-2 px-4 rounded-full text-sm transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-red-400 focus:ring-opacity-75"
+                      >
+                        削除
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+        );
+      };
+
+      // ReactDOM.createRootを使用してアプリケーションをマウント
+      const container = document.getElementById("root");
+      const root = ReactDOM.createRoot(container);
+      root.render(<App />);
+    </script>
+  </body>
+</html>
