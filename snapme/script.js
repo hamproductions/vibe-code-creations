@@ -103,10 +103,12 @@ startCamera();
 // Event listeners for capture method selection
 takePhotoRadio.addEventListener('change', () => {
     selectedCaptureMethod = 'takePhoto';
+    localStorage.setItem('snapmeCaptureMethod', 'takePhoto');
 });
 
 grabFrameRadio.addEventListener('change', () => {
     selectedCaptureMethod = 'grabFrame';
+    localStorage.setItem('snapmeCaptureMethod', 'grabFrame');
 });
 
 // Open settings modal
@@ -114,16 +116,43 @@ settingsButton.addEventListener('click', () => {
     settingsModal.style.display = 'flex';
     getCameras(); // Populate cameras when modal opens
 
+    // Load saved settings
+    const savedCameraId = localStorage.getItem('snapmeCameraId');
+    if (savedCameraId) {
+        cameraSelect.value = savedCameraId;
+        startCamera(savedCameraId); // Start camera with saved ID
+    }
+
+    const savedZoom = localStorage.getItem('snapmeZoom');
+    if (savedZoom) {
+        zoomSlider.value = savedZoom;
+        if (currentStream && currentStream.getVideoTracks()[0].getCapabilities().zoom) {
+            currentStream.getVideoTracks()[0].applyConstraints({ advanced: [{ zoom: parseFloat(savedZoom) }] });
+        }
+    }
+
+    const savedCaptureMethod = localStorage.getItem('snapmeCaptureMethod');
+    if (savedCaptureMethod) {
+        selectedCaptureMethod = savedCaptureMethod;
+        if (savedCaptureMethod === 'takePhoto') {
+            takePhotoRadio.checked = true;
+        } else {
+            grabFrameRadio.checked = true;
+        }
+    }
+
     // Attach event listeners for cameraSelect and zoomSlider only once
     if (!cameraSelect.dataset.listenersAttached) {
         cameraSelect.addEventListener('change', (event) => {
             startCamera(event.target.value);
+            localStorage.setItem('snapmeCameraId', event.target.value);
         });
         zoomSlider.addEventListener('input', () => {
             if (imageCapture) {
                 const track = currentStream.getVideoTracks()[0];
                 if (track.getCapabilities().zoom) {
                     track.applyConstraints({ advanced: [{ zoom: parseFloat(zoomSlider.value) }] });
+                    localStorage.setItem('snapmeZoom', zoomSlider.value);
                 }
             }
         });
