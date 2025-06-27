@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Snap Me</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+  </head>
+  <body
+    class="flex justify-center items-center min-h-screen bg-gray-100 font-sans"
+  >
+    <div
+      class="flex flex-col w-full max-w-md h-[80vh] bg-white rounded-lg shadow-md overflow-hidden"
+    >
+      <div class="bg-blue-700 text-white p-4 text-center text-lg relative">
+        Snap Me Chat
+        <button
+          id="settings-btn"
+          class="absolute top-2.5 right-2.5 bg-transparent border-none text-white text-2xl cursor-pointer"
+        >
+          ⚙️
+        </button>
+      </div>
+      <div
+        class="flex-grow p-4 overflow-y-auto flex flex-col-reverse relative"
+        id="chat-messages"
+      >
+        <!-- Messages will be appended here -->
+        <div
+          id="loading-spinner"
+          class="absolute bottom-4 left-1/2 -translate-x-1/2 border-4 border-gray-200 border-l-blue-500 rounded-full w-5 h-5 animate-spin hidden z-10"
+        ></div>
+      </div>
+      <div class="flex p-4 border-t border-gray-200">
+        <button
+          id="menu-button"
+          class="bg-transparent border-none px-2 text-2xl cursor-pointer mr-2 flex items-center justify-center h-full"
+        >
+          📂
+        </button>
+        <input
+          type="text"
+          id="message-input"
+          placeholder="Type a message..."
+          class="flex-grow border border-gray-300 rounded-full py-2 px-4 mr-2"
+        />
+        <button
+          id="send-button"
+          class="bg-blue-600 text-white rounded-full py-2 px-4 cursor-pointer"
+        >
+          Send
+        </button>
+      </div>
+    </div>
+
+    <div
+      id="settings-modal"
+      class="fixed inset-0 z-20 hidden bg-black bg-opacity-40 flex justify-center items-center"
+    >
+      <div
+        class="bg-white p-5 border border-gray-300 w-11/12 max-w-md rounded-lg relative"
+      >
+        <span
+          id="close-modal-btn"
+          class="absolute top-2 right-4 text-gray-400 text-3xl font-bold cursor-pointer hover:text-black"
+          >&times;</span
+        >
+        <h2 class="text-xl font-bold mb-4">Settings</h2>
+        <div class="mt-4">
+          <label
+            for="camera-select"
+            class="block text-sm font-medium text-gray-700 mb-2"
+            >Select Camera:</label
+          >
+          <select
+            id="camera-select"
+            class="block w-full max-w-xs mx-auto rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
+          ></select>
+        </div>
+
+        <div id="zoom-controls" class="mt-4 hidden">
+          <label
+            for="zoom-slider"
+            class="block text-sm font-medium text-gray-700 mb-2"
+            >Zoom:</label
+          >
+          <input
+            type="range"
+            id="zoom-slider"
+            min="0.5"
+            max="10"
+            value="1"
+            step="0.1"
+            class="w-full max-w-xs mx-auto"
+          />
+        </div>
+
+        <div class="mt-4">
+          <label class="block text-sm font-medium text-gray-700 mb-2"
+            >Capture Method:</label
+          >
+          <div class="flex items-center">
+            <input
+              type="radio"
+              id="capture-takephoto"
+              name="capture-method"
+              value="takePhoto"
+              class="focus:ring-blue-500 h-4 w-4 text-blue-600 border-gray-300"
+            />
+            <label
+              for="capture-takephoto"
+              class="ml-2 block text-sm text-gray-900"
+              >takePhoto()</label
+            >
+          </div>
+          <div class="flex items-center mt-2">
+            <input
+              type="radio"
+              id="capture-grabframe"
+              name="capture-method"
+              value="grabFrame"
+              class="focus:ring-blue-500 h-4 w-4 text-blue-600 border-gray-300"
+              checked
+            />
+            <label
+              for="capture-grabframe"
+              class="ml-2 block text-sm text-gray-900"
+              >grabFrame()</label
+            >
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div
+      id="camera-preview-container"
+      class="absolute bottom-2.5 right-2.5 w-24 h-18 overflow-hidden rounded-lg shadow-md hidden z-10"
+    >
+      <video
+        id="video"
+        autoplay
+        playsinline
+        class="w-full h-full object-cover"
+      ></video>
+      <canvas id="canvas" class="hidden"></canvas>
+    </div>
+
+    <a id="download-link" class="hidden"></a>
+    <script src="script.js"></script>
+  </body>
+</html>
