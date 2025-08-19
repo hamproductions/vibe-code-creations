@@ -1,0 +1,395 @@
+<!DOCTYPE html>
+<html lang="ja">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>サイゼリヤメニュー番号学習アプリ</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+      @import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap");
+      body {
+        font-family: "Inter", sans-serif;
+        background-color: #f7f7f7;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        min-height: 100vh;
+        padding: 1rem;
+      }
+      .container {
+        max-width: 600px;
+        width: 100%;
+        background-color: #ffffff;
+        border-radius: 1.5rem;
+        box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+        padding: 2.5rem;
+        text-align: center;
+      }
+      .message-box {
+        background-color: #e2e8f0;
+        padding: 1rem;
+        border-radius: 0.75rem;
+        margin-top: 1.5rem;
+        font-size: 1rem;
+        color: #4b5563;
+        text-align: left;
+      }
+      .option-button {
+        background-color: #e2e8f0;
+        color: #1a202c;
+        width: 100%;
+        padding: 1rem;
+        border-radius: 0.75rem;
+        font-weight: 600;
+        margin-top: 1rem;
+        transition: background-color 0.3s, transform 0.1s;
+      }
+      .option-button:hover {
+        background-color: #cbd5e1;
+      }
+      .option-button:active {
+        transform: scale(0.98);
+      }
+      .correct-answer {
+        background-color: #48bb78;
+        color: white;
+      }
+      .wrong-answer {
+        background-color: #f56565;
+        color: white;
+      }
+      button {
+        background-color: #4f46e5;
+        color: white;
+        padding: 0.75rem 1.5rem;
+        border-radius: 0.75rem;
+        font-weight: 600;
+        transition: background-color 0.3s, transform 0.1s;
+      }
+      button:hover {
+        background-color: #4338ca;
+      }
+      button:active {
+        transform: scale(0.98);
+      }
+      .start-button {
+        margin-top: 2rem;
+        width: 100%;
+      }
+    </style>
+  </head>
+  <body class="bg-gray-100 flex items-center justify-center min-h-screen p-4">
+    <div class="container">
+      <h1 class="text-3xl font-bold text-gray-800">
+        サイゼリヤメニュー番号学習アプリ
+      </h1>
+      <p class="mt-2 text-gray-600">
+        キーボード入力で全4桁の番号にチャレンジ！
+      </p>
+
+      <div id="quiz-section" class="hidden">
+        <div id="quiz-display" class="mt-8">
+          <p class="text-xl text-gray-800 font-semibold">メニュー名:</p>
+          <p id="menu-name" class="text-2xl mt-2 font-bold text-indigo-700"></p>
+        </div>
+        <div id="options-container" class="mt-4"></div>
+        <button
+          id="next-button"
+          class="mt-4 px-6 py-3 bg-gray-500 text-white rounded-xl font-bold w-full md:w-auto hidden"
+        >
+          次の問題へ
+        </button>
+      </div>
+
+      <button id="start-button" class="start-button">クイズを開始</button>
+
+      <div id="message-box" class="message-box hidden">
+        <p id="message-text"></p>
+      </div>
+    </div>
+
+    <script>
+      const menuData = [
+        // 1000番台: 前菜・サラダ・スープ
+        { name: "小エビのサラダ", number: "1202" },
+        { name: "わかめのサラダ", number: "1205" },
+        { name: "モッツァレラのサラダ", number: "1207" },
+        { name: "グリーンサラダ", number: "1208" },
+        { name: "チキンのサラダ", number: "1209" },
+        { name: "コーンクリームスープ", number: "1301" },
+        { name: "田舎風ミネストローネ", number: "1305" },
+        { name: "たまねぎのズッパ", number: "1307" },
+        { name: "辛味チキン", number: "1401" },
+        { name: "アロスティチーニ", number: "1402" },
+        { name: "ほうれん草のソテー", number: "1403" },
+        { name: "ポップコーンシュリンプ", number: "1404" },
+        { name: "エスカルゴのオーブン焼き", number: "1405" },
+        { name: "小エビのカクテル", number: "1406" },
+        { name: "チョリソー", number: "1407" },
+        { name: "蒸し鶏の香味ソース", number: "1408" },
+        { name: "ムール貝のガーリック焼き", number: "1410" },
+        { name: "アスパラガスの温サラダ", number: "1411" },
+        { name: "爽やかにんじんサラダ", number: "1413" },
+        { name: "モッツァレラトマト", number: "1414" },
+        { name: "カリッとポテト", number: "1415" },
+        { name: "バッファローモッツァレラのカプレーゼ", number: "1417" },
+        { name: "ハモン・セラーノ", number: "1422" },
+        { name: "生ハムとバッファローモッツァレラの盛合せ", number: "1423" },
+        { name: "柔らか青豆の温サラダ", number: "1425" },
+        { name: "アロスティチーニ Wサイズ", number: "1452" },
+        // 2000番台: メインディッシュ
+        { name: "ミラノ風ドリア", number: "2101" },
+        { name: "半熟卵のミラノ風ドリア", number: "2103" },
+        { name: "タラコとエビのドリア", number: "2106" },
+        { name: "焼チーズミラノ風ドリア", number: "2108" },
+        { name: "エビとタラコのクリームグラタン（全粒粉）", number: "2109" },
+        { name: "マルゲリータピザ", number: "2203" },
+        { name: "野菜ときのこのピザ", number: "2204" },
+        { name: "たっぷりコーンのピザ", number: "2206" },
+        { name: "ソーセージピザ", number: "2208" },
+        { name: "タラコソースシシリー風", number: "2301" },
+        { name: "ペペロンチーノ", number: "2303" },
+        { name: "パルマ風スパゲッティ", number: "2304" },
+        { name: "カルボナーラ", number: "2305" },
+        { name: "ミートソースボロニア風", number: "2306" },
+        { name: "スープ入り塩味ボンゴレ", number: "2310" },
+        { name: "半熟卵のミートソースボロニア風", number: "2316" },
+        { name: "半熟卵のペペロンチーノ", number: "2317" },
+        { name: "小エビのタラコソース", number: "2320" },
+        { name: "きのことほうれん草のクリームスパゲッティ", number: "2321" },
+        { name: "ペンネアラビアータ（全粒粉）", number: "2325" },
+        { name: "イカの墨入りセピアソース", number: "2328" },
+        { name: "若鶏のディアボラ風", number: "2402" },
+        { name: "イタリアンハンバーグ", number: "2403" },
+        { name: "柔らかチキンのチーズ焼き", number: "2404" },
+        { name: "ハンバーグステーキ", number: "2406" },
+        { name: "ディアボラ風ハンバーグ", number: "2407" },
+        { name: "ラムと野菜のグリル", number: "2413" },
+        { name: "ミックスグリル", number: "2418" },
+        // 3000番台: ドリンク・パン・デザートなど
+        { name: "ライス", number: "3101" },
+        { name: "ラージライス", number: "3102" },
+        { name: "スモールライス", number: "3103" },
+        { name: "フォッカチオ", number: "3110" },
+        { name: "ガーリックフォッカチオ", number: "3111" },
+        { name: "シナモンフォッカチオ", number: "3112" },
+        { name: "チーズフォッカチオ", number: "3114" },
+        { name: "ティラミスクラシコ （すぐに）", number: "3201" },
+        { name: "ジェラート＆シナモンプチフォッカ （すぐに）", number: "3204" },
+        { name: "イタリアンジェラート（すぐに）", number: "3205" },
+        { name: "イタリアンプリン（すぐに）", number: "3206" },
+        { name: "チョコレートケーキ（すぐに）", number: "3207" },
+        {
+          name: "プリンとティラミスクラシコの盛合せ（すぐに）",
+          number: "3212"
+        },
+        { name: "トリフアイスクリーム（すぐに）", number: "3213" },
+        {
+          name: "コーヒーゼリー＆イタリアンジェラート（すぐに）",
+          number: "3215"
+        },
+        { name: "生ビール ジョッキ", number: "3301" },
+        { name: "グラスビール", number: "3302" },
+        { name: "ノンアルコールビール", number: "3303" },
+        { name: "キリン 氷結 シチリア産レモン", number: "3304" },
+        { name: "グラッパ", number: "3306" },
+        { name: "グラスワイン 赤", number: "3401" },
+        { name: "グラスワイン 白", number: "3402" },
+        { name: "デカンタ小 赤", number: "3403" },
+        { name: "デカンタ小 白", number: "3404" },
+        { name: "デカンタ大 赤", number: "3405" },
+        { name: "デカンタ大 白", number: "3406" },
+        { name: "マグナム 赤", number: "3407" },
+        { name: "マグナム 白", number: "3408" },
+        { name: "ボトルワイン ドンラファエロ", number: "3413" },
+        { name: "ボトルワイン ランブルスコロゼ", number: "3412" },
+        { name: "ボトルワイン ランブルスコセッコ", number: "3414" },
+        { name: "ボトルワイン ベルデッキオ", number: "3415" },
+        { name: "ボトルワイン キャンティ", number: "3416" },
+        { name: "ボトルワイン キャンティルフィナリゼルバ", number: "3419" },
+        { name: "ティラミスクラシコ （あとで）", number: "3901" },
+        { name: "ジェラート＆シナモンプチフォッカ （あとで）", number: "3904" },
+        { name: "イタリアンジェラート（あとで）", number: "3905" },
+        { name: "イタリアンプリン（あとで）", number: "3906" },
+        { name: "チョコレートケーキ（あとで）", number: "3907" },
+        {
+          name: "プリンとティラミスクラシコの盛合せ（あとで）",
+          number: "3912"
+        },
+        { name: "トリフアイスクリーム（あとで）", number: "3913" },
+        {
+          name: "コーヒーゼリー＆イタリアンジェラート（あとで）",
+          number: "3915"
+        },
+        // 4000・5000番台: その他
+        { name: "トッピング粉チーズ", number: "4307" },
+        { name: "トッピング半熟卵", number: "4301" },
+        { name: "セットドリンクバー", number: "5101" },
+        { name: "キッズドリンクバー", number: "5102" },
+        { name: "ドリンクバー（単品）", number: "5103" },
+        { name: "サイゼリヤドレッシング", number: "5305" },
+        { name: "エクストラ・バージン・オリーブオイル", number: "5306" }
+      ];
+
+      let currentMenu = null;
+      let shuffledMenus = [];
+      let categoryMenus = {};
+      let currentCategoryKeys = [];
+      let currentCategoryIndex = 0;
+
+      const startButton = document.getElementById("start-button");
+      const quizSection = document.getElementById("quiz-section");
+      const menuNameElement = document.getElementById("menu-name");
+      const optionsContainer = document.getElementById("options-container");
+      const nextButton = document.getElementById("next-button");
+      const messageBox = document.getElementById("message-box");
+      const messageText = document.getElementById("message-text");
+
+      function shuffleArray(array) {
+        for (let i = array.length - 1; i > 0; i--) {
+          const j = Math.floor(Math.random() * (i + 1));
+          [array[i], array[j]] = [array[j], array[i]];
+        }
+      }
+
+      // カテゴリーごとにメニューを分類
+      function categorizeMenus() {
+        categoryMenus = {};
+        menuData.forEach((menu) => {
+          const category = menu.number.charAt(0);
+          if (!categoryMenus[category]) {
+            categoryMenus[category] = [];
+          }
+          categoryMenus[category].push(menu);
+        });
+        currentCategoryKeys = Object.keys(categoryMenus).sort();
+        currentCategoryIndex = 0;
+      }
+
+      function getWrongAnswers(correctAnswer, currentCategory) {
+        const allNumbersInThisCategory = categoryMenus[currentCategory].map(
+          (item) => item.number
+        );
+        const wrongNumbers = allNumbersInThisCategory.filter(
+          (num) => num !== correctAnswer
+        );
+        shuffleArray(wrongNumbers);
+        return wrongNumbers.slice(0, 3);
+      }
+
+      function startQuiz() {
+        categorizeMenus();
+        startButton.classList.add("hidden");
+        quizSection.classList.remove("hidden");
+        messageBox.classList.add("hidden");
+        startCategoryQuiz();
+      }
+
+      function startCategoryQuiz() {
+        if (currentCategoryIndex >= currentCategoryKeys.length) {
+          endQuiz();
+          return;
+        }
+        const currentCategory = currentCategoryKeys[currentCategoryIndex];
+        shuffledMenus = [...categoryMenus[currentCategory]];
+        shuffleArray(shuffledMenus);
+        displayNextQuestion();
+      }
+
+      function displayNextQuestion() {
+        if (shuffledMenus.length === 0) {
+          currentCategoryIndex++;
+          startCategoryQuiz();
+          return;
+        }
+        currentMenu = shuffledMenus.pop();
+        menuNameElement.textContent = currentMenu.name;
+
+        optionsContainer.innerHTML = "";
+        const options = getWrongAnswers(
+          currentMenu.number,
+          currentMenu.number.charAt(0)
+        );
+        options.push(currentMenu.number);
+        shuffleArray(options);
+
+        options.forEach((option, index) => {
+          const button = document.createElement("button");
+          button.className = "option-button";
+          button.textContent = option;
+          button.id = `option-${index + 1}`;
+          button.addEventListener("click", () => checkAnswer(button, option));
+          optionsContainer.appendChild(button);
+        });
+
+        nextButton.classList.add("hidden");
+        messageBox.classList.add("hidden");
+      }
+
+      function checkAnswer(clickedButton, selectedNumber) {
+        const allButtons = optionsContainer.querySelectorAll(".option-button");
+
+        // 正解・不正解を判定
+        const isCorrect = selectedNumber === currentMenu.number;
+
+        // すべてのボタンの表示を更新
+        allButtons.forEach((btn) => {
+          btn.disabled = true;
+          const optionNumber = btn.textContent;
+          const optionMenu = menuData.find(
+            (item) => item.number === optionNumber
+          );
+          btn.textContent = `${optionNumber} ${
+            optionMenu ? optionMenu.name : "（メニュー名不明）"
+          }`;
+
+          if (optionNumber === currentMenu.number) {
+            btn.classList.add("correct-answer");
+          } else if (optionNumber === selectedNumber) {
+            btn.classList.add("wrong-answer");
+          }
+        });
+
+        // メッセージを表示
+        messageBox.classList.remove("hidden");
+        if (isCorrect) {
+          messageText.textContent = `正解！`;
+          messageText.classList.add("text-green-700");
+          messageText.classList.remove("text-red-700");
+        } else {
+          messageText.textContent = `残念！正解は ${currentMenu.number} の ${currentMenu.name} でした。`;
+          messageText.classList.add("text-red-700");
+          messageText.classList.remove("text-green-700");
+        }
+        nextButton.classList.remove("hidden");
+      }
+
+      function endQuiz() {
+        menuNameElement.textContent = "クイズ終了！お疲れさまでした！";
+        optionsContainer.innerHTML = "";
+        nextButton.classList.add("hidden");
+      }
+
+      startButton.addEventListener("click", startQuiz);
+      nextButton.addEventListener("click", displayNextQuestion);
+
+      // キーボード入力に対応
+      document.addEventListener("keydown", (event) => {
+        if (!quizSection.classList.contains("hidden")) {
+          const key = event.key;
+          if (["1", "2", "3", "4"].includes(key)) {
+            const button = document.getElementById(`option-${key}`);
+            if (button && !button.disabled) {
+              button.click();
+            }
+          } else if (
+            key === "Enter" &&
+            !nextButton.classList.contains("hidden")
+          ) {
+            nextButton.click();
+          }
+        }
+      });
+    </script>
+  </body>
+</html>
