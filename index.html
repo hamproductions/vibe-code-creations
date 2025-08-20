@@ -1,847 +1,147 @@
 <!DOCTYPE html>
-<html lang="ja">
+<html lang="en">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>サイゼリヤメニュー番号学習アプリ</title>
-    <script src="https://cdn.tailwindcss.com"></script>
+    <title>Project Showcase</title>
     <style>
-      @import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap");
       body {
-        font-family: "Inter", sans-serif;
-        background-color: #f7f7f7;
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+          Helvetica, Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji",
+          "Segoe UI Symbol";
+        margin: 0;
+        padding: 0;
+        background-color: #1a1a2e; /* Dark blue-purple background */
+        color: #e0e0e0; /* Light grey text */
         display: flex;
-        justify-content: center;
+        flex-direction: column;
         align-items: center;
         min-height: 100vh;
-        padding: 1rem;
       }
-      .container {
-        max-width: 600px;
-        width: 100%;
-        background-color: #ffffff;
-        border-radius: 1.5rem;
-        box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
-        padding: 2.5rem;
+
+      header {
+        background-color: #162447; /* Darker blue */
+        color: #e0e0e0;
+        padding: 30px 20px;
         text-align: center;
-      }
-      .message-box {
-        background-color: #e2e8f0;
-        padding: 1rem;
-        border-radius: 0.75rem;
-        margin-top: 1.5rem;
-        font-size: 1rem;
-        color: #4b5563;
-        text-align: left;
-      }
-      .option-button {
-        background-color: #e2e8f0;
-        color: #1a202c;
         width: 100%;
-        padding: 1rem;
-        border-radius: 0.75rem;
-        font-weight: 600;
-        margin-top: 1rem;
-        transition: background-color 0.3s, transform 0.1s;
-        text-align: left;
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+        border-bottom: 3px solid #fca311; /* Accent color */
       }
-      .option-button:hover {
-        background-color: #cbd5e1;
+
+      header h1 {
+        margin: 0;
+        font-size: 2.8em;
+        font-weight: 300;
+        letter-spacing: 1px;
       }
-      .option-button:active {
-        transform: scale(0.98);
+
+      .container {
+        max-width: 900px;
+        width: 90%;
+        margin: 40px auto;
+        padding: 20px;
       }
-      .correct-answer {
-        background-color: #48bb78;
-        color: white;
+
+      .project-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+        gap: 30px;
       }
-      /* New class for wrong answers */
-      .wrong-answer {
-        background-color: #ef4444;
-        color: white;
+
+      .project-card {
+        background-color: #1f4068; /* Slightly lighter blue */
+        border-radius: 10px;
+        padding: 25px;
+        box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+        transition: transform 0.3s ease, box-shadow 0.3s ease;
+        border-left: 5px solid #fca311; /* Accent color */
       }
-      /* Bubbly button styles */
-      .bubbly-button {
-        background-image: linear-gradient(to right, #4f46e5 0%, #6366f1 100%);
-        color: white;
-        padding: 0.75rem 1.5rem;
-        border-radius: 0.75rem;
-        font-weight: 600;
-        transition: all 0.3s ease;
-        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+
+      .project-card:hover {
+        transform: translateY(-10px);
+        box-shadow: 0 12px 25px rgba(0, 0, 0, 0.4);
       }
-      .bubbly-button:hover {
-        background-image: linear-gradient(to right, #4338ca 0%, #4f46e5 100%);
-        box-shadow: 0 6px 10px rgba(0, 0, 0, 0.15);
-        transform: translateY(-2px);
+
+      .project-card h2 {
+        margin-top: 0;
+        color: #e0e0e0;
+        font-size: 1.6em;
+        border-bottom: 1px solid #2a5285;
+        padding-bottom: 10px;
+        margin-bottom: 15px;
       }
-      .bubbly-button:active {
-        transform: translateY(0);
-        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+
+      .project-card p {
+        font-size: 1em;
+        line-height: 1.6;
+        color: #c0c0c0; /* Lighter grey for description */
+        margin-bottom: 20px;
       }
-      .start-button,
-      .next-button {
-        width: 100%;
+
+      .project-card a {
+        display: inline-block;
+        background-color: #fca311; /* Accent color */
+        color: #1a1a2e; /* Dark text on accent button */
+        padding: 10px 18px;
+        text-decoration: none;
+        border-radius: 5px;
+        font-weight: bold;
+        transition: background-color 0.3s ease;
       }
-      .category-selector {
-        display: flex;
-        flex-wrap: wrap;
-        gap: 0.5rem;
-        justify-content: center;
-        margin-bottom: 1rem;
-      }
-      .category-button {
-        background-color: #e2e8f0;
-        color: #1a202c;
-        padding: 0.5rem 1rem;
-        border-radius: 9999px;
-        font-size: 0.875rem;
-        transition: background-color 0.3s;
-      }
-      .category-button.active {
-        background-color: #4f46e5;
-        color: white;
-      }
-      .clear-all-button {
-        background-image: linear-gradient(to right, #6b7280 0%, #9ca3af 100%);
-      }
-      .clear-all-button:hover {
-        background-image: linear-gradient(to right, #4b5563 0%, #6b7280 100%);
-      }
-      .button-group {
-        display: flex;
-        gap: 1rem;
-        margin-top: 2rem;
+
+      .project-card a:hover {
+        background-color: #e09300; /* Darker accent on hover */
       }
     </style>
   </head>
-  <body class="bg-gray-100 flex items-center justify-center min-h-screen p-4">
+  <body>
+    <header>
+      <h1>Vibe code creations</h1>
+    </header>
     <div class="container">
-      <h1 class="text-3xl font-bold text-gray-800">
-        サイゼリヤメニュー番号学習アプリ
-      </h1>
-      <p class="mt-2 text-gray-600">法則を意識して番号を覚えよう！</p>
-
-      <div id="category-section">
-        <h2 class="text-xl font-bold mt-6 mb-2 text-gray-800">
-          クイズに挑戦するカテゴリーを選んでください
-        </h2>
-        <div class="category-selector" id="category-selector"></div>
-        <div class="button-group">
-          <button
-            id="clear-all-button"
-            class="bubbly-button clear-all-button w-1/2"
-          >
-            全クリア
-          </button>
-          <button
-            id="start-button"
-            class="bubbly-button start-button w-1/2 mt-0"
-          >
-            クイズを開始
-          </button>
+      <div class="project-grid">
+        <div class="project-card">
+          <h2>Mosaic Image Pixelator</h2>
+          <p>
+            An interactive tool to pixelate images. Features include uploading
+            your image, selecting areas with a rectangle or brush tool,
+            adjusting pixelation levels, and downloading the result.
+          </p>
+          <a href="mosaic/">Go to Mosaic Tool</a>
         </div>
-      </div>
-
-      <div id="quiz-section" class="hidden">
-        <div id="quiz-display" class="mt-8">
-          <p
-            id="category-hint"
-            class="text-sm font-semibold text-gray-500 hidden"
-          ></p>
-          <p class="text-xl text-gray-800 font-semibold mt-2">メニュー名:</p>
-          <p id="menu-name" class="text-2xl mt-2 font-bold text-indigo-700"></p>
+        <div class="project-card">
+          <h2>5L Schedule</h2>
+          <p>
+            A web page displaying the 5L schedule. Useful for quick reference
+            and planning.
+          </p>
+          <a href="5l-schedule/">View 5L Schedule</a>
         </div>
-        <button
-          id="hint-button"
-          class="bg-gray-200 text-gray-700 font-semibold py-2 px-4 rounded-xl mt-4"
-        >
-          ヒントを表示
-        </button>
-        <div id="options-container" class="mt-4"></div>
-        <!-- Updated spacing for the next button -->
-        <button id="next-button" class="bubbly-button next-button hidden mt-6">
-          次の問題へ
-        </button>
-      </div>
-
-      <div id="message-box" class="message-box hidden">
-        <p id="message-text"></p>
+        <div class="project-card">
+          <h2>Letter Checker</h2>
+          <p>
+            A tool that uses the Gemini API to evaluate letter content,
+            providing corrections, comments, improvements, acceptance rates, and
+            safety assessments.
+          </p>
+          <a href="otayori-check/">Go to Letter Checker</a>
+        </div>
+        <div class="project-card">
+          <h2>Snap Me</h2>
+          <p>
+            A chat application with integrated camera functionality, allowing
+            for seamless image capture within conversations.
+          </p>
+          <a href="snapme/">Go to Snap Me</a>
+        </div>
+        <div class="project-card">
+          <h2>Saize Quiz</h2>
+          <p>Become Saizeriya God</p>
+          <a href="saize-quiz/">Go to Saize Quiz</a>
+        </div>
+        <!-- Add more project cards here as needed -->
       </div>
     </div>
-
-    <script>
-      const menuData = [
-        // 1000番台: サラダ・スープ・前菜
-        {
-          name: "小エビのサラダ",
-          number: "1202",
-          category: "前菜・サラダ・スープ"
-        },
-        {
-          name: "わかめのサラダ",
-          number: "1205",
-          category: "前菜・サラダ・スープ"
-        },
-        {
-          name: "モッツァレラのサラダ",
-          number: "1207",
-          category: "前菜・サラダ・スープ"
-        },
-        {
-          name: "グリーンサラダ",
-          number: "1208",
-          category: "前菜・サラダ・スープ"
-        },
-        {
-          name: "チキンのサラダ",
-          number: "1209",
-          category: "前菜・サラダ・スープ"
-        },
-        {
-          name: "コーンクリームスープ",
-          number: "1301",
-          category: "前菜・サラダ・スープ"
-        },
-        {
-          name: "田舎風ミネストローネ",
-          number: "1305",
-          category: "前菜・サラダ・スープ"
-        },
-        {
-          name: "たまねぎのズッパ",
-          number: "1307",
-          category: "前菜・サラダ・スープ"
-        },
-        {
-          name: "辛味チキン",
-          number: "1401",
-          category: "前菜・サラダ・スープ"
-        },
-        {
-          name: "アロスティチーニ",
-          number: "1402",
-          category: "前菜・サラダ・スープ"
-        },
-        {
-          name: "ほうれん草のソテー",
-          number: "1403",
-          category: "前菜・サラダ・スープ"
-        },
-        {
-          name: "ポップコーンシュリンプ",
-          number: "1404",
-          category: "前菜・サラダ・スープ"
-        },
-        {
-          name: "エスカルゴのオーブン焼き",
-          number: "1405",
-          category: "前菜・サラダ・スープ"
-        },
-        {
-          name: "小エビのカクテル",
-          number: "1406",
-          category: "前菜・サラダ・スープ"
-        },
-        {
-          name: "チョリソー",
-          number: "1407",
-          category: "前菜・サラダ・スープ"
-        },
-        {
-          name: "蒸し鶏の香味ソース",
-          number: "1408",
-          category: "前菜・サラダ・スープ"
-        },
-        {
-          name: "ムール貝のガーリック焼き",
-          number: "1410",
-          category: "前菜・サラダ・スープ"
-        },
-        {
-          name: "アスパラガスの温サラダ",
-          number: "1411",
-          category: "前菜・サラダ・スープ"
-        },
-        {
-          name: "爽やかにんじんサラダ",
-          number: "1413",
-          category: "前菜・サラダ・スープ"
-        },
-        {
-          name: "モッツァレラトマト",
-          number: "1414",
-          category: "前菜・サラダ・スープ"
-        },
-        {
-          name: "カリッとポテト",
-          number: "1415",
-          category: "前菜・サラダ・スープ"
-        },
-        {
-          name: "バッファローモッツァレラのカプレーゼ",
-          number: "1417",
-          category: "前菜・サラダ・スープ"
-        },
-        {
-          name: "ハモン・セラーノ",
-          number: "1422",
-          category: "前菜・サラダ・スープ"
-        },
-        {
-          name: "生ハムとバッファローモッツァレラの盛合せ",
-          number: "1423",
-          category: "前菜・サラダ・スープ"
-        },
-        {
-          name: "柔らか青豆の温サラダ",
-          number: "1425",
-          category: "前菜・サラダ・スープ"
-        },
-        {
-          name: "アロスティチーニ Wサイズ",
-          number: "1452",
-          category: "前菜・サラダ・スープ"
-        },
-        // 2000番台: ドリア・ピザ・パスタ・肉料理
-        {
-          name: "ミラノ風ドリア",
-          number: "2101",
-          category: "ドリア・グラタン"
-        },
-        {
-          name: "半熟卵のミラノ風ドリア",
-          number: "2103",
-          category: "ドリア・グラタン"
-        },
-        {
-          name: "タラコとエビのドリア",
-          number: "2106",
-          category: "ドリア・グラタン"
-        },
-        {
-          name: "焼チーズミラノ風ドリア",
-          number: "2108",
-          category: "ドリア・グラタン"
-        },
-        {
-          name: "エビとタラコのクリームグラタン",
-          number: "2109",
-          category: "ドリア・グラタン"
-        },
-        { name: "マルゲリータピザ", number: "2203", category: "ピザ" },
-        { name: "野菜ときのこのピザ", number: "2204", category: "ピザ" },
-        { name: "たっぷりコーンのピザ", number: "2206", category: "ピザ" },
-        { name: "ソーセージピザ", number: "2208", category: "ピザ" },
-        { name: "タラコソースシシリー風", number: "2301", category: "パスタ" },
-        { name: "ペペロンチーノ", number: "2303", category: "パスタ" },
-        { name: "パルマ風スパゲッティ", number: "2304", category: "パスタ" },
-        { name: "カルボナーラ", number: "2305", category: "パスタ" },
-        { name: "ミートソースボロニア風", number: "2306", category: "パスタ" },
-        { name: "スープ入り塩味ボンゴレ", number: "2310", category: "パスタ" },
-        {
-          name: "半熟卵のミートソースボロニア風",
-          number: "2316",
-          category: "パスタ"
-        },
-        { name: "半熟卵のペペロンチーノ", number: "2317", category: "パスタ" },
-        { name: "小エビのタラコソース", number: "2320", category: "パスタ" },
-        {
-          name: "きのことほうれん草のクリームスパゲッティ",
-          number: "2321",
-          category: "パスタ"
-        },
-        { name: "ペンネアラビアータ", number: "2325", category: "パスタ" },
-        {
-          name: "イカの墨入りセピアソース",
-          number: "2328",
-          category: "パスタ"
-        },
-        { name: "若鶏のディアボラ風", number: "2402", category: "肉メニュー" },
-        {
-          name: "イタリアンハンバーグ",
-          number: "2403",
-          category: "肉メニュー"
-        },
-        {
-          name: "柔らかチキンのチーズ焼き",
-          number: "2404",
-          category: "肉メニュー"
-        },
-        { name: "ハンバーグステーキ", number: "2406", category: "肉メニュー" },
-        {
-          name: "ディアボラ風ハンバーグ",
-          number: "2407",
-          category: "肉メニュー"
-        },
-        { name: "ラムと野菜のグリル", number: "2413", category: "肉メニュー" },
-        { name: "ミックスグリル", number: "2418", category: "肉メニュー" },
-        // 3000番台: ライス・パン・デザート・ドリンクなど
-        { name: "ライス", number: "3101", category: "ライス・パン系" },
-        { name: "ラージライス", number: "3102", category: "ライス・パン系" },
-        { name: "スモールライス", number: "3103", category: "ライス・パン系" },
-        {
-          name: "シナモンプチフォッカ",
-          number: "3104",
-          category: "ライス・パン系"
-        },
-        { name: "プチフォッカ", number: "3106", category: "ライス・パン系" },
-        { name: "ミニフィセル", number: "3108", category: "ライス・パン系" },
-        {
-          name: "ガーリックトースト",
-          number: "3109",
-          category: "ライス・パン系"
-        },
-        { name: "フォッカチオ", number: "3110", category: "ライス・パン系" },
-        {
-          name: "ガーリックフォッカチオ",
-          number: "3111",
-          category: "ライス・パン系"
-        },
-        {
-          name: "シナモンフォッカチオ",
-          number: "3112",
-          category: "ライス・パン系"
-        },
-        {
-          name: "ティラミスクラシコ （すぐに）",
-          number: "3201",
-          category: "デザート"
-        },
-        {
-          name: "ジェラート＆シナモンプチフォッカ （すぐに）",
-          number: "3204",
-          category: "デザート"
-        },
-        {
-          name: "イタリアンジェラート（すぐに）",
-          number: "3205",
-          category: "デザート"
-        },
-        {
-          name: "イタリアンプリン（すぐに）",
-          number: "3206",
-          category: "デザート"
-        },
-        {
-          name: "チョコレートケーキ（すぐに）",
-          number: "3207",
-          category: "デザート"
-        },
-        {
-          name: "プリンとティラミスクラシコの盛合せ（すぐに）",
-          number: "3212",
-          category: "デザート"
-        },
-        {
-          name: "トリフアイスクリーム（すぐに）",
-          number: "3213",
-          category: "デザート"
-        },
-        {
-          name: "コーヒーゼリー＆イタリアンジェラート（すぐに）",
-          number: "3215",
-          category: "デザート"
-        },
-        { name: "グラッパ（30ml）", number: "3306", category: "デザート" },
-        {
-          name: "生ビール ジョッキ",
-          number: "3301",
-          category: "ドリンク・アルコール"
-        },
-        {
-          name: "グラスビール",
-          number: "3302",
-          category: "ドリンク・アルコール"
-        },
-        {
-          name: "ノンアルコールビール",
-          number: "3303",
-          category: "ドリンク・アルコール"
-        },
-        {
-          name: "キリン 氷結 シチリア産レモン",
-          number: "3304",
-          category: "ドリンク・アルコール"
-        },
-        {
-          name: "グラスワイン 赤",
-          number: "3401",
-          category: "ドリンク・アルコール"
-        },
-        {
-          name: "グラスワイン 白",
-          number: "3402",
-          category: "ドリンク・アルコール"
-        },
-        {
-          name: "デカンタ（250ml）赤",
-          number: "3403",
-          category: "ドリンク・アルコール"
-        },
-        {
-          name: "デカンタ（250ml）白",
-          number: "3404",
-          category: "ドリンク・アルコール"
-        },
-        {
-          name: "デカンタ（500ml）赤",
-          number: "3405",
-          category: "ドリンク・アルコール"
-        },
-        {
-          name: "デカンタ（500ml）白",
-          number: "3406",
-          category: "ドリンク・アルコール"
-        },
-        {
-          name: "マグナム（1500ml）赤",
-          number: "3407",
-          category: "ドリンク・アルコール"
-        },
-        {
-          name: "マグナム（1500ml）白",
-          number: "3408",
-          category: "ドリンク・アルコール"
-        },
-        {
-          name: "ランブルスコ【（ロゼ）甘口】",
-          number: "3412",
-          category: "ドリンク・アルコール"
-        },
-        {
-          name: "ドン ラファエロ【（白）辛口】",
-          number: "3413",
-          category: "ドリンク・アルコール"
-        },
-        {
-          name: "ランブルスコ セッコ【（赤）辛口】",
-          number: "3414",
-          category: "ドリンク・アルコール"
-        },
-        {
-          name: "ベルデッキオ【辛口・中】",
-          number: "3415",
-          category: "ドリンク・アルコール"
-        },
-        {
-          name: "キャンティ【辛口・やや重い】",
-          number: "3416",
-          category: "ドリンク・アルコール"
-        },
-        {
-          name: "キャンティ ルフィナ リゼルバ【辛口・重い】",
-          number: "3419",
-          category: "ドリンク・アルコール"
-        },
-        {
-          name: "ティラミスクラシコ （あとで）",
-          number: "3901",
-          category: "デザート"
-        },
-        {
-          name: "ジェラート＆シナモンプチフォッカ （あとで）",
-          number: "3904",
-          category: "デザート"
-        },
-        {
-          name: "イタリアンジェラート（あとで）",
-          number: "3905",
-          category: "デザート"
-        },
-        {
-          name: "イタリアンプリン（あとで）",
-          number: "3906",
-          category: "デザート"
-        },
-        {
-          name: "チョコレートケーキ（あとで）",
-          number: "3907",
-          category: "デザート"
-        },
-        {
-          name: "プリンとティラミスクラシコの盛合せ（あとで）",
-          number: "3912",
-          category: "デザート"
-        },
-        {
-          name: "トリフアイスクリーム（あとで）",
-          number: "3913",
-          category: "デザート"
-        },
-        {
-          name: "コーヒーゼリー＆イタリアンジェラート（あとで）",
-          number: "3915",
-          category: "デザート"
-        },
-        // 4000・5000番台: その他
-        { name: "トッピング半熟卵", number: "4301", category: "トッピング" },
-        { name: "野菜ペースト", number: "4304", category: "トッピング" },
-        {
-          name: "トッピング粉チーズ（グランモラビア）",
-          number: "4307",
-          category: "トッピング"
-        },
-        { name: "セットドリンクバー", number: "5101", category: "ドリンク" },
-        { name: "キッズドリンクバー", number: "5102", category: "ドリンク" },
-        { name: "ドリンクバー〈単品〉", number: "5103", category: "ドリンク" },
-        { name: "ランチドリンクバー", number: "5104", category: "ドリンク" }
-      ];
-
-      const categoryMap = {
-        1: "前菜・サラダ・スープ",
-        2: "メインディッシュ",
-        3: "ライス・パン・デザート",
-        4: "トッピング・お子様メニュー",
-        5: "ドリンク・セットメニュー"
-      };
-
-      let currentMenu = null;
-      let shuffledMenus = [];
-      let selectedCategories = [];
-
-      const categorySection = document.getElementById("category-section");
-      const quizSection = document.getElementById("quiz-section");
-      const startButton = document.getElementById("start-button");
-      const clearAllButton = document.getElementById("clear-all-button");
-      const categorySelector = document.getElementById("category-selector");
-      const hintButton = document.getElementById("hint-button");
-      const categoryHintElement = document.getElementById("category-hint");
-      const menuNameElement = document.getElementById("menu-name");
-      const optionsContainer = document.getElementById("options-container");
-      const nextButton = document.getElementById("next-button");
-      const messageBox = document.getElementById("message-box");
-      const messageText = document.getElementById("message-text");
-
-      function shuffleArray(array) {
-        for (let i = array.length - 1; i > 0; i--) {
-          const j = Math.floor(Math.random() * (i + 1));
-          [array[i], array[j]] = [array[j], array[i]];
-        }
-      }
-
-      function createCategoryButtons() {
-        const uniqueCategories = [
-          ...new Set(menuData.map((item) => item.category))
-        ];
-        const categoryGroups = {};
-        uniqueCategories.forEach((cat) => {
-          const firstDigit = menuData
-            .find((item) => item.category === cat)
-            .number.charAt(0);
-          if (!categoryGroups[firstDigit]) {
-            categoryGroups[firstDigit] = [];
-          }
-          categoryGroups[firstDigit].push(cat);
-        });
-
-        const sortedKeys = Object.keys(categoryGroups).sort();
-
-        sortedKeys.forEach((key) => {
-          const groupName = categoryMap[key] || `その他`;
-          const header = document.createElement("h3");
-          header.className = "text-lg font-bold w-full mt-4 mb-2";
-          header.textContent = `${key}000番台: ${groupName}`;
-          categorySelector.appendChild(header);
-
-          categoryGroups[key].forEach((cat) => {
-            const button = document.createElement("button");
-            button.className = "category-button active";
-            button.textContent = cat;
-            button.dataset.category = cat;
-            button.addEventListener("click", () => {
-              button.classList.toggle("active");
-              updateSelectedCategories();
-            });
-            categorySelector.appendChild(button);
-          });
-        });
-        updateSelectedCategories();
-      }
-
-      function updateSelectedCategories() {
-        const activeButtons = categorySelector.querySelectorAll(
-          ".category-button.active"
-        );
-        selectedCategories = Array.from(activeButtons).map(
-          (btn) => btn.dataset.category
-        );
-      }
-
-      function clearAllCategories() {
-        const allButtons =
-          categorySelector.querySelectorAll(".category-button");
-        allButtons.forEach((btn) => {
-          btn.classList.remove("active");
-        });
-        updateSelectedCategories();
-      }
-
-      function startQuiz() {
-        if (selectedCategories.length === 0) {
-          showMessage(
-            "error",
-            "クイズを開始するには、少なくとも1つのカテゴリーを選択してください。"
-          );
-          return;
-        }
-        shuffledMenus = menuData.filter((menu) =>
-          selectedCategories.includes(menu.category)
-        );
-        shuffleArray(shuffledMenus);
-        categorySection.classList.add("hidden");
-        quizSection.classList.remove("hidden");
-        document.addEventListener("keydown", handleKeyDown); // Enable keyboard input
-        showMessage("none");
-        displayNextQuestion();
-      }
-
-      function getWrongAnswers(correctNumber, correctCategory) {
-        const allNumbersInThisCategory = menuData
-          .filter((item) => item.category === correctCategory)
-          .map((item) => item.number);
-        const wrongNumbers = allNumbersInThisCategory.filter(
-          (num) => num !== correctNumber
-        );
-        shuffleArray(wrongNumbers);
-        return wrongNumbers.slice(0, 3);
-      }
-
-      function displayNextQuestion() {
-        if (shuffledMenus.length === 0) {
-          endQuiz();
-          return;
-        }
-        currentMenu = shuffledMenus.pop();
-
-        const firstDigit = currentMenu.number.charAt(0);
-        // Hint is now hidden by default
-        categoryHintElement.textContent = `ヒント: ${firstDigit}000番台は${
-          categoryMap[firstDigit] || "その他"
-        }のメニューです。`;
-        categoryHintElement.classList.add("hidden");
-
-        menuNameElement.textContent = currentMenu.name;
-        optionsContainer.innerHTML = "";
-        const wrongNumbers = getWrongAnswers(
-          currentMenu.number,
-          currentMenu.category
-        );
-        const options = [...wrongNumbers, currentMenu.number];
-        shuffleArray(options);
-
-        options.forEach((option, index) => {
-          const button = document.createElement("button");
-          button.className = "option-button";
-          button.textContent = `${index + 1}. ${option}`; // Add number for keyboard input hint
-          button.dataset.number = option;
-          button.addEventListener("click", () => checkAnswer(button));
-          optionsContainer.appendChild(button);
-        });
-
-        nextButton.classList.add("hidden");
-        hintButton.disabled = false;
-        showMessage("none");
-      }
-
-      function checkAnswer(clickedButton) {
-        const selectedNumber = clickedButton.dataset.number;
-        const allButtons = optionsContainer.querySelectorAll(".option-button");
-
-        const isCorrect = selectedNumber === currentMenu.number;
-        const correctAnswerObject = menuData.find(
-          (item) => item.number === currentMenu.number
-        );
-
-        // Add the 'wrong-answer' class to the user's selected button if it's incorrect
-        if (!isCorrect) {
-          clickedButton.classList.add("wrong-answer");
-        }
-
-        allButtons.forEach((btn) => {
-          btn.disabled = true;
-          const optionNumber = btn.dataset.number;
-          const optionMenu = menuData.find(
-            (item) => item.number === optionNumber
-          );
-          // Show full menu name and number after selection
-          btn.textContent = `${optionNumber}：${
-            optionMenu ? optionMenu.name : "（メニュー名不明）"
-          }`;
-
-          // Only highlight the correct answer
-          if (optionNumber === currentMenu.number) {
-            btn.classList.add("correct-answer");
-          }
-        });
-
-        if (isCorrect) {
-          showMessage("correct", "正解！");
-        } else {
-          showMessage(
-            "wrong",
-            `残念！正解は ${correctAnswerObject.number} の「${correctAnswerObject.name}」でした。`
-          );
-        }
-        nextButton.classList.remove("hidden");
-        hintButton.disabled = true;
-      }
-
-      function endQuiz() {
-        menuNameElement.textContent = "クイズ終了！お疲れさまでした！";
-        categoryHintElement.textContent = "";
-        optionsContainer.innerHTML = "";
-        nextButton.classList.add("hidden");
-        startButton.textContent = "もう一度プレイする";
-        categorySection.classList.remove("hidden");
-        quizSection.classList.add("hidden");
-        document.removeEventListener("keydown", handleKeyDown); // Disable keyboard input
-        showMessage("none");
-      }
-
-      // Updated function to handle keyboard input
-      function handleKeyDown(event) {
-        const key = event.key;
-        // Check if an answer has been selected (i.e., the next button is visible)
-        if (!nextButton.classList.contains("hidden")) {
-          displayNextQuestion();
-        } else if (
-          optionsContainer.children.length > 0 &&
-          ["1", "2", "3", "4"].includes(key)
-        ) {
-          // Otherwise, check if a number key was pressed to select an answer
-          const index = parseInt(key) - 1;
-          const selectedButton = optionsContainer.children[index];
-          if (selectedButton && !selectedButton.disabled) {
-            checkAnswer(selectedButton);
-          }
-        }
-      }
-
-      function showMessage(type, text = "") {
-        if (type === "none") {
-          messageBox.classList.add("hidden");
-        } else {
-          messageBox.classList.remove("hidden");
-          messageText.textContent = text;
-          messageText.className = "";
-          if (type === "correct") {
-            messageText.classList.add("text-green-700");
-          } else if (type === "wrong" || type === "error") {
-            messageText.classList.add("text-red-700");
-          }
-        }
-      }
-
-      startButton.addEventListener("click", startQuiz);
-      nextButton.addEventListener("click", displayNextQuestion);
-      clearAllButton.addEventListener("click", clearAllCategories);
-      hintButton.addEventListener("click", () => {
-        categoryHintElement.classList.remove("hidden");
-      });
-
-      // 初期化
-      createCategoryButtons();
-    </script>
   </body>
 </html>
