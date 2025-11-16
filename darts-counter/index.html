@@ -1,0 +1,620 @@
+<!DOCTYPE html>
+<html lang="en" class_name="h-full">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Darts 501 Scoreboard</title>
+    <!-- Load Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Load Inter font -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700;900&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            -webkit-tap-highlight-color: transparent;
+        }
+        .btn-tap {
+            transition: all 0.1s ease-in-out;
+        }
+        .btn-tap:active {
+            transform: scale(0.95);
+            filter: brightness(0.9);
+        }
+        .toggle-bg:after {
+            content: '';
+            @apply absolute top-0.5 left-0.5 bg-white border border-gray-300 rounded-full h-5 w-5 transition-transform;
+        }
+        input:checked + .toggle-bg:after {
+            @apply transform translate-x-full;
+        }
+        input:checked + .toggle-bg {
+            @apply bg-indigo-600 border-indigo-600;
+        }
+        :disabled {
+            @apply opacity-50 cursor-not-allowed;
+        }
+    </style>
+</head>
+<body class="bg-gray-100 dark:bg-gray-900 text-gray-900 dark:text-white h-full overflow-hidden">
+
+    <div class="flex flex-col h-screen p-4 sm:p-8 justify-between">
+
+        <!-- Top Section: Game Mode & Reset/Undo -->
+        <header class="flex justify-between items-center w-full max-w-lg mx-auto">
+            <!-- Game Mode Toggle -->
+            <div class="flex items-center space-x-2">
+                <span class="text-sm font-medium text-gray-500 dark:text-gray-400">Count Up</span>
+                <label for="game-mode-toggle" class="flex items-center cursor-pointer">
+                    <input type="checkbox" id="game-mode-toggle" class="sr-only" checked>
+                    <div class="toggle-bg relative w-11 h-6 bg-gray-300 dark:bg-gray-700 rounded-full border-2 border-transparent transition-colors"></div>
+                </label>
+                <span class="text-sm font-medium text-indigo-600 dark:text-indigo-400 font-bold">501 (Down)</span>
+            </div>
+
+            <!-- Control Buttons -->
+            <div class="flex space-x-2">
+                <button id="undo-btn" class="btn-tap bg-yellow-500 hover:bg-yellow-600 text-white font-medium py-2 px-4 rounded-lg text-sm shadow-md focus:outline-none focus:ring-4 focus:ring-yellow-300 dark:focus:ring-yellow-700">
+                    Undo
+                </button>
+                <button id="reset-btn" class="btn-tap bg-gray-500 hover:bg-gray-600 text-white font-medium py-2 px-4 rounded-lg text-sm shadow-md focus:outline-none focus:ring-4 focus:ring-gray-300 dark:focus:ring-gray-700">
+                    Reset
+                </button>
+            </div>
+        </header>
+
+        <!-- Middle Section: Score Display -->
+        <main class="flex-grow flex flex-col items-center justify-center text-center">
+            <p class="text-base font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Current Score</p>
+            <div id="score-display" class="text-8xl sm:text-9xl font-black text-indigo-600 dark:text-indigo-400 my-2" style="font-size: clamp(6rem, 25vw, 10rem);">
+                501
+            </div>
+
+            <!-- Turn Info -->
+            <div class="h-16">
+                <div id="turn-info" class="text-xl font-medium text-gray-700 dark:text-gray-200">
+                    Turn: <span id="turn-counter" class="font-bold">1</span>
+                </div>
+                <div id="last-score-info" class="text-xl text-gray-500 dark:text-gray-400 h-6">
+                    <!-- Last score or bust message goes here -->
+                </div>
+            </div>
+
+            <!-- Stats Display -->
+            <div id="stats-display" class="flex justify-around w-full max-w-xs mt-4">
+                <div class="text-center px-2">
+                    <p class="text-sm font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Avg (PPR)</p>
+                    <p id="ppr-stat" class="text-3xl font-bold text-gray-700 dark:text-gray-200">0.0</p>
+                </div>
+                <div class="text-center px-2">
+                    <p class="text-sm font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">First 9</p>
+                    <p id="f9-stat" class="text-3xl font-bold text-gray-700 dark:text-gray-200">0.0</p>
+                </div>
+            </div>
+        </main>
+
+        <!-- Bottom Section: Input Controls -->
+        <footer class="w-full max-w-sm mx-auto space-y-4 flex flex-col items-center pb-4">
+            <!-- Status Message Area -->
+            <div id="status-message" class="text-center text-sm text-gray-500 dark:text-gray-400 h-5">
+                Press the mic to start
+            </div>
+
+            <!-- Main Listening Button -->
+            <button id="toggle-listen-btn" class="btn-tap flex-shrink-0 bg-indigo-600 hover:bg-indigo-700 text-white font-bold w-24 h-24 rounded-full flex items-center justify-center shadow-lg focus:outline-none focus:ring-4 focus:ring-indigo-300 dark:focus:ring-indigo-800">
+                <svg class="w-12 h-12" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z"></path>
+                </svg>
+            </button>
+        </footer>
+    </div>
+
+    <script>
+        console.log("Darts Scorer script loaded.");
+
+        // DOM Elements
+        const scoreDisplay = document.getElementById('score-display');
+        const resetBtn = document.getElementById('reset-btn');
+        const undoBtn = document.getElementById('undo-btn');
+        const toggleListenBtn = document.getElementById('toggle-listen-btn');
+        const statusMessage = document.getElementById('status-message');
+        const turnCounter = document.getElementById('turn-counter');
+        const lastScoreInfo = document.getElementById('last-score-info');
+        const gameModeToggle = document.getElementById('game-mode-toggle');
+        const pprStat = document.getElementById('ppr-stat');
+        const f9Stat = document.getElementById('f9-stat');
+
+        // Game State
+        let currentScore = 501;
+        let previousScore = 501;
+        let turn = 1;
+        let isGame501 = true;
+        let isListening = false;
+        let lastTurnState = { score: 501, turn: 1, previousScore: 501 };
+        let scoreHistory = [];
+        let isScoreLocked = false;
+
+        // --- Screen Wake Lock ---
+        let wakeLock = null;
+        let noSleepVideo = null;
+
+        function initNoSleepVideo() {
+            if (noSleepVideo) return;
+            try {
+                console.log('Initializing NoSleep video hack...');
+                noSleepVideo = document.createElement('video');
+                noSleepVideo.muted = true;
+                noSleepVideo.playsInline = true;
+                noSleepVideo.loop = true;
+                noSleepVideo.src = "data:video/webm;base64,GkXfo0AgQoaBAAWYgAEdIAYAgAEAAEA8ABgA/iB9f31/f31/fQ==";
+                document.body.appendChild(noSleepVideo);
+            } catch (e) {
+                console.error('Failed to init NoSleep video:', e);
+            }
+        }
+
+        async function requestWakeLock() {
+            if ('wakeLock' in navigator) {
+                try {
+                    wakeLock = await navigator.wakeLock.request('screen');
+                    console.log('Screen Wake Lock is active (Official API).');
+                    statusMessage.textContent = "Listening... (Screen will stay on)";
+                    wakeLock.addEventListener('release', () => {
+                        console.log('Screen Wake Lock was released.');
+                        wakeLock = null;
+                    });
+                    return;
+                } catch (err) {
+                    console.warn(`Official Wake Lock failed: ${err.message}. Trying video hack...`);
+                }
+            }
+
+            try {
+                if (!noSleepVideo) {
+                    initNoSleepVideo();
+                }
+                await noSleepVideo.play();
+                console.log('Video hack "NoSleep" is active.');
+                statusMessage.textContent = "Listening... (Screen will stay on)";
+            } catch (err) {
+                console.error(`Video hack failed to play: ${err.message}`);
+                statusMessage.textContent = "Listening... (Can't keep screen on)";
+            }
+        }
+
+        function releaseWakeLock() {
+            if (wakeLock !== null) {
+                wakeLock.release();
+                wakeLock = null;
+                console.log('Official Wake Lock released.');
+            }
+            if (noSleepVideo) {
+                noSleepVideo.pause();
+                console.log('Video hack "NoSleep" paused.');
+            }
+        }
+
+        document.addEventListener('visibilitychange', async () => {
+            if (wakeLock === null && document.visibilityState === 'visible' && isListening) {
+                await requestWakeLock();
+            }
+        });
+
+        // --- Text-to-Speech ---
+        const synth = window.speechSynthesis;
+        function speak(text) {
+            if (!synth) {
+                console.warn('SpeechSynthesis not supported.');
+                return;
+            }
+            if (synth.speaking) {
+                synth.cancel();
+            }
+            if (text !== '') {
+                const utterThis = new SpeechSynthesisUtterance(text);
+                utterThis.onerror = function (event) {
+                    console.error('SpeechSynthesisUtterance.onerror', event);
+                }
+                synth.speak(utterThis);
+            }
+        }
+
+        // --- Speech Recognition Setup ---
+        const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+        let recognition;
+        if (SpeechRecognition) {
+            try {
+                recognition = new SpeechRecognition();
+                recognition.continuous = true;
+                recognition.lang = 'en-US';
+                recognition.interimResults = true;
+                recognition.maxAlternatives = 1;
+
+                recognition.onresult = (event) => {
+                    let finalTranscript = '';
+                    for (let i = event.resultIndex; i < event.results.length; ++i) {
+                        if (event.results[i].isFinal) {
+                            finalTranscript += event.results[i][0].transcript;
+                        }
+                    }
+
+                    if (finalTranscript && isListening && !isScoreLocked) {
+                        finalTranscript = finalTranscript.trim();
+                        console.log(`Heard: "${finalTranscript}"`);
+                        statusMessage.textContent = `Heard: "${finalTranscript}"`;
+                        const score = parseSpokenNumber(finalTranscript);
+
+                        if (!isNaN(score) && typeof score === 'number' && score >= 0 && score <= 180) {
+                            console.log(`Parsed score as: ${score}`);
+                            statusMessage.textContent += ` -> Submitting score: ${score}`;
+                            submitScore(score);
+                        } else {
+                            console.warn(`Could not parse a valid score from "${finalTranscript}". Got: ${score}`);
+                            statusMessage.textContent += ` -> Not a valid score.`;
+                        }
+                    }
+                };
+
+                recognition.onerror = (event) => {
+                    if (event.error === 'no-speech') {
+                        // Ignore
+                    } else if (event.error === 'not-allowed') {
+                        statusMessage.textContent = 'Microphone access denied.';
+                        console.error('Microphone access denied.');
+                        isListening = false;
+                        toggleListenBtn.disabled = true;
+                    } else {
+                        console.error(`Speech recognition error: ${event.error}`);
+                        statusMessage.textContent = `Error: ${event.error}`;
+                    }
+                };
+
+                recognition.onend = () => {
+                    if (isListening) {
+                        console.log('Recognition ended, restarting...');
+                        try {
+                            recognition.start();
+                        } catch (e) {
+                            console.error('Error restarting recognition:', e);
+                            statusMessage.textContent = "Error, trying to restart...";
+                        }
+                    } else {
+                        console.log('Recognition stopped by user.');
+                        toggleListenBtn.classList.remove('animate-pulse', 'bg-red-500');
+                        toggleListenBtn.classList.add('bg-indigo-600');
+                        toggleListenBtn.querySelector('svg').classList.remove('text-white');
+                        statusMessage.textContent = 'Stopped listening. Press mic to start.';
+                    }
+                };
+
+                toggleListenBtn.addEventListener('click', async () => {
+                    if (isListening) {
+                        console.log('Stopping listening...');
+                        isListening = false;
+                        recognition.stop();
+                        releaseWakeLock();
+                    } else {
+                        try {
+                            initNoSleepVideo();
+
+                            console.log('Starting listening...');
+                            recognition.start();
+                            isListening = true;
+                            statusMessage.textContent = 'Listening continuously...';
+                            toggleListenBtn.classList.add('animate-pulse', 'bg-red-500');
+                            toggleListenBtn.classList.remove('bg-indigo-600');
+                            toggleListenBtn.querySelector('svg').classList.add('text-white');
+                            await requestWakeLock();
+                        } catch (e) {
+                            console.error('Error starting recognition:', e);
+                            statusMessage.textContent = 'Could not start listening.';
+                        }
+                    }
+                });
+
+            } catch (e) {
+                console.error("Failed to initialize SpeechRecognition:", e);
+                statusMessage.textContent = 'Voice input not supported.';
+                toggleListenBtn.disabled = true;
+            }
+        } else {
+            console.warn('SpeechRecognition API not supported in this browser.');
+            statusMessage.textContent = 'Voice input not supported in this browser.';
+            toggleListenBtn.disabled = true;
+        }
+
+        function parseSpokenNumber(text) {
+            // 1. Try to parse as a direct number (e.g., "55")
+            const num = parseInt(text, 10);
+            if (!isNaN(num) && num >= 0 && num <= 180) {
+                return num;
+            }
+
+            // 2. Normalize text for word parsing
+            let lowerText = text.toLowerCase().trim()
+                .replace(/ and /g, ' ') // "one hundred and eighty" -> "one hundred eighty"
+                .replace(/-/g, ' ');  // "forty-two" -> "forty two"
+
+            // 3. Check for special dart terms and high-value numbers
+            const specialTerms = {
+                'one hundred eighty': 180, 'one eighty': 180, 'hundred eighty': 180,
+                'treble twenty': 60, 'double twenty': 40, 'bullseye': 50,
+                'inner bull': 50, 'outer bull': 25, 'bull': 50,
+                'one hundred': 100, 'hundred': 100, 'zero': 0,
+                'nil': 0, 'nothing': 0, 'none': 0
+            };
+
+            if (specialTerms[lowerText] !== undefined) {
+                return specialTerms[lowerText];
+            }
+
+            // 4. Handle compound numbers
+            const smallNumbers = {
+                'one': 1, 'two': 2, 'three': 3, 'four': 4, 'five': 5,
+                'six': 6, 'seven': 7, 'eight': 8, 'nine': 9, 'ten': 10,
+                'eleven': 11, 'twelve': 12, 'thirteen': 13, 'fourteen': 14, 'fifteen': 15,
+                'sixteen': 16, 'seventeen': 17, 'eighteen': 18, 'nineteen': 19
+            };
+            const tens = {
+                'twenty': 20, 'thirty': 30, 'forty': 40, 'fifty': 50, 'sixty': 60,
+                'seventy': 70, 'eighty': 80, 'ninety': 90
+            };
+
+            const words = lowerText.split(' ').filter(Boolean);
+            let total = 0;
+            let tempNum = 0;
+
+            for (const word of words) {
+                if (smallNumbers[word] !== undefined) {
+                    tempNum += smallNumbers[word];
+                } else if (tens[word] !== undefined) {
+                    tempNum += tens[word];
+                } else if (word === 'hundred') {
+                    tempNum = (tempNum === 0 ? 1 : tempNum) * 100;
+                    if (words.indexOf('hundred') < words.length - 1) {
+                         total += tempNum;
+                         tempNum = 0;
+                    }
+                }
+            }
+            total += tempNum;
+
+            return (total > 180 || total < 0) ? NaN : total;
+        }
+
+        // --- Game Logic ---
+
+        function submitScore(score) {
+            if (isScoreLocked) {
+                console.log('Score locked, submission ignored.');
+                return;
+            }
+            isScoreLocked = true;
+            console.log(`--- submitScore(${score}) --- LOCK SET`);
+
+            lastTurnState = {
+                score: currentScore,
+                turn: turn,
+                previousScore: previousScore
+            };
+            undoBtn.disabled = false;
+
+            if (isGame501) {
+                process501Score(score);
+            } else {
+                processCountUpScore(score);
+            }
+
+            setTimeout(() => {
+                isScoreLocked = false;
+                console.log("Score lock released.");
+                if (isListening) {
+                    const statusText = (wakeLock || (noSleepVideo && !noSleepVideo.paused))
+                        ? "Listening... (Screen will stay on)"
+                        : "Listening... (Can't keep screen on)";
+                    statusMessage.textContent = statusText;
+                } else {
+                    statusMessage.textContent = 'Press mic to start.';
+                }
+            }, 2000); // 2-second cooldown
+        }
+
+        function process501Score(score) {
+            console.log(`process501Score(${score}). Current score: ${currentScore}`);
+
+            const newScore = currentScore - score;
+            scoreHistory.push(score);
+
+            if (newScore < 0 || newScore === 1) {
+                // Bust
+                console.log(`Bust. New score would be ${newScore}. Reverting to ${previousScore}`);
+                showBust("Bust!");
+            } else if (newScore === 0) {
+                // Win
+                console.log("Win!");
+                currentScore = 0;
+                lastScoreInfo.textContent = `Scored: ${score}`;
+                lastScoreInfo.classList.remove('text-red-500', 'dark:text-red-400');
+                showWin();
+            } else {
+                // Valid score
+                console.log(`Valid score. New score: ${newScore}`);
+                previousScore = currentScore;
+                currentScore = newScore;
+                turn++;
+
+                lastScoreInfo.textContent = `Scored: ${score}`;
+                lastScoreInfo.classList.remove('text-red-500', 'dark:text-red-400');
+
+                updateDisplay();
+                updateStats();
+                // <-- FIX: Reverted to only speaking the remaining score
+                speak(currentScore.toString());
+            }
+        }
+
+        function processCountUpScore(score) {
+            console.log(`processCountUpScore(${score}). Current score: ${currentScore}`);
+
+            if (score < 0) {
+                showInvalidScore('Cannot add negative score.');
+                return;
+            }
+
+            scoreHistory.push(score);
+            currentScore += score;
+            turn++;
+
+            lastScoreInfo.textContent = `Added: ${score}`;
+            lastScoreInfo.classList.remove('text-red-500', 'dark:text-red-400');
+
+            updateDisplay();
+            updateStats();
+            // <-- FIX: Reverted to only speaking the new total score
+            speak(currentScore.toString());
+        }
+
+        function showInvalidScore(message) {
+            console.warn(`Invalid Score: ${message}`);
+            lastScoreInfo.textContent = message;
+            lastScoreInfo.classList.add('text-red-500', 'dark:text-red-400');
+            speak(message);
+
+            scoreHistory.pop();
+        }
+
+        function showBust(message) {
+            console.log("Processing Bust.");
+            currentScore = previousScore;
+            turn++;
+
+            lastScoreInfo.textContent = message;
+            lastScoreInfo.classList.add('text-red-500', 'dark:text-red-400');
+
+            updateDisplay();
+            updateStats();
+            speak(message);
+        }
+
+        function showWin() {
+            console.log("Processing Win.");
+            lastScoreInfo.textContent = 'GAME OVER!';
+            lastScoreInfo.classList.add('text-green-500', 'dark:text-green-400');
+
+            if (isListening) {
+                isListening = false;
+                recognition.stop();
+            }
+            releaseWakeLock();
+            toggleListenBtn.disabled = true;
+
+            updateDisplay();
+            updateStats();
+            speak('Game over! You win!');
+        }
+
+        function updateDisplay() {
+            console.log(`updateDisplay(). Score: ${currentScore}, Turn: ${turn}`);
+            scoreDisplay.textContent = currentScore;
+            turnCounter.textContent = turn;
+            undoBtn.disabled = (turn === 1);
+        }
+
+        function updateStats() {
+            const turnsPlayed = scoreHistory.length;
+            console.log(`updateStats(). Turns played: ${turnsPlayed}. History: [${scoreHistory}]`);
+
+            if (turnsPlayed === 0) {
+                pprStat.textContent = '0.0';
+                f9Stat.textContent = '0.0';
+                return;
+            }
+
+            const totalScored = scoreHistory.reduce((a, b) => a + b, 0);
+            const ppr = totalScored / turnsPlayed;
+            pprStat.textContent = ppr.toFixed(1);
+            console.log(`PPR: ${ppr.toFixed(1)}`);
+
+            if (turnsPlayed < 3) {
+                f9Stat.textContent = '...';
+            } else {
+                const firstThreeTotal = scoreHistory[0] + scoreHistory[1] + scoreHistory[2];
+                const f9Avg = firstThreeTotal / 3.0;
+                f9Stat.textContent = f9Avg.toFixed(1);
+                console.log(`First 9: ${f9Avg.toFixed(1)}`);
+            }
+        }
+
+        // --- Control Button Logic ---
+
+        resetBtn.addEventListener('click', resetGame);
+
+        undoBtn.addEventListener('click', () => {
+            console.log('Undo clicked.');
+            if (turn === 1) return;
+
+            currentScore = lastTurnState.score;
+            turn = lastTurnState.turn;
+            previousScore = lastTurnState.previousScore;
+            scoreHistory.pop();
+            console.log(`History after undo: [${scoreHistory}]`);
+
+            updateDisplay();
+            updateStats();
+
+            lastScoreInfo.textContent = 'Score undone.';
+            lastScoreInfo.classList.remove('text-red-500', 'text-green-500', 'dark:text-red-400', 'dark:text-green-400');
+
+            if (SpeechRecognition) {
+                toggleListenBtn.disabled = false;
+            }
+
+            undoBtn.disabled = true;
+        });
+
+        gameModeToggle.addEventListener('change', () => {
+            isGame501 = gameModeToggle.checked;
+            console.log(`Game mode changed. isGame501: ${isGame501}`);
+            resetGame();
+        });
+
+        function resetGame() {
+            console.log('--- resetGame() ---');
+            isScoreLocked = false;
+
+            if (isGame501) {
+                currentScore = 501;
+                previousScore = 501;
+            } else {
+                currentScore = 0;
+                previousScore = 0;
+            }
+            turn = 1;
+            lastTurnState = { score: currentScore, turn: 1, previousScore: previousScore };
+            scoreHistory = [];
+
+            updateDisplay();
+            updateStats();
+
+            lastScoreInfo.textContent = '';
+            lastScoreInfo.classList.remove('text-red-500', 'text-green-500', 'dark:text-red-400', 'dark:text-green-400');
+
+            if (isListening) {
+                isListening = false;
+                recognition.stop();
+            }
+            releaseWakeLock();
+
+            if (SpeechRecognition) {
+                toggleListenBtn.disabled = false;
+            }
+            statusMessage.textContent = 'Game reset. Press mic to start.';
+            speak('Game reset.');
+        }
+
+        // Initialize display on load
+        console.log('Initializing display...');
+        updateDisplay();
+        updateStats();
+    </script>
+</body>
+</html>
