@@ -90,10 +90,41 @@
                     <p id="f9-stat" class="text-3xl font-bold text-gray-700 dark:text-gray-200">0.0</p>
                 </div>
             </div>
+
+            <!-- Score History -->
+            <div id="score-history-container" class="w-full max-w-lg mx-auto mt-6 px-4">
+                <h3 class="text-lg font-medium text-gray-700 dark:text-gray-200 mb-2">Score History</h3>
+                <div class="h-32 overflow-y-auto bg-gray-200 dark:bg-gray-800 rounded-lg shadow-inner">
+                    <table class="w-full text-sm text-left text-gray-500 dark:text-gray-400">
+                        <thead class="text-xs text-gray-700 uppercase bg-gray-200 dark:bg-gray-800 dark:text-gray-400 sticky top-0">
+                            <tr>
+                                <th scope="col" class="py-2 px-4">Turn</th>
+                                <th scope="col" class="py-2 px-4">Score</th>
+                                <th scope="col" class="py-2 px-4">Remaining</th>
+                            </tr>
+                        </thead>
+                        <tbody id="score-history-body">
+                            <!-- History rows will be injected here -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
         </main>
 
         <!-- Bottom Section: Input Controls -->
-        <footer class="w-full max-w-sm mx-auto space-y-4 flex flex-col items-center pb-4">
+        <footer class="w-full max-w-sm mx-auto space-y-3 flex flex-col items-center pb-2">
+            <!-- Video Recording Section -->
+            <div id="video-container" class="w-full max-w-sm mx-auto hidden">
+                <h3 class="text-lg font-medium text-gray-700 dark:text-gray-200 mb-2">Throw Review</h3>
+                <div class="relative w-full aspect-video bg-black rounded-lg overflow-hidden shadow-lg">
+                    <video id="camera-stream" class="w-full h-full object-cover" autoplay playsinline muted></video>
+                    <video id="video-playback" class="absolute top-0 left-0 w-full h-full object-cover hidden" controls></video>
+                </div>
+                <div id="video-controls" class="flex justify-center items-center space-x-4 mt-2">
+                    <button id="slow-motion-btn" class="btn-tap bg-blue-500 hover:bg-blue-600 text-white font-medium py-2 px-4 rounded-lg text-sm shadow-md focus:outline-none focus:ring-4 focus:ring-blue-300 dark:focus:ring-blue-800">Slow-Mo</button>
+                </div>
+            </div>
+
             <!-- Status Message Area -->
             <div id="status-message" class="text-center text-sm text-gray-500 dark:text-gray-400 h-5">
                 Press the mic to start
@@ -122,6 +153,13 @@
         const gameModeToggle = document.getElementById('game-mode-toggle');
         const pprStat = document.getElementById('ppr-stat');
         const f9Stat = document.getElementById('f9-stat');
+        const scoreHistoryBody = document.getElementById('score-history-body');
+
+        // Video Elements
+        const videoContainer = document.getElementById('video-container');
+        const cameraStream = document.getElementById('camera-stream');
+        const videoPlayback = document.getElementById('video-playback');
+        const slowMotionBtn = document.getElementById('slow-motion-btn');
 
         // Game State
         let currentScore = 501;
@@ -132,6 +170,11 @@
         let lastTurnState = { score: 501, turn: 1, previousScore: 501 };
         let scoreHistory = [];
         let isScoreLocked = false;
+
+        // Video State
+        let mediaRecorder;
+        let recordedChunks = [];
+        let recordedVideoURL = null;
 
         // --- Screen Wake Lock ---
         let wakeLock = null;
@@ -292,11 +335,13 @@
                         isListening = false;
                         recognition.stop();
                         releaseWakeLock();
+                        stopCamera();
                     } else {
                         try {
                             initNoSleepVideo();
 
                             console.log('Starting listening...');
+                            await startCamera();
                             recognition.start();
                             isListening = true;
                             statusMessage.textContent = 'Listening continuously...';
@@ -321,6 +366,77 @@
             statusMessage.textContent = 'Voice input not supported in this browser.';
             toggleListenBtn.disabled = true;
         }
+
+        // --- Video Logic ---
+
+        async function startCamera() {
+            try {
+                const stream = await navigator.mediaDevices.getUserMedia({
+                    video: {
+                        facingMode: 'user' // Use front-facing camera
+                    },
+                    audio: false // No audio needed for form analysis
+                });
+                videoContainer.classList.remove('hidden');
+                cameraStream.srcObject = stream;
+                startRecording(stream);
+            } catch (err) {
+                console.error("Error accessing camera:", err);
+                statusMessage.textContent = "Camera access denied.";
+            }
+        }
+
+        function stopCamera() {
+            if (cameraStream.srcObject) {
+                const tracks = cameraStream.srcObject.getTracks();
+                tracks.forEach(track => track.stop());
+                cameraStream.srcObject = null;
+            }
+            videoContainer.classList.add('hidden');
+        }
+
+        function startRecording(stream) {
+            recordedChunks = [];
+            try {
+                mediaRecorder = new MediaRecorder(stream);
+                mediaRecorder.ondataavailable = (event) => {
+                    if (event.data.size > 0) {
+                        recordedChunks.push(event.data);
+                    }
+                };
+                mediaRecorder.onstop = () => {
+                    const blob = new Blob(recordedChunks, { type: 'video/webm' });
+                    if (recordedVideoURL) {
+                        URL.revokeObjectURL(recordedVideoURL); // Clean up previous video
+                    }
+                    recordedVideoURL = URL.createObjectURL(blob);
+                    videoPlayback.src = recordedVideoURL;
+
+                    // Show playback and hide live stream
+                    cameraStream.classList.add('hidden');
+                    videoPlayback.classList.remove('hidden');
+                    videoPlayback.play(); // Autoplay the recorded throw
+                };
+                mediaRecorder.start();
+                console.log('Recording started.');
+
+                // Show live stream and hide playback
+                videoPlayback.classList.add('hidden');
+                cameraStream.classList.remove('hidden');
+
+            } catch (e) {
+                console.error("Failed to start MediaRecorder:", e);
+                statusMessage.textContent = "Video recording not supported.";
+            }
+        }
+
+        function stopRecording() {
+            if (mediaRecorder && mediaRecorder.state === 'recording') {
+                mediaRecorder.stop();
+                console.log('Recording stopped.');
+            }
+        }
+
 
         function parseSpokenNumber(text) {
             // 1. Try to parse as a direct number (e.g., "55")
@@ -390,6 +506,7 @@
             }
             isScoreLocked = true;
             console.log(`--- submitScore(${score}) --- LOCK SET`);
+            stopRecording();
 
             lastTurnState = {
                 score: currentScore,
@@ -412,25 +529,49 @@
                         ? "Listening... (Screen will stay on)"
                         : "Listening... (Can't keep screen on)";
                     statusMessage.textContent = statusText;
+
+                    // Restart recording for the next throw
+                    if (cameraStream.srcObject) {
+                       startRecording(cameraStream.srcObject);
+                    }
                 } else {
                     statusMessage.textContent = 'Press mic to start.';
                 }
             }, 2000); // 2-second cooldown
         }
 
+        function updateScoreHistoryDisplay() {
+            scoreHistoryBody.innerHTML = ''; // Clear existing rows
+            // Loop in reverse to show latest score at the top
+            for (let i = scoreHistory.length - 1; i >= 0; i--) {
+                const entry = scoreHistory[i];
+                const row = document.createElement('tr');
+                row.className = 'bg-white dark:bg-gray-900 border-b dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800';
+                row.innerHTML = `
+                    <td class="py-2 px-4 font-medium text-gray-900 dark:text-white whitespace-nowrap">${entry.turn}</td>
+                    <td class="py-2 px-4">${entry.score}</td>
+                    <td class="py-2 px-4 font-bold">${entry.remainingScore}</td>
+                `;
+                scoreHistoryBody.appendChild(row);
+            }
+        }
+
         function process501Score(score) {
             console.log(`process501Score(${score}). Current score: ${currentScore}`);
 
             const newScore = currentScore - score;
-            scoreHistory.push(score);
 
             if (newScore < 0 || newScore === 1) {
                 // Bust
                 console.log(`Bust. New score would be ${newScore}. Reverting to ${previousScore}`);
+                scoreHistory.push({ turn: turn, score: score, remainingScore: "Bust" });
+                updateScoreHistoryDisplay();
                 showBust("Bust!");
             } else if (newScore === 0) {
                 // Win
                 console.log("Win!");
+                scoreHistory.push({ turn: turn, score: score, remainingScore: 0 });
+                updateScoreHistoryDisplay();
                 currentScore = 0;
                 lastScoreInfo.textContent = `Scored: ${score}`;
                 lastScoreInfo.classList.remove('text-red-500', 'dark:text-red-400');
@@ -440,6 +581,8 @@
                 console.log(`Valid score. New score: ${newScore}`);
                 previousScore = currentScore;
                 currentScore = newScore;
+                scoreHistory.push({ turn: turn, score: score, remainingScore: currentScore });
+                updateScoreHistoryDisplay();
                 turn++;
 
                 lastScoreInfo.textContent = `Scored: ${score}`;
@@ -460,8 +603,9 @@
                 return;
             }
 
-            scoreHistory.push(score);
             currentScore += score;
+            scoreHistory.push({ turn: turn, score: score, remainingScore: currentScore });
+            updateScoreHistoryDisplay();
             turn++;
 
             lastScoreInfo.textContent = `Added: ${score}`;
@@ -521,7 +665,7 @@
 
         function updateStats() {
             const turnsPlayed = scoreHistory.length;
-            console.log(`updateStats(). Turns played: ${turnsPlayed}. History: [${scoreHistory}]`);
+            console.log(`updateStats(). Turns played: ${turnsPlayed}. History: [${JSON.stringify(scoreHistory)}]`);
 
             if (turnsPlayed === 0) {
                 pprStat.textContent = '0.0';
@@ -529,7 +673,7 @@
                 return;
             }
 
-            const totalScored = scoreHistory.reduce((a, b) => a + b, 0);
+            const totalScored = scoreHistory.reduce((a, b) => a + b.score, 0);
             const ppr = totalScored / turnsPlayed;
             pprStat.textContent = ppr.toFixed(1);
             console.log(`PPR: ${ppr.toFixed(1)}`);
@@ -537,7 +681,7 @@
             if (turnsPlayed < 3) {
                 f9Stat.textContent = '...';
             } else {
-                const firstThreeTotal = scoreHistory[0] + scoreHistory[1] + scoreHistory[2];
+                const firstThreeTotal = scoreHistory[0].score + scoreHistory[1].score + scoreHistory[2].score;
                 const f9Avg = firstThreeTotal / 3.0;
                 f9Stat.textContent = f9Avg.toFixed(1);
                 console.log(`First 9: ${f9Avg.toFixed(1)}`);
@@ -560,6 +704,7 @@
 
             updateDisplay();
             updateStats();
+            updateScoreHistoryDisplay();
 
             lastScoreInfo.textContent = 'Score undone.';
             lastScoreInfo.classList.remove('text-red-500', 'text-green-500', 'dark:text-red-400', 'dark:text-green-400');
@@ -594,6 +739,7 @@
 
             updateDisplay();
             updateStats();
+            updateScoreHistoryDisplay();
 
             lastScoreInfo.textContent = '';
             lastScoreInfo.classList.remove('text-red-500', 'text-green-500', 'dark:text-red-400', 'dark:text-green-400');
@@ -603,6 +749,90 @@
                 recognition.stop();
             }
             releaseWakeLock();
+
+            if (SpeechRecognition) {
+                toggleListenBtn.disabled = false;
+            }
+            statusMessage.textContent = 'Game reset. Press mic to start.';
+            speak('Game reset.');
+        }
+
+        // --- Control Button Logic ---
+
+        slowMotionBtn.addEventListener('click', () => {
+            if (videoPlayback.playbackRate === 1.0) {
+                videoPlayback.playbackRate = 0.5; // Half speed
+                slowMotionBtn.classList.add('bg-green-500', 'hover:bg-green-600');
+                slowMotionBtn.classList.remove('bg-blue-500', 'hover:bg-blue-600');
+                slowMotionBtn.textContent = 'Slow-Mo (On)';
+            } else {
+                videoPlayback.playbackRate = 1.0; // Normal speed
+                slowMotionBtn.classList.remove('bg-green-500', 'hover:bg-green-600');
+                slowMotionBtn.classList.add('bg-blue-500', 'hover:bg-blue-600');
+                slowMotionBtn.textContent = 'Slow-Mo';
+            }
+        });
+
+        resetBtn.addEventListener('click', resetGame);
+
+        undoBtn.addEventListener('click', () => {
+            console.log('Undo clicked.');
+            if (turn === 1) return;
+
+            currentScore = lastTurnState.score;
+            turn = lastTurnState.turn;
+            previousScore = lastTurnState.previousScore;
+            scoreHistory.pop();
+            console.log(`History after undo: [${scoreHistory}]`);
+
+            updateDisplay();
+            updateStats();
+            updateScoreHistoryDisplay();
+
+            lastScoreInfo.textContent = 'Score undone.';
+            lastScoreInfo.classList.remove('text-red-500', 'text-green-500', 'dark:text-red-400', 'dark:text-green-400');
+
+            if (SpeechRecognition) {
+                toggleListenBtn.disabled = false;
+            }
+
+            undoBtn.disabled = true;
+        });
+
+        gameModeToggle.addEventListener('change', () => {
+            isGame501 = gameModeToggle.checked;
+            console.log(`Game mode changed. isGame501: ${isGame501}`);
+            resetGame();
+        });
+
+        function resetGame() {
+            console.log('--- resetGame() ---');
+            isScoreLocked = false;
+
+            if (isGame501) {
+                currentScore = 501;
+                previousScore = 501;
+            } else {
+                currentScore = 0;
+                previousScore = 0;
+            }
+            turn = 1;
+            lastTurnState = { score: currentScore, turn: 1, previousScore: previousScore };
+            scoreHistory = [];
+
+            updateDisplay();
+            updateStats();
+            updateScoreHistoryDisplay();
+
+            lastScoreInfo.textContent = '';
+            lastScoreInfo.classList.remove('text-red-500', 'text-green-500', 'dark:text-red-400', 'dark:text-green-400');
+
+            if (isListening) {
+                isListening = false;
+                recognition.stop();
+            }
+            releaseWakeLock();
+            stopCamera();
 
             if (SpeechRecognition) {
                 toggleListenBtn.disabled = false;
