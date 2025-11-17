@@ -80,16 +80,29 @@ async function getCameras() {
             return;
         }
 
+        let defaultCameraId = null;
         videoDevices.forEach(device => {
             const option = document.createElement('option');
             option.value = device.deviceId;
             option.textContent = device.label || `Camera ${cameraSelect.length + 1}`;
             cameraSelect.appendChild(option);
+            // Check if this is a back camera
+            if (device.label.toLowerCase().includes('back') || device.label.toLowerCase().includes('environment')) {
+                if (!defaultCameraId) {
+                    defaultCameraId = device.deviceId;
+                }
+            }
         });
 
-        // Start camera with the first available device
-        if (videoDevices.length > 0) {
-            startCamera(videoDevices[0].deviceId);
+        // If no back camera found, use the first one
+        if (!defaultCameraId && videoDevices.length > 0) {
+            defaultCameraId = videoDevices[0].deviceId;
+        }
+
+        // Start camera with the determined default device
+        if (defaultCameraId) {
+            cameraSelect.value = defaultCameraId;
+            startCamera(defaultCameraId);
         }
 
     } catch (err) {
@@ -98,7 +111,7 @@ async function getCameras() {
 }
 
 // Initial camera setup
-startCamera();
+getCameras();
 
 // Event listeners for capture method selection
 takePhotoRadio.addEventListener('change', () => {
@@ -285,13 +298,34 @@ messageInput.addEventListener('keypress', (event) => {
 
 // Menu button functionality (long press for preview)
 menuButton.addEventListener('mousedown', () => {
-    cameraPreviewContainer.classList.remove('hidden');
+    previewTimer = setTimeout(() => {
+        cameraPreviewContainer.classList.remove('hidden');
+    }, 500);
 });
 
 menuButton.addEventListener('mouseup', () => {
+    clearTimeout(previewTimer);
     cameraPreviewContainer.classList.add('hidden');
 });
 
 menuButton.addEventListener('mouseleave', () => {
+    clearTimeout(previewTimer);
+    cameraPreviewContainer.classList.add('hidden');
+});
+
+menuButton.addEventListener('touchstart', (e) => {
+    e.preventDefault();
+    previewTimer = setTimeout(() => {
+        cameraPreviewContainer.classList.remove('hidden');
+    }, 500);
+});
+
+menuButton.addEventListener('touchend', () => {
+    clearTimeout(previewTimer);
+    cameraPreviewContainer.classList.add('hidden');
+});
+
+menuButton.addEventListener('touchcancel', () => {
+    clearTimeout(previewTimer);
     cameraPreviewContainer.classList.add('hidden');
 });
