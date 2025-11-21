@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en" class_name="h-full">
+<html lang="en" class="h-full">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -8,7 +8,7 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- Load Inter font -->
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700;900&display=swap" rel="stylesheet">
-    <style>
+    <style type="text/tailwindcss">
         body {
             font-family: 'Inter', sans-serif;
             -webkit-tap-highlight-color: transparent;
@@ -33,114 +33,247 @@
         :disabled {
             @apply opacity-50 cursor-not-allowed;
         }
+        /* Custom Scrollbar for History */
+        .custom-scrollbar::-webkit-scrollbar {
+            width: 6px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-track {
+            background: #f1f1f1;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+            background: #c7c7c7;
+            border-radius: 3px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+            background: #a0a0a0;
+        }
     </style>
 </head>
-<body class="bg-gray-100 dark:bg-gray-900 text-gray-900 dark:text-white h-full overflow-hidden">
+<body class="bg-gray-100 dark:bg-gray-900 text-gray-900 dark:text-white h-full md:h-screen overflow-auto md:overflow-hidden">
 
-    <div class="flex flex-col h-screen p-4 sm:p-8 justify-between">
+    <div id="app-root" class="min-h-full p-4 md:p-8 grid grid-cols-1 md:grid-cols-12 gap-4 md:gap-6 max-w-7xl mx-auto">
 
-        <!-- Top Section: Game Mode & Reset/Undo -->
-        <header class="flex justify-between items-center w-full max-w-lg mx-auto">
-            <!-- Game Mode Toggle -->
-            <div class="flex items-center space-x-2">
-                <span class="text-sm font-medium text-gray-500 dark:text-gray-400">Count Up</span>
-                <label for="game-mode-toggle" class="flex items-center cursor-pointer">
-                    <input type="checkbox" id="game-mode-toggle" class="sr-only" checked>
-                    <div class="toggle-bg relative w-11 h-6 bg-gray-300 dark:bg-gray-700 rounded-full border-2 border-transparent transition-colors"></div>
-                </label>
-                <span class="text-sm font-medium text-indigo-600 dark:text-indigo-400 font-bold">501 (Down)</span>
-            </div>
-
-            <!-- Control Buttons -->
-            <div class="flex space-x-2">
-                <button id="undo-btn" class="btn-tap bg-yellow-500 hover:bg-yellow-600 text-white font-medium py-2 px-4 rounded-lg text-sm shadow-md focus:outline-none focus:ring-4 focus:ring-yellow-300 dark:focus:ring-yellow-700">
-                    Undo
-                </button>
-                <button id="reset-btn" class="btn-tap bg-gray-500 hover:bg-gray-600 text-white font-medium py-2 px-4 rounded-lg text-sm shadow-md focus:outline-none focus:ring-4 focus:ring-gray-300 dark:focus:ring-gray-700">
-                    Reset
-                </button>
-            </div>
-        </header>
-
-        <!-- Middle Section: Score Display -->
-        <main class="flex-grow flex flex-col items-center justify-center text-center">
-            <p class="text-base font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Current Score</p>
-            <div id="score-display" class="text-8xl sm:text-9xl font-black text-indigo-600 dark:text-indigo-400 my-2" style="font-size: clamp(6rem, 25vw, 10rem);">
-                501
-            </div>
-
-            <!-- Turn Info -->
-            <div class="h-16">
-                <div id="turn-info" class="text-xl font-medium text-gray-700 dark:text-gray-200">
-                    Turn: <span id="turn-counter" class="font-bold">1</span>
-                </div>
-                <div id="last-score-info" class="text-xl text-gray-500 dark:text-gray-400 h-6">
-                    <!-- Last score or bust message goes here -->
+        <!-- ===========================
+             LEFT PANEL: STATS & HISTORY
+             (Desktop: Col 1-3, Row 1-3)
+             =========================== -->
+        <section class="hidden md:flex md:col-span-3 flex-col gap-4 h-full overflow-hidden">
+            <!-- Stats Cards -->
+            <div class="bg-white dark:bg-gray-800 rounded-xl p-4 shadow-lg">
+                <h3 class="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-3">Match Stats</h3>
+                <div class="grid grid-cols-2 gap-4">
+                    <div class="text-center p-2 bg-gray-50 dark:bg-gray-700 rounded-lg">
+                        <p class="text-xs text-gray-500 dark:text-gray-400 uppercase">Avg (PPR)</p>
+                        <p id="ppr-stat-d" class="text-2xl font-bold text-indigo-600 dark:text-indigo-400">0.0</p>
+                    </div>
+                    <div class="text-center p-2 bg-gray-50 dark:bg-gray-700 rounded-lg">
+                        <p class="text-xs text-gray-500 dark:text-gray-400 uppercase">First 9</p>
+                        <p id="f9-stat-d" class="text-2xl font-bold text-indigo-600 dark:text-indigo-400">0.0</p>
+                    </div>
+                    <div class="text-center p-2 bg-gray-50 dark:bg-gray-700 rounded-lg">
+                        <p class="text-xs text-gray-500 dark:text-gray-400 uppercase">60+</p>
+                        <p id="s60-stat-d" class="text-2xl font-bold text-green-600 dark:text-green-400">0</p>
+                    </div>
+                    <div class="text-center p-2 bg-gray-50 dark:bg-gray-700 rounded-lg">
+                        <p class="text-xs text-gray-500 dark:text-gray-400 uppercase">100+</p>
+                        <p id="s100-stat-d" class="text-2xl font-bold text-green-600 dark:text-green-400">0</p>
+                    </div>
                 </div>
             </div>
 
-            <!-- Stats Display -->
-            <div id="stats-display" class="flex justify-around w-full max-w-xs mt-4">
-                <div class="text-center px-2">
-                    <p class="text-sm font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Avg (PPR)</p>
-                    <p id="ppr-stat" class="text-3xl font-bold text-gray-700 dark:text-gray-200">0.0</p>
-                </div>
-                <div class="text-center px-2">
-                    <p class="text-sm font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">First 9</p>
-                    <p id="f9-stat" class="text-3xl font-bold text-gray-700 dark:text-gray-200">0.0</p>
-                </div>
-            </div>
-
-            <!-- Score History -->
-            <div id="score-history-container" class="w-full max-w-lg mx-auto mt-6 px-4">
-                <h3 class="text-lg font-medium text-gray-700 dark:text-gray-200 mb-2">Score History</h3>
-                <div class="h-32 overflow-y-auto bg-gray-200 dark:bg-gray-800 rounded-lg shadow-inner">
+            <!-- Score History Table -->
+            <div class="flex-grow bg-white dark:bg-gray-800 rounded-xl shadow-lg overflow-hidden flex flex-col">
+                <h3 class="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider p-4 pb-2">History</h3>
+                <div class="flex-grow overflow-y-auto custom-scrollbar px-4 pb-4">
                     <table class="w-full text-sm text-left text-gray-500 dark:text-gray-400">
-                        <thead class="text-xs text-gray-700 uppercase bg-gray-200 dark:bg-gray-800 dark:text-gray-400 sticky top-0">
+                        <thead class="text-xs text-gray-700 uppercase bg-gray-100 dark:bg-gray-700 dark:text-gray-400 sticky top-0">
                             <tr>
-                                <th scope="col" class="py-2 px-4">Turn</th>
-                                <th scope="col" class="py-2 px-4">Score</th>
-                                <th scope="col" class="py-2 px-4">Remaining</th>
+                                <th scope="col" class="py-2 px-2 rounded-l-lg">#</th>
+                                <th scope="col" class="py-2 px-2">Scored</th>
+                                <th scope="col" class="py-2 px-2 text-right rounded-r-lg">Left</th>
                             </tr>
                         </thead>
-                        <tbody id="score-history-body">
-                            <!-- History rows will be injected here -->
+                        <tbody id="score-history-body-d">
+                            <!-- History rows injected here -->
                         </tbody>
                     </table>
                 </div>
             </div>
+        </section>
+
+        <!-- ===========================
+             CENTER PANEL: MAIN SCORE
+             (Desktop: Col 4-9, Row 1-3)
+             =========================== -->
+        <main class="col-span-1 md:col-span-6 flex flex-col justify-between h-full">
+
+            <!-- Header: Controls -->
+            <header class="flex justify-between items-center w-full mb-4">
+                <!-- Game Mode Toggle -->
+                <div class="flex items-center space-x-2 bg-white dark:bg-gray-800 p-2 rounded-lg shadow-sm">
+                    <span class="text-xs font-bold text-gray-500 dark:text-gray-400">UP</span>
+                    <label for="game-mode-toggle" class="flex items-center cursor-pointer">
+                        <input type="checkbox" id="game-mode-toggle" class="sr-only" checked>
+                        <div class="toggle-bg relative w-10 h-5 bg-gray-300 dark:bg-gray-600 rounded-full border-2 border-transparent transition-colors"></div>
+                    </label>
+                    <span class="text-xs font-bold text-indigo-600 dark:text-indigo-400">501</span>
+                </div>
+
+                <!-- Undo/Reset -->
+                <div class="flex space-x-2">
+                    <button id="undo-btn" class="btn-tap bg-yellow-500 hover:bg-yellow-600 text-white font-medium py-1.5 px-3 rounded-lg text-sm shadow-sm focus:outline-none" disabled>
+                        Undo
+                    </button>
+                    <button id="reset-btn" class="btn-tap bg-gray-500 hover:bg-gray-600 text-white font-medium py-1.5 px-3 rounded-lg text-sm shadow-sm focus:outline-none">
+                        Reset
+                    </button>
+                </div>
+            </header>
+
+            <!-- Main Score Display -->
+            <div class="flex-grow flex flex-col items-center justify-center text-center">
+                <p class="text-sm font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Current Score</p>
+                <div id="score-display" class="font-black text-indigo-600 dark:text-indigo-400 leading-none my-4" style="font-size: clamp(5rem, 15vw, 10rem);">
+                    501
+                </div>
+
+                <!-- Turn Info & Last Score -->
+                <div class="space-y-2 h-20">
+                    <div class="text-2xl font-medium text-gray-700 dark:text-gray-200">
+                        Turn: <span id="turn-counter" class="font-bold">1</span>
+                    </div>
+                    <div id="last-score-info" class="text-xl text-gray-500 dark:text-gray-400 font-medium h-8">
+                        <!-- Feedback message -->
+                    </div>
+                </div>
+
+                <!-- Mobile Only Stats Summary -->
+                <div class="md:hidden grid grid-cols-4 gap-2 w-full mt-6">
+                     <div class="text-center">
+                        <p class="text-[10px] uppercase text-gray-500">PPR</p>
+                        <p id="ppr-stat-m" class="text-lg font-bold">0.0</p>
+                     </div>
+                     <div class="text-center">
+                        <p class="text-[10px] uppercase text-gray-500">F9</p>
+                        <p id="f9-stat-m" class="text-lg font-bold">0.0</p>
+                     </div>
+                     <div class="text-center">
+                        <p class="text-[10px] uppercase text-gray-500">60+</p>
+                        <p id="s60-stat-m" class="text-lg font-bold text-green-600">0</p>
+                     </div>
+                     <div class="text-center">
+                        <p class="text-[10px] uppercase text-gray-500">100+</p>
+                        <p id="s100-stat-m" class="text-lg font-bold text-green-600">0</p>
+                     </div>
+                </div>
+            </div>
+
+            <!-- Footer: Mic Button -->
+            <div class="flex flex-col items-center space-y-4 pb-2 mt-4">
+                <div id="status-message" class="text-center text-xs text-gray-400 h-4">
+                    Press mic to start
+                </div>
+                <button id="toggle-listen-btn" class="btn-tap bg-indigo-600 hover:bg-indigo-700 text-white font-bold w-20 h-20 rounded-full flex items-center justify-center shadow-xl focus:outline-none focus:ring-4 focus:ring-indigo-300 dark:focus:ring-indigo-800 transition-all">
+                    <svg class="w-10 h-10" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z"></path>
+                    </svg>
+                </button>
+            </div>
         </main>
 
-        <!-- Bottom Section: Input Controls -->
-        <footer class="w-full max-w-sm mx-auto space-y-3 flex flex-col items-center pb-2">
-            <!-- Video Recording Section -->
-            <div id="video-container" class="w-full max-w-sm mx-auto hidden">
-                <h3 class="text-lg font-medium text-gray-700 dark:text-gray-200 mb-2">Throw Review</h3>
-                <div class="relative w-full aspect-video bg-black rounded-lg overflow-hidden shadow-lg">
-                    <video id="camera-stream" class="w-full h-full object-cover" autoplay playsinline muted></video>
-                    <video id="video-playback" class="absolute top-0 left-0 w-full h-full object-cover hidden" controls></video>
+        <!-- ===========================
+             RIGHT PANEL: MEDIA & CHECKOUT
+             (Desktop: Col 10-12, Row 1-3)
+             =========================== -->
+        <aside class="col-span-1 md:col-span-3 flex flex-col gap-4 h-full overflow-hidden">
+
+            <!-- Video Container -->
+            <div id="video-container" class="w-full aspect-video bg-black rounded-xl overflow-hidden shadow-lg relative hidden md:block">
+                <video id="camera-stream" class="w-full h-full object-cover transform scale-x-[-1]" autoplay playsinline muted></video>
+                <video id="video-playback" class="absolute top-0 left-0 w-full h-full object-cover hidden" controls loop playsinline></video>
+                <div class="absolute bottom-2 right-2">
+                    <span id="rec-indicator" class="hidden w-3 h-3 bg-red-500 rounded-full animate-pulse"></span>
                 </div>
-                <div id="video-controls" class="flex justify-center items-center space-x-4 mt-2">
-                    <button id="slow-motion-btn" class="btn-tap bg-blue-500 hover:bg-blue-600 text-white font-medium py-2 px-4 rounded-lg text-sm shadow-md focus:outline-none focus:ring-4 focus:ring-blue-300 dark:focus:ring-blue-800">Slow-Mo</button>
+            </div>
+            <!-- Mobile Video is hidden by default logic or can be toggled? For now let's keep it visible on mobile if active, or just rely on the desktop layout.
+                 Wait, the user wants tablet optimization.
+                 I'll duplicate the video container for mobile layout or move it with JS?
+                 Actually, let's just make it visible in the flow for mobile too, but maybe smaller.
+            -->
+
+            <!-- Checkout Guide -->
+            <div id="checkout-guide" class="flex-grow bg-indigo-900 text-white rounded-xl p-4 shadow-lg flex flex-col justify-center items-center text-center transition-opacity duration-300 opacity-0">
+                <p class="text-sm uppercase text-indigo-300 font-bold tracking-wider mb-2">Checkout Guide</p>
+                <div id="checkout-score" class="text-4xl font-black mb-2 text-white">170</div>
+                <div id="checkout-path" class="text-2xl font-medium text-indigo-100 leading-relaxed">
+                    T20 T20 Bull
                 </div>
             </div>
 
-            <!-- Status Message Area -->
-            <div id="status-message" class="text-center text-sm text-gray-500 dark:text-gray-400 h-5">
-                Press the mic to start
-            </div>
+        </aside>
 
-            <!-- Main Listening Button -->
-            <button id="toggle-listen-btn" class="btn-tap flex-shrink-0 bg-indigo-600 hover:bg-indigo-700 text-white font-bold w-24 h-24 rounded-full flex items-center justify-center shadow-lg focus:outline-none focus:ring-4 focus:ring-indigo-300 dark:focus:ring-indigo-800">
-                <svg class="w-12 h-12" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z"></path>
-                </svg>
-            </button>
-        </footer>
+        <!-- Mobile History (Collapsible or Scrollable?)
+             For now, on mobile, history is just a small summary or hidden?
+             The original had it below. Let's add a small history section for mobile below the main content if needed.
+             Actually, I'll leave the "History" hidden on mobile for now to save space as requested "Stats like 60+ 100+ is enough".
+             But I'll make sure the stats summaries are there.
+        -->
+
     </div>
+
+    <!-- Mobile Video Overlay (Optional: To show video on phone without cluttering)
+         Or just insert it into the DOM flow on mobile.
+         I'll use a simple JS check to move the video element if needed, but CSS Grid order is easier.
+         On Mobile: Order is implicit.
+         Main (Center) is defined first? No.
+         Grid definition:
+         Mobile: grid-cols-1. Order: DOM order.
+         DOM Order: Left Panel (Hidden), Main (Center), Right Panel (Media).
+         So on Mobile: Main -> Media.
+         That works perfect. Video will appear below controls.
+    -->
+
+    <style>
+        /* Mirror the camera stream */
+        #camera-stream {
+            transform: scaleX(-1);
+        }
+    </style>
 
     <script>
         console.log("Darts Scorer script loaded.");
+
+        // --- CONSTANTS ---
+        const CHECKOUTS = {
+            170: "T20 T20 Bull", 167: "T20 T19 Bull", 164: "T20 T18 Bull", 161: "T20 T17 Bull",
+            160: "T20 T20 D20", 158: "T20 T20 D19", 157: "T20 T19 D20", 156: "T20 T20 D18",
+            155: "T20 T19 D19", 154: "T20 T18 D20", 153: "T20 T19 D18", 152: "T20 T20 D16",
+            151: "T20 T17 D20", 150: "T20 T18 D18", 149: "T20 T19 D16", 148: "T20 T16 D20",
+            147: "T20 T17 D18", 146: "T20 T18 D16", 145: "T20 T15 D20", 144: "T20 T20 D12",
+            143: "T20 T17 D16", 142: "T20 T14 D20", 141: "T20 T19 D12", 140: "T20 T16 D16",
+            139: "T19 T14 D20", 138: "T20 T18 D12", 137: "T19 T16 D16", 136: "T20 T20 D8",
+            135: "Bull T15 D20", 134: "T20 T14 D16", 133: "T20 T19 D8", 132: "T20 T16 D12",
+            131: "T20 T13 D16", 130: "T20 T20 D5", 129: "T19 T16 D12", 128: "T18 T14 D16",
+            127: "T20 T17 D8", 126: "T19 T19 D6", 125: "25 T20 D20", 124: "T20 T16 D8",
+            123: "T19 T16 D9", 122: "T18 T20 D4", 121: "T20 T11 D14", 120: "T20 20 D20",
+            119: "T19 T10 D16", 118: "T20 18 D20", 117: "T20 17 D20", 116: "T20 16 D20",
+            115: "T20 15 D20", 114: "T20 14 D20", 113: "T20 13 D20", 112: "T20 12 D20",
+            111: "T20 19 D16", 110: "T20 18 D16", 109: "T20 17 D16", 108: "T20 16 D16",
+            107: "T19 18 D16", 106: "T20 14 D16", 105: "T20 13 D16", 104: "T18 18 D16",
+            103: "T20 3 D20", 102: "T20 10 D16", 101: "T17 10 D20", 100: "T20 D20",
+            99: "T19 10 D16", 98: "T20 D19", 97: "T19 D20", 96: "T20 D18", 95: "T19 D19",
+            94: "T18 D20", 93: "T19 D18", 92: "T20 D16", 91: "T17 D20", 90: "T20 D15",
+            89: "T19 D16", 88: "T16 D20", 87: "T17 D18", 86: "T18 D16", 85: "T15 D20",
+            84: "T20 D12", 83: "T17 D16", 82: "T14 D20", 81: "T19 D12", 80: "T20 D10",
+            79: "T19 D11", 78: "T18 D12", 77: "T19 D10", 76: "T20 D8", 75: "T17 D12",
+            74: "T14 D16", 73: "T19 D8", 72: "T16 D12", 71: "T13 D16", 70: "T18 D8",
+            69: "T19 D6", 68: "T20 D4", 67: "T17 D8", 66: "T10 D18", 65: "T19 D4",
+            64: "T16 D8", 63: "T13 D12", 62: "T10 D16", 61: "T15 D8", 60: "20 D20",
+            59: "19 D20", 58: "18 D20", 57: "17 D20", 56: "16 D20", 55: "15 D20",
+            54: "14 D20", 53: "13 D20", 52: "12 D20", 51: "11 D20", 50: "10 D20",
+            49: "9 D20", 48: "16 D16", 47: "15 D16", 46: "6 D20", 45: "13 D16",
+            44: "12 D16", 43: "11 D16", 42: "10 D16", 41: "9 D16", 40: "D20"
+        };
 
         // DOM Elements
         const scoreDisplay = document.getElementById('score-display');
@@ -151,15 +284,30 @@
         const turnCounter = document.getElementById('turn-counter');
         const lastScoreInfo = document.getElementById('last-score-info');
         const gameModeToggle = document.getElementById('game-mode-toggle');
-        const pprStat = document.getElementById('ppr-stat');
-        const f9Stat = document.getElementById('f9-stat');
-        const scoreHistoryBody = document.getElementById('score-history-body');
+
+        // Desktop Stats
+        const pprStatD = document.getElementById('ppr-stat-d');
+        const f9StatD = document.getElementById('f9-stat-d');
+        const s60StatD = document.getElementById('s60-stat-d');
+        const s100StatD = document.getElementById('s100-stat-d');
+        const scoreHistoryBodyD = document.getElementById('score-history-body-d');
+
+        // Mobile Stats
+        const pprStatM = document.getElementById('ppr-stat-m');
+        const f9StatM = document.getElementById('f9-stat-m');
+        const s60StatM = document.getElementById('s60-stat-m');
+        const s100StatM = document.getElementById('s100-stat-m');
 
         // Video Elements
         const videoContainer = document.getElementById('video-container');
         const cameraStream = document.getElementById('camera-stream');
         const videoPlayback = document.getElementById('video-playback');
-        const slowMotionBtn = document.getElementById('slow-motion-btn');
+        const recIndicator = document.getElementById('rec-indicator');
+
+        // Checkout Elements
+        const checkoutGuide = document.getElementById('checkout-guide');
+        const checkoutScore = document.getElementById('checkout-score');
+        const checkoutPath = document.getElementById('checkout-path');
 
         // Game State
         let currentScore = 501;
@@ -183,7 +331,6 @@
         function initNoSleepVideo() {
             if (noSleepVideo) return;
             try {
-                console.log('Initializing NoSleep video hack...');
                 noSleepVideo = document.createElement('video');
                 noSleepVideo.muted = true;
                 noSleepVideo.playsInline = true;
@@ -199,41 +346,28 @@
             if ('wakeLock' in navigator) {
                 try {
                     wakeLock = await navigator.wakeLock.request('screen');
-                    console.log('Screen Wake Lock is active (Official API).');
-                    statusMessage.textContent = "Listening... (Screen will stay on)";
-                    wakeLock.addEventListener('release', () => {
-                        console.log('Screen Wake Lock was released.');
-                        wakeLock = null;
-                    });
+                    statusMessage.textContent = "Listening... (Screen on)";
+                    wakeLock.addEventListener('release', () => wakeLock = null);
                     return;
                 } catch (err) {
-                    console.warn(`Official Wake Lock failed: ${err.message}. Trying video hack...`);
+                    console.warn(`Official Wake Lock failed: ${err.message}.`);
                 }
             }
-
             try {
-                if (!noSleepVideo) {
-                    initNoSleepVideo();
-                }
+                if (!noSleepVideo) initNoSleepVideo();
                 await noSleepVideo.play();
-                console.log('Video hack "NoSleep" is active.');
-                statusMessage.textContent = "Listening... (Screen will stay on)";
+                statusMessage.textContent = "Listening... (Video hack active)";
             } catch (err) {
-                console.error(`Video hack failed to play: ${err.message}`);
-                statusMessage.textContent = "Listening... (Can't keep screen on)";
+                statusMessage.textContent = "Listening...";
             }
         }
 
         function releaseWakeLock() {
-            if (wakeLock !== null) {
+            if (wakeLock) {
                 wakeLock.release();
                 wakeLock = null;
-                console.log('Official Wake Lock released.');
             }
-            if (noSleepVideo) {
-                noSleepVideo.pause();
-                console.log('Video hack "NoSleep" paused.');
-            }
+            if (noSleepVideo) noSleepVideo.pause();
         }
 
         document.addEventListener('visibilitychange', async () => {
@@ -245,23 +379,13 @@
         // --- Text-to-Speech ---
         const synth = window.speechSynthesis;
         function speak(text) {
-            if (!synth) {
-                console.warn('SpeechSynthesis not supported.');
-                return;
-            }
-            if (synth.speaking) {
-                synth.cancel();
-            }
-            if (text !== '') {
-                const utterThis = new SpeechSynthesisUtterance(text);
-                utterThis.onerror = function (event) {
-                    console.error('SpeechSynthesisUtterance.onerror', event);
-                }
-                synth.speak(utterThis);
-            }
+            if (!synth || !text) return;
+            if (synth.speaking) synth.cancel();
+            const utterThis = new SpeechSynthesisUtterance(text);
+            synth.speak(utterThis);
         }
 
-        // --- Speech Recognition Setup ---
+        // --- Speech Recognition ---
         const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
         let recognition;
         if (SpeechRecognition) {
@@ -287,564 +411,378 @@
                         const score = parseSpokenNumber(finalTranscript);
 
                         if (!isNaN(score) && typeof score === 'number' && score >= 0 && score <= 180) {
-                            console.log(`Parsed score as: ${score}`);
-                            statusMessage.textContent += ` -> Submitting score: ${score}`;
                             submitScore(score);
-                        } else {
-                            console.warn(`Could not parse a valid score from "${finalTranscript}". Got: ${score}`);
-                            statusMessage.textContent += ` -> Not a valid score.`;
                         }
                     }
                 };
 
                 recognition.onerror = (event) => {
-                    if (event.error === 'no-speech') {
-                        // Ignore
-                    } else if (event.error === 'not-allowed') {
-                        statusMessage.textContent = 'Microphone access denied.';
-                        console.error('Microphone access denied.');
+                    if (event.error === 'not-allowed') {
+                        statusMessage.textContent = 'Mic access denied.';
                         isListening = false;
                         toggleListenBtn.disabled = true;
-                    } else {
-                        console.error(`Speech recognition error: ${event.error}`);
-                        statusMessage.textContent = `Error: ${event.error}`;
                     }
                 };
 
                 recognition.onend = () => {
                     if (isListening) {
-                        console.log('Recognition ended, restarting...');
-                        try {
-                            recognition.start();
-                        } catch (e) {
-                            console.error('Error restarting recognition:', e);
-                            statusMessage.textContent = "Error, trying to restart...";
-                        }
+                        try { recognition.start(); } catch(e) {}
                     } else {
-                        console.log('Recognition stopped by user.');
                         toggleListenBtn.classList.remove('animate-pulse', 'bg-red-500');
                         toggleListenBtn.classList.add('bg-indigo-600');
-                        toggleListenBtn.querySelector('svg').classList.remove('text-white');
-                        statusMessage.textContent = 'Stopped listening. Press mic to start.';
+                        statusMessage.textContent = 'Stopped. Press mic to start.';
                     }
                 };
 
                 toggleListenBtn.addEventListener('click', async () => {
                     if (isListening) {
-                        console.log('Stopping listening...');
                         isListening = false;
                         recognition.stop();
                         releaseWakeLock();
                         stopCamera();
                     } else {
                         try {
-                            initNoSleepVideo();
-
-                            console.log('Starting listening...');
                             await startCamera();
                             recognition.start();
                             isListening = true;
-                            statusMessage.textContent = 'Listening continuously...';
+                            statusMessage.textContent = 'Listening...';
                             toggleListenBtn.classList.add('animate-pulse', 'bg-red-500');
                             toggleListenBtn.classList.remove('bg-indigo-600');
-                            toggleListenBtn.querySelector('svg').classList.add('text-white');
                             await requestWakeLock();
                         } catch (e) {
-                            console.error('Error starting recognition:', e);
-                            statusMessage.textContent = 'Could not start listening.';
+                            statusMessage.textContent = 'Could not start.';
                         }
                     }
                 });
 
             } catch (e) {
-                console.error("Failed to initialize SpeechRecognition:", e);
                 statusMessage.textContent = 'Voice input not supported.';
-                toggleListenBtn.disabled = true;
             }
         } else {
-            console.warn('SpeechRecognition API not supported in this browser.');
-            statusMessage.textContent = 'Voice input not supported in this browser.';
-            toggleListenBtn.disabled = true;
+            statusMessage.textContent = 'Voice input not supported.';
         }
 
         // --- Video Logic ---
-
         async function startCamera() {
             try {
-                const stream = await navigator.mediaDevices.getUserMedia({
-                    video: {
-                        facingMode: 'user' // Use front-facing camera
-                    },
-                    audio: false // No audio needed for form analysis
-                });
+                const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user' }, audio: false });
                 videoContainer.classList.remove('hidden');
                 cameraStream.srcObject = stream;
                 startRecording(stream);
             } catch (err) {
-                console.error("Error accessing camera:", err);
+                console.error("Camera error:", err);
                 statusMessage.textContent = "Camera access denied.";
             }
         }
 
         function stopCamera() {
             if (cameraStream.srcObject) {
-                const tracks = cameraStream.srcObject.getTracks();
-                tracks.forEach(track => track.stop());
+                cameraStream.srcObject.getTracks().forEach(track => track.stop());
                 cameraStream.srcObject = null;
             }
-            videoContainer.classList.add('hidden');
+            // videoContainer.classList.add('hidden'); // Keep it visible in layout if desired
         }
 
-        function startRecording(stream) {
+        function startRecording(stream, showLiveFeed = true) {
             recordedChunks = [];
             try {
                 mediaRecorder = new MediaRecorder(stream);
-                mediaRecorder.ondataavailable = (event) => {
-                    if (event.data.size > 0) {
-                        recordedChunks.push(event.data);
-                    }
-                };
+                mediaRecorder.ondataavailable = (e) => { if (e.data.size > 0) recordedChunks.push(e.data); };
                 mediaRecorder.onstop = () => {
                     const blob = new Blob(recordedChunks, { type: 'video/webm' });
-                    if (recordedVideoURL) {
-                        URL.revokeObjectURL(recordedVideoURL); // Clean up previous video
-                    }
+                    if (recordedVideoURL) URL.revokeObjectURL(recordedVideoURL);
                     recordedVideoURL = URL.createObjectURL(blob);
+
+                    // When recording stops, WE SHOW THE REPLAY
                     videoPlayback.src = recordedVideoURL;
 
-                    // Show playback and hide live stream
+                    // Switch Views to Replay
                     cameraStream.classList.add('hidden');
                     videoPlayback.classList.remove('hidden');
-                    videoPlayback.play(); // Autoplay the recorded throw
-                };
-                mediaRecorder.start();
-                console.log('Recording started.');
+                    recIndicator.classList.add('hidden');
 
-                // Show live stream and hide playback
-                videoPlayback.classList.add('hidden');
-                cameraStream.classList.remove('hidden');
+                    videoPlayback.play().catch(e => console.error("Autoplay failed:", e));
+                };
+
+                mediaRecorder.start();
+
+                if (showLiveFeed) {
+                    // Reset View to Live Camera
+                    videoPlayback.classList.add('hidden');
+                    cameraStream.classList.remove('hidden');
+                    recIndicator.classList.remove('hidden');
+                } else {
+                    // Keep showing whatever was showing (the replay), but show Rec Indicator?
+                    // Actually if we are recording in background, we should probably show the Rec indicator on top of the replay?
+                    recIndicator.classList.remove('hidden');
+                }
 
             } catch (e) {
-                console.error("Failed to start MediaRecorder:", e);
-                statusMessage.textContent = "Video recording not supported.";
+                console.error("MediaRecorder error:", e);
             }
         }
 
         function stopRecording() {
             if (mediaRecorder && mediaRecorder.state === 'recording') {
                 mediaRecorder.stop();
-                console.log('Recording stopped.');
             }
         }
 
-
         function parseSpokenNumber(text) {
-            // 1. Try to parse as a direct number (e.g., "55")
             const num = parseInt(text, 10);
-            if (!isNaN(num) && num >= 0 && num <= 180) {
-                return num;
-            }
+            if (!isNaN(num) && num >= 0 && num <= 180) return num;
 
-            // 2. Normalize text for word parsing
-            let lowerText = text.toLowerCase().trim()
-                .replace(/ and /g, ' ') // "one hundred and eighty" -> "one hundred eighty"
-                .replace(/-/g, ' ');  // "forty-two" -> "forty two"
-
-            // 3. Check for special dart terms and high-value numbers
+            let lowerText = text.toLowerCase().trim().replace(/ and /g, ' ').replace(/-/g, ' ');
             const specialTerms = {
-                'one hundred eighty': 180, 'one eighty': 180, 'hundred eighty': 180,
-                'treble twenty': 60, 'double twenty': 40, 'bullseye': 50,
-                'inner bull': 50, 'outer bull': 25, 'bull': 50,
-                'one hundred': 100, 'hundred': 100, 'zero': 0,
-                'nil': 0, 'nothing': 0, 'none': 0
+                'one hundred eighty': 180, 'one eighty': 180, 'hundred eighty': 180, 'ton eighty': 180,
+                'treble twenty': 60, 'double twenty': 40, 'bullseye': 50, 'bull': 50,
+                'one hundred': 100, 'hundred': 100, 'ton': 100, 'zero': 0, 'nil': 0
             };
+            if (specialTerms[lowerText] !== undefined) return specialTerms[lowerText];
 
-            if (specialTerms[lowerText] !== undefined) {
-                return specialTerms[lowerText];
-            }
-
-            // 4. Handle compound numbers
-            const smallNumbers = {
-                'one': 1, 'two': 2, 'three': 3, 'four': 4, 'five': 5,
-                'six': 6, 'seven': 7, 'eight': 8, 'nine': 9, 'ten': 10,
-                'eleven': 11, 'twelve': 12, 'thirteen': 13, 'fourteen': 14, 'fifteen': 15,
-                'sixteen': 16, 'seventeen': 17, 'eighteen': 18, 'nineteen': 19
-            };
-            const tens = {
-                'twenty': 20, 'thirty': 30, 'forty': 40, 'fifty': 50, 'sixty': 60,
-                'seventy': 70, 'eighty': 80, 'ninety': 90
-            };
+            const smallNumbers = { 'one': 1, 'two': 2, 'three': 3, 'four': 4, 'five': 5, 'six': 6, 'seven': 7, 'eight': 8, 'nine': 9, 'ten': 10, 'eleven': 11, 'twelve': 12, 'thirteen': 13, 'fourteen': 14, 'fifteen': 15, 'sixteen': 16, 'seventeen': 17, 'eighteen': 18, 'nineteen': 19 };
+            const tens = { 'twenty': 20, 'thirty': 30, 'forty': 40, 'fifty': 50, 'sixty': 60, 'seventy': 70, 'eighty': 80, 'ninety': 90 };
 
             const words = lowerText.split(' ').filter(Boolean);
             let total = 0;
             let tempNum = 0;
 
             for (const word of words) {
-                if (smallNumbers[word] !== undefined) {
-                    tempNum += smallNumbers[word];
-                } else if (tens[word] !== undefined) {
-                    tempNum += tens[word];
-                } else if (word === 'hundred') {
+                if (smallNumbers[word]) tempNum += smallNumbers[word];
+                else if (tens[word]) tempNum += tens[word];
+                else if (word === 'hundred') {
                     tempNum = (tempNum === 0 ? 1 : tempNum) * 100;
-                    if (words.indexOf('hundred') < words.length - 1) {
-                         total += tempNum;
-                         tempNum = 0;
-                    }
+                    if (words.indexOf('hundred') < words.length - 1) { total += tempNum; tempNum = 0; }
                 }
             }
             total += tempNum;
-
             return (total > 180 || total < 0) ? NaN : total;
         }
 
         // --- Game Logic ---
-
         function submitScore(score) {
-            if (isScoreLocked) {
-                console.log('Score locked, submission ignored.');
-                return;
-            }
+            if (isScoreLocked) return;
             isScoreLocked = true;
-            console.log(`--- submitScore(${score}) --- LOCK SET`);
-            stopRecording();
+            console.log(`Submitting score: ${score}`);
 
-            lastTurnState = {
-                score: currentScore,
-                turn: turn,
-                previousScore: previousScore
-            };
+            stopRecording(); // Stops recording, shows replay loop
+
+            lastTurnState = { score: currentScore, turn: turn, previousScore: previousScore };
             undoBtn.disabled = false;
 
-            if (isGame501) {
-                process501Score(score);
-            } else {
-                processCountUpScore(score);
-            }
+            if (isGame501) process501Score(score);
+            else processCountUpScore(score);
 
+            // Unlock quickly to allow next input, but keep replay visible
             setTimeout(() => {
                 isScoreLocked = false;
-                console.log("Score lock released.");
-                if (isListening) {
-                    const statusText = (wakeLock || (noSleepVideo && !noSleepVideo.paused))
-                        ? "Listening... (Screen will stay on)"
-                        : "Listening... (Can't keep screen on)";
-                    statusMessage.textContent = statusText;
+                console.log("Score unlocked. Ready for next throw.");
 
-                    // Restart recording for the next throw
-                    if (cameraStream.srcObject) {
-                       startRecording(cameraStream.srcObject);
-                    }
-                } else {
-                    statusMessage.textContent = 'Press mic to start.';
+                // We DO NOT switch back to camera here.
+                // The replay continues looping until the next submitScore calls stopRecording (which resets it)
+                // or we manually restart recording.
+
+                // However, we need to be recording *while* the user is throwing for the *next* turn.
+                // If we just show replay, we aren't recording the new throw!
+                // User requirement: "Just keep the replay until the next round/score update"
+
+                // Wait, if we show replay, we can't record the next throw with the single camera stream if it's busy playing.
+                // But the user said: "keep the replay until the next round/score update".
+                // If I am watching the replay, I am not throwing.
+                // If I start throwing, I presumably want to record?
+
+                // Let's interpret "keep the replay until the next round" as:
+                // Show replay. When user is ready to throw again, they might speak?
+                // If they speak, we capture. But we need the BUFFER of the throw.
+                // So we MUST be recording in the background even if showing replay?
+                // You can't easily record and play different things from same element.
+                // But we have <video id="camera-stream"> (hidden) and <video id="video-playback"> (visible).
+                // We can keep "camera-stream" active and recording in background?
+
+                // Let's try to restart recording in background immediately, but keep playback visible.
+                if (cameraStream.srcObject) {
+                     startRecording(cameraStream.srcObject, false); // false = do not switch UI
                 }
-            }, 2000); // 2-second cooldown
-        }
-
-        function updateScoreHistoryDisplay() {
-            scoreHistoryBody.innerHTML = ''; // Clear existing rows
-            // Loop in reverse to show latest score at the top
-            for (let i = scoreHistory.length - 1; i >= 0; i--) {
-                const entry = scoreHistory[i];
-                const row = document.createElement('tr');
-                row.className = 'bg-white dark:bg-gray-900 border-b dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800';
-                row.innerHTML = `
-                    <td class="py-2 px-4 font-medium text-gray-900 dark:text-white whitespace-nowrap">${entry.turn}</td>
-                    <td class="py-2 px-4">${entry.score}</td>
-                    <td class="py-2 px-4 font-bold">${entry.remainingScore}</td>
-                `;
-                scoreHistoryBody.appendChild(row);
-            }
+            }, 2000);
         }
 
         function process501Score(score) {
-            console.log(`process501Score(${score}). Current score: ${currentScore}`);
-
             const newScore = currentScore - score;
-
             if (newScore < 0 || newScore === 1) {
-                // Bust
-                console.log(`Bust. New score would be ${newScore}. Reverting to ${previousScore}`);
                 scoreHistory.push({ turn: turn, score: score, remainingScore: "Bust" });
-                updateScoreHistoryDisplay();
                 showBust("Bust!");
             } else if (newScore === 0) {
-                // Win
-                console.log("Win!");
                 scoreHistory.push({ turn: turn, score: score, remainingScore: 0 });
-                updateScoreHistoryDisplay();
                 currentScore = 0;
-                lastScoreInfo.textContent = `Scored: ${score}`;
-                lastScoreInfo.classList.remove('text-red-500', 'dark:text-red-400');
+                lastScoreInfo.textContent = `Check out! (${score})`;
                 showWin();
             } else {
-                // Valid score
-                console.log(`Valid score. New score: ${newScore}`);
                 previousScore = currentScore;
                 currentScore = newScore;
                 scoreHistory.push({ turn: turn, score: score, remainingScore: currentScore });
-                updateScoreHistoryDisplay();
                 turn++;
-
                 lastScoreInfo.textContent = `Scored: ${score}`;
-                lastScoreInfo.classList.remove('text-red-500', 'dark:text-red-400');
-
+                lastScoreInfo.classList.remove('text-red-500');
                 updateDisplay();
                 updateStats();
-                // <-- FIX: Reverted to only speaking the remaining score
                 speak(currentScore.toString());
             }
         }
 
         function processCountUpScore(score) {
-            console.log(`processCountUpScore(${score}). Current score: ${currentScore}`);
-
-            if (score < 0) {
-                showInvalidScore('Cannot add negative score.');
-                return;
-            }
-
+            if (score < 0) return;
             currentScore += score;
             scoreHistory.push({ turn: turn, score: score, remainingScore: currentScore });
-            updateScoreHistoryDisplay();
             turn++;
-
             lastScoreInfo.textContent = `Added: ${score}`;
-            lastScoreInfo.classList.remove('text-red-500', 'dark:text-red-400');
-
             updateDisplay();
             updateStats();
-            // <-- FIX: Reverted to only speaking the new total score
             speak(currentScore.toString());
         }
 
-        function showInvalidScore(message) {
-            console.warn(`Invalid Score: ${message}`);
-            lastScoreInfo.textContent = message;
-            lastScoreInfo.classList.add('text-red-500', 'dark:text-red-400');
-            speak(message);
-
-            scoreHistory.pop();
-        }
-
         function showBust(message) {
-            console.log("Processing Bust.");
             currentScore = previousScore;
             turn++;
-
             lastScoreInfo.textContent = message;
-            lastScoreInfo.classList.add('text-red-500', 'dark:text-red-400');
-
+            lastScoreInfo.classList.add('text-red-500');
             updateDisplay();
             updateStats();
             speak(message);
         }
 
         function showWin() {
-            console.log("Processing Win.");
-            lastScoreInfo.textContent = 'GAME OVER!';
-            lastScoreInfo.classList.add('text-green-500', 'dark:text-green-400');
-
-            if (isListening) {
-                isListening = false;
-                recognition.stop();
-            }
+            lastScoreInfo.textContent = 'GAME OVER! WINNER!';
+            lastScoreInfo.classList.add('text-green-500');
+            if (isListening) { isListening = false; recognition.stop(); }
             releaseWakeLock();
             toggleListenBtn.disabled = true;
-
             updateDisplay();
             updateStats();
             speak('Game over! You win!');
         }
 
+        function updateCheckoutGuide() {
+            if (!isGame501 || currentScore > 170 || currentScore <= 1) {
+                checkoutGuide.classList.add('opacity-0');
+                return;
+            }
+
+            let checkout = CHECKOUTS[currentScore];
+
+            // Simple fallback for numbers < 40 if not in map
+            if (!checkout && currentScore < 40) {
+                 if (currentScore % 2 === 0) checkout = `D${currentScore/2}`;
+                 else checkout = `1 D${(currentScore-1)/2}`;
+            }
+
+            if (checkout) {
+                checkoutScore.textContent = currentScore;
+                checkoutPath.textContent = checkout;
+                checkoutGuide.classList.remove('opacity-0');
+            } else {
+                checkoutGuide.classList.add('opacity-0');
+            }
+        }
+
         function updateDisplay() {
-            console.log(`updateDisplay(). Score: ${currentScore}, Turn: ${turn}`);
             scoreDisplay.textContent = currentScore;
             turnCounter.textContent = turn;
             undoBtn.disabled = (turn === 1);
+            updateCheckoutGuide();
+            updateScoreHistoryDisplay();
         }
 
         function updateStats() {
             const turnsPlayed = scoreHistory.length;
-            console.log(`updateStats(). Turns played: ${turnsPlayed}. History: [${JSON.stringify(scoreHistory)}]`);
-
             if (turnsPlayed === 0) {
-                pprStat.textContent = '0.0';
-                f9Stat.textContent = '0.0';
+                setStats('0.0', '0.0', 0, 0);
                 return;
             }
 
             const totalScored = scoreHistory.reduce((a, b) => a + b.score, 0);
-            const ppr = totalScored / turnsPlayed;
-            pprStat.textContent = ppr.toFixed(1);
-            console.log(`PPR: ${ppr.toFixed(1)}`);
+            const ppr = (totalScored / turnsPlayed).toFixed(1);
 
-            if (turnsPlayed < 3) {
-                f9Stat.textContent = '...';
-            } else {
-                const firstThreeTotal = scoreHistory[0].score + scoreHistory[1].score + scoreHistory[2].score;
-                const f9Avg = firstThreeTotal / 3.0;
-                f9Stat.textContent = f9Avg.toFixed(1);
-                console.log(`First 9: ${f9Avg.toFixed(1)}`);
+            let f9Avg = '...';
+            if (turnsPlayed >= 3) {
+                const firstThree = scoreHistory.slice(0, 3).reduce((a, b) => a + b.score, 0);
+                f9Avg = (firstThree / 3.0).toFixed(1);
+            }
+
+            const s60 = scoreHistory.filter(t => t.score >= 60).length;
+            const s100 = scoreHistory.filter(t => t.score >= 100).length;
+
+            setStats(ppr, f9Avg, s60, s100);
+        }
+
+        function setStats(ppr, f9, s60, s100) {
+            pprStatD.textContent = ppr;
+            f9StatD.textContent = f9;
+            s60StatD.textContent = s60;
+            s100StatD.textContent = s100;
+
+            pprStatM.textContent = ppr;
+            f9StatM.textContent = f9;
+            s60StatM.textContent = s60;
+            s100StatM.textContent = s100;
+        }
+
+        function updateScoreHistoryDisplay() {
+            scoreHistoryBodyD.innerHTML = '';
+            // Show latest on top
+            for (let i = scoreHistory.length - 1; i >= 0; i--) {
+                const entry = scoreHistory[i];
+                const row = document.createElement('tr');
+                row.className = 'border-b dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors';
+                row.innerHTML = `
+                    <td class="py-2 px-2 text-gray-900 dark:text-white font-medium">${entry.turn}</td>
+                    <td class="py-2 px-2 text-indigo-600 dark:text-indigo-400 font-bold">${entry.score}</td>
+                    <td class="py-2 px-2 text-right text-gray-500 dark:text-gray-400">${entry.remainingScore}</td>
+                `;
+                scoreHistoryBodyD.appendChild(row);
             }
         }
 
-        // --- Control Button Logic ---
-
+        // --- Controls ---
         resetBtn.addEventListener('click', resetGame);
-
         undoBtn.addEventListener('click', () => {
-            console.log('Undo clicked.');
             if (turn === 1) return;
-
             currentScore = lastTurnState.score;
             turn = lastTurnState.turn;
             previousScore = lastTurnState.previousScore;
             scoreHistory.pop();
-            console.log(`History after undo: [${scoreHistory}]`);
-
             updateDisplay();
             updateStats();
-            updateScoreHistoryDisplay();
-
             lastScoreInfo.textContent = 'Score undone.';
-            lastScoreInfo.classList.remove('text-red-500', 'text-green-500', 'dark:text-red-400', 'dark:text-green-400');
-
-            if (SpeechRecognition) {
-                toggleListenBtn.disabled = false;
-            }
-
+            lastScoreInfo.classList.remove('text-red-500');
             undoBtn.disabled = true;
         });
 
         gameModeToggle.addEventListener('change', () => {
             isGame501 = gameModeToggle.checked;
-            console.log(`Game mode changed. isGame501: ${isGame501}`);
             resetGame();
         });
 
         function resetGame() {
-            console.log('--- resetGame() ---');
             isScoreLocked = false;
-
-            if (isGame501) {
-                currentScore = 501;
-                previousScore = 501;
-            } else {
-                currentScore = 0;
-                previousScore = 0;
-            }
+            if (isGame501) { currentScore = 501; previousScore = 501; }
+            else { currentScore = 0; previousScore = 0; }
             turn = 1;
             lastTurnState = { score: currentScore, turn: 1, previousScore: previousScore };
             scoreHistory = [];
-
             updateDisplay();
             updateStats();
-            updateScoreHistoryDisplay();
-
             lastScoreInfo.textContent = '';
-            lastScoreInfo.classList.remove('text-red-500', 'text-green-500', 'dark:text-red-400', 'dark:text-green-400');
-
-            if (isListening) {
-                isListening = false;
-                recognition.stop();
-            }
-            releaseWakeLock();
-
-            if (SpeechRecognition) {
-                toggleListenBtn.disabled = false;
-            }
-            statusMessage.textContent = 'Game reset. Press mic to start.';
-            speak('Game reset.');
-        }
-
-        // --- Control Button Logic ---
-
-        slowMotionBtn.addEventListener('click', () => {
-            if (videoPlayback.playbackRate === 1.0) {
-                videoPlayback.playbackRate = 0.5; // Half speed
-                slowMotionBtn.classList.add('bg-green-500', 'hover:bg-green-600');
-                slowMotionBtn.classList.remove('bg-blue-500', 'hover:bg-blue-600');
-                slowMotionBtn.textContent = 'Slow-Mo (On)';
-            } else {
-                videoPlayback.playbackRate = 1.0; // Normal speed
-                slowMotionBtn.classList.remove('bg-green-500', 'hover:bg-green-600');
-                slowMotionBtn.classList.add('bg-blue-500', 'hover:bg-blue-600');
-                slowMotionBtn.textContent = 'Slow-Mo';
-            }
-        });
-
-        resetBtn.addEventListener('click', resetGame);
-
-        undoBtn.addEventListener('click', () => {
-            console.log('Undo clicked.');
-            if (turn === 1) return;
-
-            currentScore = lastTurnState.score;
-            turn = lastTurnState.turn;
-            previousScore = lastTurnState.previousScore;
-            scoreHistory.pop();
-            console.log(`History after undo: [${scoreHistory}]`);
-
-            updateDisplay();
-            updateStats();
-            updateScoreHistoryDisplay();
-
-            lastScoreInfo.textContent = 'Score undone.';
-            lastScoreInfo.classList.remove('text-red-500', 'text-green-500', 'dark:text-red-400', 'dark:text-green-400');
-
-            if (SpeechRecognition) {
-                toggleListenBtn.disabled = false;
-            }
-
-            undoBtn.disabled = true;
-        });
-
-        gameModeToggle.addEventListener('change', () => {
-            isGame501 = gameModeToggle.checked;
-            console.log(`Game mode changed. isGame501: ${isGame501}`);
-            resetGame();
-        });
-
-        function resetGame() {
-            console.log('--- resetGame() ---');
-            isScoreLocked = false;
-
-            if (isGame501) {
-                currentScore = 501;
-                previousScore = 501;
-            } else {
-                currentScore = 0;
-                previousScore = 0;
-            }
-            turn = 1;
-            lastTurnState = { score: currentScore, turn: 1, previousScore: previousScore };
-            scoreHistory = [];
-
-            updateDisplay();
-            updateStats();
-            updateScoreHistoryDisplay();
-
-            lastScoreInfo.textContent = '';
-            lastScoreInfo.classList.remove('text-red-500', 'text-green-500', 'dark:text-red-400', 'dark:text-green-400');
-
-            if (isListening) {
-                isListening = false;
-                recognition.stop();
-            }
+            if (isListening) { isListening = false; recognition.stop(); }
             releaseWakeLock();
             stopCamera();
-
-            if (SpeechRecognition) {
-                toggleListenBtn.disabled = false;
-            }
             statusMessage.textContent = 'Game reset. Press mic to start.';
             speak('Game reset.');
         }
 
-        // Initialize display on load
-        console.log('Initializing display...');
+        // Init
         updateDisplay();
         updateStats();
+
     </script>
 </body>
 </html>
