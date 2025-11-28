@@ -1,157 +1,211 @@
 <!DOCTYPE html>
 <html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Project Showcase</title>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Vibe Code Creations</title>
+
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+
     <style>
-      body {
-        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
-          Helvetica, Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji",
-          "Segoe UI Symbol";
-        margin: 0;
-        padding: 0;
-        background-color: #1a1a2e; /* Dark blue-purple background */
-        color: #e0e0e0; /* Light grey text */
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        min-height: 100vh;
-      }
+        body {
+            font-family: 'Space Grotesk', sans-serif;
+            background-color: #0f172a;
+            overflow-x: hidden;
+        }
 
-      header {
-        background-color: #162447; /* Darker blue */
-        color: #e0e0e0;
-        padding: 30px 20px;
-        text-align: center;
-        width: 100%;
-        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
-        border-bottom: 3px solid #fca311; /* Accent color */
-      }
+        /* Animated Background Blobs */
+        .blob {
+            position: absolute;
+            border-radius: 50%;
+            filter: blur(80px);
+            z-index: -1;
+            opacity: 0.6;
+            animation: float 20s infinite ease-in-out alternate;
+        }
+        .blob-1 { top: -10%; left: -10%; width: 50vw; height: 50vw; background: #4f46e5; animation-delay: 0s; }
+        .blob-2 { bottom: -10%; right: -10%; width: 50vw; height: 50vw; background: #ec4899; animation-delay: -5s; }
+        .blob-3 { top: 40%; left: 40%; width: 30vw; height: 30vw; background: #06b6d4; animation-delay: -10s; }
 
-      header h1 {
-        margin: 0;
-        font-size: 2.8em;
-        font-weight: 300;
-        letter-spacing: 1px;
-      }
+        @keyframes float {
+            0% { transform: translate(0, 0) scale(1); }
+            50% { transform: translate(30px, 50px) scale(1.1); }
+            100% { transform: translate(-20px, -30px) scale(0.9); }
+        }
 
-      .container {
-        max-width: 900px;
-        width: 90%;
-        margin: 40px auto;
-        padding: 20px;
-      }
+        /* Glass Card Utility */
+        .glass-card {
+            background: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            box-shadow: 0 4px 30px rgba(0, 0, 0, 0.1);
+        }
 
-      .project-grid {
-        display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-        gap: 30px;
-      }
-
-      .project-card {
-        background-color: #1f4068; /* Slightly lighter blue */
-        border-radius: 10px;
-        padding: 25px;
-        box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
-        transition: transform 0.3s ease, box-shadow 0.3s ease;
-        border-left: 5px solid #fca311; /* Accent color */
-      }
-
-      .project-card:hover {
-        transform: translateY(-10px);
-        box-shadow: 0 12px 25px rgba(0, 0, 0, 0.4);
-      }
-
-      .project-card h2 {
-        margin-top: 0;
-        color: #e0e0e0;
-        font-size: 1.6em;
-        border-bottom: 1px solid #2a5285;
-        padding-bottom: 10px;
-        margin-bottom: 15px;
-      }
-
-      .project-card p {
-        font-size: 1em;
-        line-height: 1.6;
-        color: #c0c0c0; /* Lighter grey for description */
-        margin-bottom: 20px;
-      }
-
-      .project-card a {
-        display: inline-block;
-        background-color: #fca311; /* Accent color */
-        color: #1a1a2e; /* Dark text on accent button */
-        padding: 10px 18px;
-        text-decoration: none;
-        border-radius: 5px;
-        font-weight: bold;
-        transition: background-color 0.3s ease;
-      }
-
-      .project-card a:hover {
-        background-color: #e09300; /* Darker accent on hover */
-      }
+        .glass-card:hover {
+            background: rgba(255, 255, 255, 0.1);
+            border-color: rgba(255, 255, 255, 0.2);
+            box-shadow: 0 0 20px rgba(79, 70, 229, 0.4);
+            transform: translateY(-5px);
+        }
     </style>
-  </head>
-  <body>
-    <header>
-      <h1>Vibe code creations</h1>
-    </header>
-    <div class="container">
-      <div class="project-grid">
-        <div class="project-card">
-          <h2>Mosaic Image Pixelator</h2>
-          <p>
-            An interactive tool to pixelate images. Features include uploading
-            your image, selecting areas with a rectangle or brush tool,
-            adjusting pixelation levels, and downloading the result.
-          </p>
-          <a href="mosaic/">Go to Mosaic Tool</a>
-        </div>
-        <div class="project-card">
-          <h2>5L Schedule</h2>
-          <p>
-            A web page displaying the 5L schedule. Useful for quick reference
-            and planning.
-          </p>
-          <a href="5l-schedule/">View 5L Schedule</a>
-        </div>
-        <div class="project-card">
-          <h2>Letter Checker</h2>
-          <p>
-            A tool that uses the Gemini API to evaluate letter content,
-            providing corrections, comments, improvements, acceptance rates, and
-            safety assessments.
-          </p>
-          <a href="otayori-check/">Go to Letter Checker</a>
-        </div>
-        <div class="project-card">
-          <h2>Snap Me</h2>
-          <p>
-            A chat application with integrated camera functionality, allowing
-            for seamless image capture within conversations.
-          </p>
-          <a href="snapme/">Go to Snap Me</a>
-        </div>
-        <div class="project-card">
-          <h2>Saize Quiz</h2>
-          <p>Become Saizeriya God</p>
-          <a href="saize-quiz/">Go to Saize Quiz</a>
-        </div>
-        <div class="project-card">
-          <h2>Darts Counter</h2>
-          <p>A voice-controlled scoreboard for 501 darts.</p>
-          <a href="darts-counter/">Go to Darts Counter</a>
-        </div>
-        <div class="project-card">
-          <h2>Songwriter's Codex</h2>
-          <p>A musical composition tool with chord builders and sequencers.</p>
-          <a href="songwriter-codex/">Go to Songwriter's Codex</a>
-        </div>
-        <!-- Add more project cards here as needed -->
-      </div>
+</head>
+<body class="text-white min-h-screen relative selection:bg-pink-500 selection:text-white">
+
+    <!-- Background Elements -->
+    <div class="fixed inset-0 overflow-hidden pointer-events-none">
+        <div class="blob blob-1"></div>
+        <div class="blob blob-2"></div>
+        <div class="blob blob-3"></div>
     </div>
-  </body>
+
+    <!-- Main Content -->
+    <main class="relative z-10 container mx-auto px-6 py-20">
+
+        <!-- Header -->
+        <header class="mb-20 text-center">
+            <h1 class="text-6xl md:text-8xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-cyan-300 via-purple-300 to-pink-300 mb-6 tracking-tighter">
+                Vibe Code
+            </h1>
+            <p class="text-xl md:text-2xl text-gray-300 font-light max-w-2xl mx-auto">
+                A collection of digital artifacts, tools, and experiments.
+            </p>
+        </header>
+
+        <!-- Grid -->
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+
+            <!-- Card: Ichiban Kuji -->
+            <a href="kuji-calculator/" class="glass-card rounded-3xl p-8 transition-all duration-300 group flex flex-col h-full">
+                <div class="mb-6 bg-gradient-to-br from-blue-500/20 to-purple-500/20 w-16 h-16 rounded-2xl flex items-center justify-center group-hover:scale-110 transition-transform duration-300 border border-white/10">
+                    <i data-lucide="calculator" class="w-8 h-8 text-blue-300"></i>
+                </div>
+                <h2 class="text-2xl font-bold mb-3 group-hover:text-blue-300 transition-colors">Kuji Strategist</h2>
+                <p class="text-gray-400 text-sm leading-relaxed mb-6 flex-grow">
+                    Calculate expected values and sniping opportunities for Ichiban Kuji lottery games.
+                </p>
+                <div class="flex items-center text-xs font-bold text-blue-300 uppercase tracking-widest">
+                    Launch Tool <i data-lucide="arrow-right" class="w-4 h-4 ml-2 group-hover:translate-x-1 transition-transform"></i>
+                </div>
+            </a>
+
+            <!-- Card: Songwriter's Codex -->
+            <a href="songwriter-codex/" class="glass-card rounded-3xl p-8 transition-all duration-300 group flex flex-col h-full">
+                <div class="mb-6 bg-gradient-to-br from-amber-500/20 to-orange-500/20 w-16 h-16 rounded-2xl flex items-center justify-center group-hover:scale-110 transition-transform duration-300 border border-white/10">
+                    <i data-lucide="music" class="w-8 h-8 text-amber-300"></i>
+                </div>
+                <h2 class="text-2xl font-bold mb-3 group-hover:text-amber-300 transition-colors">Songwriter's Codex</h2>
+                <p class="text-gray-400 text-sm leading-relaxed mb-6 flex-grow">
+                    Composition tool with chord builders, sequencers, and VexFlow notation.
+                </p>
+                <div class="flex items-center text-xs font-bold text-amber-300 uppercase tracking-widest">
+                    Compose <i data-lucide="arrow-right" class="w-4 h-4 ml-2 group-hover:translate-x-1 transition-transform"></i>
+                </div>
+            </a>
+
+            <!-- Card: Darts Counter -->
+            <a href="darts-counter/" class="glass-card rounded-3xl p-8 transition-all duration-300 group flex flex-col h-full">
+                <div class="mb-6 bg-gradient-to-br from-emerald-500/20 to-teal-500/20 w-16 h-16 rounded-2xl flex items-center justify-center group-hover:scale-110 transition-transform duration-300 border border-white/10">
+                    <i data-lucide="crosshair" class="w-8 h-8 text-emerald-300"></i>
+                </div>
+                <h2 class="text-2xl font-bold mb-3 group-hover:text-emerald-300 transition-colors">Darts Counter</h2>
+                <p class="text-gray-400 text-sm leading-relaxed mb-6 flex-grow">
+                    Voice-controlled 501 scoreboard with checkout guides and stats.
+                </p>
+                <div class="flex items-center text-xs font-bold text-emerald-300 uppercase tracking-widest">
+                    Play <i data-lucide="arrow-right" class="w-4 h-4 ml-2 group-hover:translate-x-1 transition-transform"></i>
+                </div>
+            </a>
+
+            <!-- Card: Saize Quiz -->
+            <a href="saize-quiz/" class="glass-card rounded-3xl p-8 transition-all duration-300 group flex flex-col h-full">
+                <div class="mb-6 bg-gradient-to-br from-red-500/20 to-pink-500/20 w-16 h-16 rounded-2xl flex items-center justify-center group-hover:scale-110 transition-transform duration-300 border border-white/10">
+                    <i data-lucide="utensils" class="w-8 h-8 text-red-300"></i>
+                </div>
+                <h2 class="text-2xl font-bold mb-3 group-hover:text-red-300 transition-colors">Saize Quiz</h2>
+                <p class="text-gray-400 text-sm leading-relaxed mb-6 flex-grow">
+                    Test your knowledge of the Saizeriya menu. Become the Saize God.
+                </p>
+                <div class="flex items-center text-xs font-bold text-red-300 uppercase tracking-widest">
+                    Start Quiz <i data-lucide="arrow-right" class="w-4 h-4 ml-2 group-hover:translate-x-1 transition-transform"></i>
+                </div>
+            </a>
+
+            <!-- Card: Snap Me -->
+            <a href="snapme/" class="glass-card rounded-3xl p-8 transition-all duration-300 group flex flex-col h-full">
+                <div class="mb-6 bg-gradient-to-br from-indigo-500/20 to-violet-500/20 w-16 h-16 rounded-2xl flex items-center justify-center group-hover:scale-110 transition-transform duration-300 border border-white/10">
+                    <i data-lucide="camera" class="w-8 h-8 text-indigo-300"></i>
+                </div>
+                <h2 class="text-2xl font-bold mb-3 group-hover:text-indigo-300 transition-colors">Snap Me</h2>
+                <p class="text-gray-400 text-sm leading-relaxed mb-6 flex-grow">
+                    Chat application with integrated camera functionality for seamless sharing.
+                </p>
+                <div class="flex items-center text-xs font-bold text-indigo-300 uppercase tracking-widest">
+                    Open Camera <i data-lucide="arrow-right" class="w-4 h-4 ml-2 group-hover:translate-x-1 transition-transform"></i>
+                </div>
+            </a>
+
+            <!-- Card: Letter Checker -->
+            <a href="otayori-check/" class="glass-card rounded-3xl p-8 transition-all duration-300 group flex flex-col h-full">
+                <div class="mb-6 bg-gradient-to-br from-cyan-500/20 to-sky-500/20 w-16 h-16 rounded-2xl flex items-center justify-center group-hover:scale-110 transition-transform duration-300 border border-white/10">
+                    <i data-lucide="mail-check" class="w-8 h-8 text-cyan-300"></i>
+                </div>
+                <h2 class="text-2xl font-bold mb-3 group-hover:text-cyan-300 transition-colors">Letter Checker</h2>
+                <p class="text-gray-400 text-sm leading-relaxed mb-6 flex-grow">
+                    AI-powered evaluation for letter content, safety, and improvements.
+                </p>
+                <div class="flex items-center text-xs font-bold text-cyan-300 uppercase tracking-widest">
+                    Check <i data-lucide="arrow-right" class="w-4 h-4 ml-2 group-hover:translate-x-1 transition-transform"></i>
+                </div>
+            </a>
+
+            <!-- Card: 5L Schedule -->
+            <a href="5l-schedule/" class="glass-card rounded-3xl p-8 transition-all duration-300 group flex flex-col h-full">
+                <div class="mb-6 bg-gradient-to-br from-fuchsia-500/20 to-pink-500/20 w-16 h-16 rounded-2xl flex items-center justify-center group-hover:scale-110 transition-transform duration-300 border border-white/10">
+                    <i data-lucide="calendar" class="w-8 h-8 text-fuchsia-300"></i>
+                </div>
+                <h2 class="text-2xl font-bold mb-3 group-hover:text-fuchsia-300 transition-colors">5L Schedule</h2>
+                <p class="text-gray-400 text-sm leading-relaxed mb-6 flex-grow">
+                    Quick reference schedule planner.
+                </p>
+                <div class="flex items-center text-xs font-bold text-fuchsia-300 uppercase tracking-widest">
+                    View <i data-lucide="arrow-right" class="w-4 h-4 ml-2 group-hover:translate-x-1 transition-transform"></i>
+                </div>
+            </a>
+
+            <!-- Card: Mosaic -->
+            <a href="mosaic/" class="glass-card rounded-3xl p-8 transition-all duration-300 group flex flex-col h-full">
+                <div class="mb-6 bg-gradient-to-br from-gray-500/20 to-slate-500/20 w-16 h-16 rounded-2xl flex items-center justify-center group-hover:scale-110 transition-transform duration-300 border border-white/10">
+                    <i data-lucide="grid" class="w-8 h-8 text-gray-300"></i>
+                </div>
+                <h2 class="text-2xl font-bold mb-3 group-hover:text-white transition-colors">Mosaic Tool</h2>
+                <p class="text-gray-400 text-sm leading-relaxed mb-6 flex-grow">
+                    Interactive image pixelation tool with brush and region selection.
+                </p>
+                <div class="flex items-center text-xs font-bold text-gray-300 uppercase tracking-widest">
+                    Pixelate <i data-lucide="arrow-right" class="w-4 h-4 ml-2 group-hover:translate-x-1 transition-transform"></i>
+                </div>
+            </a>
+
+        </div>
+
+        <footer class="mt-20 text-center text-gray-500 text-sm">
+            <p>&copy; Vibe Code Creations. Built with Tailwind CSS.</p>
+        </footer>
+
+    </main>
+
+    <script>
+        lucide.createIcons();
+    </script>
+</body>
 </html>
