@@ -83,6 +83,12 @@
       .next-button {
         width: 100%;
       }
+      .search-mode-button {
+        background-image: linear-gradient(to right, #10b981 0%, #34d399 100%);
+      }
+      .search-mode-button:hover {
+        background-image: linear-gradient(to right, #059669 0%, #10b981 100%);
+      }
       .category-selector {
         display: flex;
         flex-wrap: wrap;
@@ -113,36 +119,116 @@
         gap: 1rem;
         margin-top: 2rem;
       }
+      /* Search Section Styles */
+      .search-input {
+        width: 100%;
+        padding: 1rem;
+        border: 2px solid #e2e8f0;
+        border-radius: 0.75rem;
+        font-size: 1rem;
+        outline: none;
+        transition: border-color 0.3s;
+      }
+      .search-input:focus {
+        border-color: #4f46e5;
+      }
+      .search-result-item {
+        background-color: #f8fafc;
+        border: 1px solid #e2e8f0;
+        border-radius: 0.75rem;
+        padding: 1rem;
+        text-align: left;
+        margin-bottom: 0.75rem;
+      }
+      .search-result-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 0.25rem;
+      }
+      .result-number {
+        font-weight: 700;
+        color: #4f46e5;
+        font-size: 1.1rem;
+      }
+      .result-price {
+        font-size: 0.875rem;
+        color: #64748b;
+      }
+      .result-name {
+        font-weight: 600;
+        color: #1e293b;
+      }
+      .result-category {
+        font-size: 0.75rem;
+        color: #94a3b8;
+        margin-top: 0.25rem;
+      }
+      #loading-overlay {
+        position: fixed;
+        inset: 0;
+        background: rgba(255, 255, 255, 0.8);
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        z-index: 50;
+      }
+      #loading-overlay.hidden {
+        display: none;
+      }
+      .spinner {
+        border: 4px solid #f3f3f3;
+        border-top: 4px solid #4f46e5;
+        border-radius: 50%;
+        width: 40px;
+        height: 40px;
+        animation: spin 1s linear infinite;
+      }
+      @keyframes spin {
+        0% { transform: rotate(0deg); }
+        100% { transform: rotate(360deg); }
+      }
     </style>
   </head>
   <body class="bg-gray-100 flex items-center justify-center min-h-screen p-4">
+    <div id="loading-overlay">
+      <div class="spinner"></div>
+    </div>
+
     <div class="container">
       <h1 class="text-3xl font-bold text-gray-800">
         サイゼリヤメニュー番号学習アプリ
       </h1>
       <p class="mt-2 text-gray-600">法則を意識して番号を覚えよう！</p>
 
+      <!-- Main Menu Section -->
       <div id="category-section">
         <h2 class="text-xl font-bold mt-6 mb-2 text-gray-800">
           クイズに挑戦するカテゴリーを選んでください
         </h2>
         <div class="category-selector" id="category-selector"></div>
-        <div class="button-group">
-          <button
-            id="clear-all-button"
-            class="bubbly-button clear-all-button w-1/2"
-          >
-            全クリア
-          </button>
-          <button
-            id="start-button"
-            class="bubbly-button start-button w-1/2 mt-0"
-          >
-            クイズを開始
+        <div class="button-group flex-col">
+          <div class="flex gap-2 w-full">
+            <button
+                id="clear-all-button"
+                class="bubbly-button clear-all-button w-1/2"
+            >
+                全クリア
+            </button>
+            <button
+                id="start-button"
+                class="bubbly-button start-button w-1/2 mt-0"
+            >
+                クイズを開始
+            </button>
+          </div>
+          <button id="search-mode-button" class="bubbly-button search-mode-button w-full mt-2">
+            メニュー検索
           </button>
         </div>
       </div>
 
+      <!-- Quiz Section -->
       <div id="quiz-section" class="hidden">
         <div id="quiz-display" class="mt-8">
           <p
@@ -163,6 +249,33 @@
         <button id="next-button" class="bubbly-button next-button hidden mt-6">
           次の問題へ
         </button>
+        <button id="quiz-back-button" class="text-gray-500 mt-6 underline text-sm hover:text-gray-700">
+            タイトルに戻る
+        </button>
+      </div>
+
+      <!-- Search Section -->
+      <div id="search-section" class="hidden text-left">
+        <h2 class="text-xl font-bold mt-6 mb-4 text-gray-800 text-center">
+            メニュー検索
+        </h2>
+        <div class="mb-4">
+            <input
+                type="text"
+                id="search-input"
+                class="search-input"
+                placeholder="番号 (例: 1401) または メニュー名"
+            >
+        </div>
+        <div id="search-results" class="space-y-2 max-h-[400px] overflow-y-auto pr-2">
+            <!-- Results will be injected here -->
+            <p class="text-center text-gray-400 py-4">検索してください</p>
+        </div>
+        <div class="text-center mt-6">
+            <button id="search-back-button" class="bubbly-button clear-all-button w-full">
+                タイトルに戻る
+            </button>
+        </div>
       </div>
 
       <div id="message-box" class="message-box hidden">
@@ -171,447 +284,87 @@
     </div>
 
     <script>
-      const menuData = [
-        // 1000番台: サラダ・スープ・前菜
-        {
-          name: "小エビのサラダ",
-          number: "1202",
-          category: "前菜・サラダ・スープ"
-        },
-        {
-          name: "わかめのサラダ",
-          number: "1205",
-          category: "前菜・サラダ・スープ"
-        },
-        {
-          name: "モッツァレラのサラダ",
-          number: "1207",
-          category: "前菜・サラダ・スープ"
-        },
-        {
-          name: "グリーンサラダ",
-          number: "1208",
-          category: "前菜・サラダ・スープ"
-        },
-        {
-          name: "チキンのサラダ",
-          number: "1209",
-          category: "前菜・サラダ・スープ"
-        },
-        {
-          name: "コーンクリームスープ",
-          number: "1301",
-          category: "前菜・サラダ・スープ"
-        },
-        {
-          name: "田舎風ミネストローネ",
-          number: "1305",
-          category: "前菜・サラダ・スープ"
-        },
-        {
-          name: "たまねぎのズッパ",
-          number: "1307",
-          category: "前菜・サラダ・スープ"
-        },
-        {
-          name: "辛味チキン",
-          number: "1401",
-          category: "前菜・サラダ・スープ"
-        },
-        {
-          name: "アロスティチーニ",
-          number: "1402",
-          category: "前菜・サラダ・スープ"
-        },
-        {
-          name: "ほうれん草のソテー",
-          number: "1403",
-          category: "前菜・サラダ・スープ"
-        },
-        {
-          name: "ポップコーンシュリンプ",
-          number: "1404",
-          category: "前菜・サラダ・スープ"
-        },
-        {
-          name: "エスカルゴのオーブン焼き",
-          number: "1405",
-          category: "前菜・サラダ・スープ"
-        },
-        {
-          name: "小エビのカクテル",
-          number: "1406",
-          category: "前菜・サラダ・スープ"
-        },
-        {
-          name: "チョリソー",
-          number: "1407",
-          category: "前菜・サラダ・スープ"
-        },
-        {
-          name: "蒸し鶏の香味ソース",
-          number: "1408",
-          category: "前菜・サラダ・スープ"
-        },
-        {
-          name: "ムール貝のガーリック焼き",
-          number: "1410",
-          category: "前菜・サラダ・スープ"
-        },
-        {
-          name: "アスパラガスの温サラダ",
-          number: "1411",
-          category: "前菜・サラダ・スープ"
-        },
-        {
-          name: "爽やかにんじんサラダ",
-          number: "1413",
-          category: "前菜・サラダ・スープ"
-        },
-        {
-          name: "モッツァレラトマト",
-          number: "1414",
-          category: "前菜・サラダ・スープ"
-        },
-        {
-          name: "カリッとポテト",
-          number: "1415",
-          category: "前菜・サラダ・スープ"
-        },
-        {
-          name: "バッファローモッツァレラのカプレーゼ",
-          number: "1417",
-          category: "前菜・サラダ・スープ"
-        },
-        {
-          name: "ハモン・セラーノ",
-          number: "1422",
-          category: "前菜・サラダ・スープ"
-        },
-        {
-          name: "生ハムとバッファローモッツァレラの盛合せ",
-          number: "1423",
-          category: "前菜・サラダ・スープ"
-        },
-        {
-          name: "柔らか青豆の温サラダ",
-          number: "1425",
-          category: "前菜・サラダ・スープ"
-        },
-        {
-          name: "アロスティチーニ Wサイズ",
-          number: "1452",
-          category: "前菜・サラダ・スープ"
-        },
-        // 2000番台: ドリア・ピザ・パスタ・肉料理
-        {
-          name: "ミラノ風ドリア",
-          number: "2101",
-          category: "ドリア・グラタン"
-        },
-        {
-          name: "半熟卵のミラノ風ドリア",
-          number: "2103",
-          category: "ドリア・グラタン"
-        },
-        {
-          name: "タラコとエビのドリア",
-          number: "2106",
-          category: "ドリア・グラタン"
-        },
-        {
-          name: "焼チーズミラノ風ドリア",
-          number: "2108",
-          category: "ドリア・グラタン"
-        },
-        {
-          name: "エビとタラコのクリームグラタン",
-          number: "2109",
-          category: "ドリア・グラタン"
-        },
-        { name: "マルゲリータピザ", number: "2203", category: "ピザ" },
-        { name: "野菜ときのこのピザ", number: "2204", category: "ピザ" },
-        { name: "たっぷりコーンのピザ", number: "2206", category: "ピザ" },
-        { name: "ソーセージピザ", number: "2208", category: "ピザ" },
-        { name: "タラコソースシシリー風", number: "2301", category: "パスタ" },
-        { name: "ペペロンチーノ", number: "2303", category: "パスタ" },
-        { name: "パルマ風スパゲッティ", number: "2304", category: "パスタ" },
-        { name: "カルボナーラ", number: "2305", category: "パスタ" },
-        { name: "ミートソースボロニア風", number: "2306", category: "パスタ" },
-        { name: "スープ入り塩味ボンゴレ", number: "2310", category: "パスタ" },
-        {
-          name: "半熟卵のミートソースボロニア風",
-          number: "2316",
-          category: "パスタ"
-        },
-        { name: "半熟卵のペペロンチーノ", number: "2317", category: "パスタ" },
-        { name: "小エビのタラコソース", number: "2320", category: "パスタ" },
-        {
-          name: "きのことほうれん草のクリームスパゲッティ",
-          number: "2321",
-          category: "パスタ"
-        },
-        { name: "ペンネアラビアータ", number: "2325", category: "パスタ" },
-        {
-          name: "イカの墨入りセピアソース",
-          number: "2328",
-          category: "パスタ"
-        },
-        { name: "若鶏のディアボラ風", number: "2402", category: "肉メニュー" },
-        {
-          name: "イタリアンハンバーグ",
-          number: "2403",
-          category: "肉メニュー"
-        },
-        {
-          name: "柔らかチキンのチーズ焼き",
-          number: "2404",
-          category: "肉メニュー"
-        },
-        { name: "ハンバーグステーキ", number: "2406", category: "肉メニュー" },
-        {
-          name: "ディアボラ風ハンバーグ",
-          number: "2407",
-          category: "肉メニュー"
-        },
-        { name: "ラムと野菜のグリル", number: "2413", category: "肉メニュー" },
-        { name: "ミックスグリル", number: "2418", category: "肉メニュー" },
-        // 3000番台: ライス・パン・デザート・ドリンクなど
-        { name: "ライス", number: "3101", category: "ライス・パン系" },
-        { name: "ラージライス", number: "3102", category: "ライス・パン系" },
-        { name: "スモールライス", number: "3103", category: "ライス・パン系" },
-        {
-          name: "シナモンプチフォッカ",
-          number: "3104",
-          category: "ライス・パン系"
-        },
-        { name: "プチフォッカ", number: "3106", category: "ライス・パン系" },
-        { name: "ミニフィセル", number: "3108", category: "ライス・パン系" },
-        {
-          name: "ガーリックトースト",
-          number: "3109",
-          category: "ライス・パン系"
-        },
-        { name: "フォッカチオ", number: "3110", category: "ライス・パン系" },
-        {
-          name: "ガーリックフォッカチオ",
-          number: "3111",
-          category: "ライス・パン系"
-        },
-        {
-          name: "シナモンフォッカチオ",
-          number: "3112",
-          category: "ライス・パン系"
-        },
-        {
-          name: "ティラミスクラシコ （すぐに）",
-          number: "3201",
-          category: "デザート"
-        },
-        {
-          name: "ジェラート＆シナモンプチフォッカ （すぐに）",
-          number: "3204",
-          category: "デザート"
-        },
-        {
-          name: "イタリアンジェラート（すぐに）",
-          number: "3205",
-          category: "デザート"
-        },
-        {
-          name: "イタリアンプリン（すぐに）",
-          number: "3206",
-          category: "デザート"
-        },
-        {
-          name: "チョコレートケーキ（すぐに）",
-          number: "3207",
-          category: "デザート"
-        },
-        {
-          name: "プリンとティラミスクラシコの盛合せ（すぐに）",
-          number: "3212",
-          category: "デザート"
-        },
-        {
-          name: "トリフアイスクリーム（すぐに）",
-          number: "3213",
-          category: "デザート"
-        },
-        {
-          name: "コーヒーゼリー＆イタリアンジェラート（すぐに）",
-          number: "3215",
-          category: "デザート"
-        },
-        { name: "グラッパ（30ml）", number: "3306", category: "デザート" },
-        {
-          name: "生ビール ジョッキ",
-          number: "3301",
-          category: "ドリンク・アルコール"
-        },
-        {
-          name: "グラスビール",
-          number: "3302",
-          category: "ドリンク・アルコール"
-        },
-        {
-          name: "ノンアルコールビール",
-          number: "3303",
-          category: "ドリンク・アルコール"
-        },
-        {
-          name: "キリン 氷結 シチリア産レモン",
-          number: "3304",
-          category: "ドリンク・アルコール"
-        },
-        {
-          name: "グラスワイン 赤",
-          number: "3401",
-          category: "ドリンク・アルコール"
-        },
-        {
-          name: "グラスワイン 白",
-          number: "3402",
-          category: "ドリンク・アルコール"
-        },
-        {
-          name: "デカンタ（250ml）赤",
-          number: "3403",
-          category: "ドリンク・アルコール"
-        },
-        {
-          name: "デカンタ（250ml）白",
-          number: "3404",
-          category: "ドリンク・アルコール"
-        },
-        {
-          name: "デカンタ（500ml）赤",
-          number: "3405",
-          category: "ドリンク・アルコール"
-        },
-        {
-          name: "デカンタ（500ml）白",
-          number: "3406",
-          category: "ドリンク・アルコール"
-        },
-        {
-          name: "マグナム（1500ml）赤",
-          number: "3407",
-          category: "ドリンク・アルコール"
-        },
-        {
-          name: "マグナム（1500ml）白",
-          number: "3408",
-          category: "ドリンク・アルコール"
-        },
-        {
-          name: "ランブルスコ【（ロゼ）甘口】",
-          number: "3412",
-          category: "ドリンク・アルコール"
-        },
-        {
-          name: "ドン ラファエロ【（白）辛口】",
-          number: "3413",
-          category: "ドリンク・アルコール"
-        },
-        {
-          name: "ランブルスコ セッコ【（赤）辛口】",
-          number: "3414",
-          category: "ドリンク・アルコール"
-        },
-        {
-          name: "ベルデッキオ【辛口・中】",
-          number: "3415",
-          category: "ドリンク・アルコール"
-        },
-        {
-          name: "キャンティ【辛口・やや重い】",
-          number: "3416",
-          category: "ドリンク・アルコール"
-        },
-        {
-          name: "キャンティ ルフィナ リゼルバ【辛口・重い】",
-          number: "3419",
-          category: "ドリンク・アルコール"
-        },
-        {
-          name: "ティラミスクラシコ （あとで）",
-          number: "3901",
-          category: "デザート"
-        },
-        {
-          name: "ジェラート＆シナモンプチフォッカ （あとで）",
-          number: "3904",
-          category: "デザート"
-        },
-        {
-          name: "イタリアンジェラート（あとで）",
-          number: "3905",
-          category: "デザート"
-        },
-        {
-          name: "イタリアンプリン（あとで）",
-          number: "3906",
-          category: "デザート"
-        },
-        {
-          name: "チョコレートケーキ（あとで）",
-          number: "3907",
-          category: "デザート"
-        },
-        {
-          name: "プリンとティラミスクラシコの盛合せ（あとで）",
-          number: "3912",
-          category: "デザート"
-        },
-        {
-          name: "トリフアイスクリーム（あとで）",
-          number: "3913",
-          category: "デザート"
-        },
-        {
-          name: "コーヒーゼリー＆イタリアンジェラート（あとで）",
-          number: "3915",
-          category: "デザート"
-        },
-        // 4000・5000番台: その他
-        { name: "トッピング半熟卵", number: "4301", category: "トッピング" },
-        { name: "野菜ペースト", number: "4304", category: "トッピング" },
-        {
-          name: "トッピング粉チーズ（グランモラビア）",
-          number: "4307",
-          category: "トッピング"
-        },
-        { name: "セットドリンクバー", number: "5101", category: "ドリンク" },
-        { name: "キッズドリンクバー", number: "5102", category: "ドリンク" },
-        { name: "ドリンクバー〈単品〉", number: "5103", category: "ドリンク" },
-        { name: "ランチドリンクバー", number: "5104", category: "ドリンク" }
-      ];
+      let menuData = [];
 
       const categoryMap = {
         1: "前菜・サラダ・スープ",
-        2: "メインディッシュ",
-        3: "ライス・パン・デザート",
-        4: "トッピング・お子様メニュー",
-        5: "ドリンク・セットメニュー"
+        2: "メインディッシュ (ドリア・ピザ・パスタ・肉)",
+        3: "ライス・パン・デザート・アルコール",
+        4: "トッピング",
+        5: "ドリンク・調味料"
       };
 
       let currentMenu = null;
       let shuffledMenus = [];
       let selectedCategories = [];
 
+      // Elements
+      const loadingOverlay = document.getElementById("loading-overlay");
       const categorySection = document.getElementById("category-section");
       const quizSection = document.getElementById("quiz-section");
+      const searchSection = document.getElementById("search-section");
+
       const startButton = document.getElementById("start-button");
       const clearAllButton = document.getElementById("clear-all-button");
+      const searchModeButton = document.getElementById("search-mode-button");
       const categorySelector = document.getElementById("category-selector");
       const hintButton = document.getElementById("hint-button");
       const categoryHintElement = document.getElementById("category-hint");
       const menuNameElement = document.getElementById("menu-name");
       const optionsContainer = document.getElementById("options-container");
       const nextButton = document.getElementById("next-button");
+      const quizBackButton = document.getElementById("quiz-back-button");
+      const searchBackButton = document.getElementById("search-back-button");
+
       const messageBox = document.getElementById("message-box");
       const messageText = document.getElementById("message-text");
+
+      const searchInput = document.getElementById("search-input");
+      const searchResults = document.getElementById("search-results");
+
+      // --- Initialization ---
+      async function fetchMenuData() {
+        try {
+            const response = await fetch('https://raw.githubusercontent.com/ryohidaka/saizeriya-menus/refs/heads/main/saizeriya.json');
+            if (!response.ok) throw new Error("Failed to load data");
+            const data = await response.json();
+
+            // Transform data to match app needs
+            menuData = data.menus.map(item => ({
+                name: item.name,
+                number: item.id.toString(),
+                category: mapGenreToCategory(item), // Function to group for the quiz
+                original: item // Keep original data for details
+            }));
+
+            // Filter out items that don't have a valid 4-digit ID starting with 1-5
+            menuData = menuData.filter(item => {
+                const num = parseInt(item.number);
+                return !isNaN(num) && item.number.length === 4;
+            });
+
+            createCategoryButtons();
+            loadingOverlay.classList.add('hidden');
+        } catch (error) {
+            console.error(error);
+            loadingOverlay.innerHTML = `<p class="text-red-500 font-bold">データの読み込みに失敗しました。<br>再読み込みしてください。</p>`;
+        }
+      }
+
+      function mapGenreToCategory(item) {
+         // Map based on the first digit of the ID for quiz grouping
+         const firstDigit = item.id.toString().charAt(0);
+         if (categoryMap[firstDigit]) {
+             // We can use the detailed genre from the JSON for better grouping if desired,
+             // but for now let's stick to the broad categories derived from ID
+             // to match the original app logic.
+             // Or we can use item.genre directly?
+             // The original app used custom strings like "前菜・サラダ・スープ".
+             // Let's rely on the first digit to assign the "Quiz Category Group".
+             return categoryMap[firstDigit];
+         }
+         return "その他";
+      }
 
       function shuffleArray(array) {
         for (let i = array.length - 1; i > 0; i--) {
@@ -624,15 +377,21 @@
         const uniqueCategories = [
           ...new Set(menuData.map((item) => item.category))
         ];
+
+        // Group by first digit
         const categoryGroups = {};
         uniqueCategories.forEach((cat) => {
-          const firstDigit = menuData
-            .find((item) => item.category === cat)
-            .number.charAt(0);
-          if (!categoryGroups[firstDigit]) {
-            categoryGroups[firstDigit] = [];
-          }
-          categoryGroups[firstDigit].push(cat);
+            // Find an example item to get the digit
+            const example = menuData.find((item) => item.category === cat);
+            if(example) {
+                const firstDigit = example.number.charAt(0);
+                if (!categoryGroups[firstDigit]) {
+                    categoryGroups[firstDigit] = [];
+                }
+                if (!categoryGroups[firstDigit].includes(cat)) {
+                    categoryGroups[firstDigit].push(cat);
+                }
+            }
         });
 
         const sortedKeys = Object.keys(categoryGroups).sort();
@@ -640,14 +399,14 @@
         sortedKeys.forEach((key) => {
           const groupName = categoryMap[key] || `その他`;
           const header = document.createElement("h3");
-          header.className = "text-lg font-bold w-full mt-4 mb-2";
-          header.textContent = `${key}000番台: ${groupName}`;
+          header.className = "text-lg font-bold w-full mt-4 mb-2 text-indigo-600 border-b border-indigo-100 pb-1";
+          header.textContent = `${key}000番台`;
           categorySelector.appendChild(header);
 
           categoryGroups[key].forEach((cat) => {
             const button = document.createElement("button");
-            button.className = "category-button active";
-            button.textContent = cat;
+            button.className = "category-button active m-1";
+            button.textContent = cat; // This will now likely just be the mapped name
             button.dataset.category = cat;
             button.addEventListener("click", () => {
               button.classList.toggle("active");
@@ -677,6 +436,7 @@
         updateSelectedCategories();
       }
 
+      // --- Quiz Logic ---
       function startQuiz() {
         if (selectedCategories.length === 0) {
           showMessage(
@@ -723,10 +483,22 @@
 
         menuNameElement.textContent = currentMenu.name;
         optionsContainer.innerHTML = "";
-        const wrongNumbers = getWrongAnswers(
+
+        // Ensure we have enough wrong answers even if category is small
+        let wrongNumbers = getWrongAnswers(
           currentMenu.number,
           currentMenu.category
         );
+
+        // If not enough wrong answers in category, pick from global
+        if(wrongNumbers.length < 3) {
+             const otherNumbers = menuData
+                .filter(item => item.number !== currentMenu.number && !wrongNumbers.includes(item.number))
+                .map(item => item.number);
+             shuffleArray(otherNumbers);
+             wrongNumbers = [...wrongNumbers, ...otherNumbers.slice(0, 3 - wrongNumbers.length)];
+        }
+
         const options = [...wrongNumbers, currentMenu.number];
         shuffleArray(options);
 
@@ -793,10 +565,15 @@
         optionsContainer.innerHTML = "";
         nextButton.classList.add("hidden");
         startButton.textContent = "もう一度プレイする";
-        categorySection.classList.remove("hidden");
-        quizSection.classList.add("hidden");
-        document.removeEventListener("keydown", handleKeyDown); // Disable keyboard input
-        showMessage("none");
+        returnToTitle();
+      }
+
+      function returnToTitle() {
+          categorySection.classList.remove("hidden");
+          quizSection.classList.add("hidden");
+          searchSection.classList.add("hidden");
+          document.removeEventListener("keydown", handleKeyDown); // Disable keyboard input
+          showMessage("none");
       }
 
       // Updated function to handle keyboard input
@@ -804,8 +581,11 @@
         const key = event.key;
         // Check if an answer has been selected (i.e., the next button is visible)
         if (!nextButton.classList.contains("hidden")) {
-          displayNextQuestion();
+          if (key === "Enter" || key === " ") {
+            displayNextQuestion();
+          }
         } else if (
+          !quizSection.classList.contains("hidden") &&
           optionsContainer.children.length > 0 &&
           ["1", "2", "3", "4"].includes(key)
         ) {
@@ -833,15 +613,60 @@
         }
       }
 
+      // --- Search Logic ---
+      function openSearchMode() {
+          categorySection.classList.add("hidden");
+          searchSection.classList.remove("hidden");
+          searchInput.value = "";
+          updateSearchResults("");
+          searchInput.focus();
+      }
+
+      function updateSearchResults(query) {
+          const cleanQuery = query.trim().toLowerCase();
+
+          if (cleanQuery === "") {
+              searchResults.innerHTML = '<p class="text-center text-gray-400 py-4">番号またはメニュー名を入力</p>';
+              return;
+          }
+
+          const filtered = menuData.filter(item => {
+              return item.name.includes(cleanQuery) || item.number.includes(cleanQuery);
+          });
+
+          if (filtered.length === 0) {
+              searchResults.innerHTML = '<p class="text-center text-gray-400 py-4">見つかりませんでした</p>';
+              return;
+          }
+
+          searchResults.innerHTML = filtered.map(item => `
+            <div class="search-result-item">
+                <div class="search-result-header">
+                    <span class="result-number">${item.number}</span>
+                    <span class="result-price">¥${item.original.price_with_tax}</span>
+                </div>
+                <div class="result-name">${item.name}</div>
+                <div class="result-category">${item.original.genre || item.category}</div>
+            </div>
+          `).join('');
+      }
+
+      // Event Listeners
       startButton.addEventListener("click", startQuiz);
       nextButton.addEventListener("click", displayNextQuestion);
       clearAllButton.addEventListener("click", clearAllCategories);
       hintButton.addEventListener("click", () => {
         categoryHintElement.classList.remove("hidden");
       });
+      quizBackButton.addEventListener("click", returnToTitle);
 
-      // 初期化
-      createCategoryButtons();
+      searchModeButton.addEventListener("click", openSearchMode);
+      searchBackButton.addEventListener("click", returnToTitle);
+      searchInput.addEventListener("input", (e) => updateSearchResults(e.target.value));
+
+      // Initial Load
+      fetchMenuData();
+
     </script>
   </body>
 </html>
