@@ -1,0 +1,502 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>HDR Flashbang Creator v7 (Head Injection)</title>
+    <meta name="description" content="Injects 16-bit PQ data with hardcoded ICC profile support.">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body { background-color: #050505; color: #eee; font-family: 'Inter', sans-serif; }
+        .canvas-container {
+            background-image: linear-gradient(45deg, #1a1a1a 25%, transparent 25%),
+                              linear-gradient(-45deg, #1a1a1a 25%, transparent 25%),
+                              linear-gradient(45deg, transparent 75%, #1a1a1a 75%),
+                              linear-gradient(-45deg, transparent 75%, #1a1a1a 75%);
+            background-size: 20px 20px;
+            background-position: 0 0, 0 10px, 10px -10px, -10px 0px;
+        }
+        input[type=range] { accent-color: #4f46e5; }
+        .radio-card:has(input:checked) {
+            border-color: #4f46e5;
+            background-color: rgba(79, 70, 229, 0.1);
+        }
+    </style>
+
+    <!--
+      =======================================================================
+      PASTE YOUR HEX STRING HERE (Inside the tag below)
+      Supported formats:
+      1. Full Chunk: 00 00 0X XX 69 43 43 50 ... (Length + 'iCCP' + Data + CRC)
+      2. Raw Profile: 00 00 0X XX 61 63 73 70 ... (Profile Size + 'acsp') -> Will be compressed & wrapped
+      =======================================================================
+    -->
+    <script id="HARDCODED_ICC" type="text/plain">
+        00000de3694343505051204844520000789ced9a4d685ce71586af63fd78345635b55c69e28ea90651095c3293583f644c47d88e344e8d8d27918be2a81b5bb124a3d8196ce5875289298e365aa8dbd484762350c1554ab568a120558b6623d5345028158152d3425782d2450d5dd4bdcf3cfe6612681ab2afccbcbef373cfdc7bbff79cf73de74e14f5fe318aff9a4e47d1cd5bf3b75f3e77b6e7952baff6b4fe393a10ffabfd5d9dba53893efb2ffed43fffe0677fffccfff8dc67fd255ebb7e672afeffeff1e395dbf197c7215f8cb78fceb8fd1db6afb9cd711c7d7bbe321f6fbfcbf6d48da9f8b503efc5db87cf9c3cfb6cbcbd1a45d99f9c3d7926deeebd10bf5e9eaadc8e3fdffb7ebcfdcd9bafbf39d538eee8f0f55bdf1ee7f5f891895e8eae4753d1c9e8d9daa3273a175d8d6e466f46f3f1f6dbd18df8ffd978ab1cbd14e3e5e876fceeade84e341defc561f718f6a7b35174ee8dc78f1f7fbff1da891bf1eb7f89a2d6f5c66b3dad5194fc208a7edbd978ad711d3daff8e2a4a20337cf9cadbd7ff0a03bc6e7175f9fec3b9c5b147dedbdcad5db573fb91a9ff73c994c7e6a019efad4b3c30fc0a7ef817dd3e0c00078baf6ee85dabb576aef4ed7debd537bb75adff3f003fe3f9c2642b24c84b6792224ee12e1d022115ae788d0324184e671223455aaf56f7dfadee134c8b3741b11ba2e12e1e835221c394f84540711da7789905c254262bb5a3fe2bee964194cb781bcd6bb43849e8744387e9f08c78689d0b54684ce021152f96afd6c0706dae6c1ae8b60ef0ec83bf94b4438f188087d0522644b44c8548890eeaed6afd4e9f88cc1a3d7c09e8760fe12c8fba7568830b844845c8608fd5b44c8ee57eb57f9c283438be091f3e0f1fbe08947e0a915904f8d2d13a1b84e84a10d22e446abf515ba72af750e4c7580c786c1be0238b8048e2d837cb63c4b84d21e118a9bd5faea4e4fb74c80edbb60d71a982d81b90c585c07cbb3207b4c2e10a1bc53ad33e3ce40f338985c053b0b60a602f66f81431b60690f9c5c00d96f66a4fa84556053054c6c83a93c98ee06b3fb606e142c6e82e51d706604acd6195963658d53f2c2b5757dbcc65e27cfd5e3f53b9fb0f941ed5f1a5627cbb0ba6d1e5627eec2ea438bb0ba750e56b74cc0eae67158dd5481d56602e8fe4480d56df3b03a7117561f5a84d5ad73b0ba650256378fc3eaa60aac368b40bf3bdd0612015627eec2ea438bb0ba750e56b74cc0eae67158dd5481d56620e871775d047b774022c0ea438bb0ba750e56b74cc0eae67158dd5481d5662fe8391fbd06f63c04f3974022c0ead63958dd3201ab9bc761755305569bf9a0d7ebc879f0f87df0c423f0d40a480458dd3201ab9bc761755305565b3540af75aa033c360cf615c0c125706c192402ac6e1e87d54d15586dc5015da7f65db06b0dcc96c05c062cae83e5599008b0baa902abad56a06b9c5c053b0b60a602f66f81431b60690f9c5c008900abad74a0fc486c83a93c98ee06b3fb606e142c6e82e51d706604acd6ab64a8b24fdfb3ce59abac37d60cf3dedc35ffcca1506165240f39252f5c5bd7c76bec75f25c3d5eab3328a78900abbb2ec2eaa3d760f591f3b03ad501abdb77617572155627b661b5951d341fdc9f08b0fae835587de43cac4e75c0eaf65d589d5c85d5896d58ad2a80e692dfddbb031201561f390fab531db0ba7d175627576175621b56ab28a079e871f73c04f3974022c0ea5407ac6edf85d5c955589dd886d5aa11680e7bcec7ef83271e81a7564022c0eaf65d589d5c85d5896d58ad9281e6bfd7ebd830d857000797c0b1659008b03ab90aab13dbb05a1504ad1d5eebae35305b027319b0b80e96674122c0eac436ac564141eb8eebd459003315b07f0b1cda004b7be0e402480458adfa82d62cd73895afad743798dd0773a36071132cef80332360b5aedcc135c88fbe69b557fd5403d531b5483d511382ea5b2565155bd6396b95f5c69a61de9bbbe65f700c66838ce421a7e4856bebfa788dbd4e9eab6e03b446cb6922c0ea9e87b0faf87d587d6c185677adc1eace02ac4ee561b54e05b4be9b0fee4f04587dfc3eac3e360cabbbd66075670156a7f2b05a9703aa0de692df9dbf041201561f1b86d55d6bb0bab300ab537958ad4302d515f3d0e33ef1083cb50212015677adc1eace02ac4ee561b5ee0a5493cc61cfb9af000e2e8163cb20116075670156a7f2b05a6706aa67e6bfd72b5b027319b0b80e96674122c0ea541e56ebea40b5d0dae1b5ce54c0fe2d7068032ced81930b201160b58e105447ad3bae53ba1bccee83b951b0b8099677c09911b05a7793c1055bb35ce38101fda09e4e5fa6b7d21fe971821355b9ad743283e76aaffaa906aa636a917a125cacd5dd2a29abd8b2ce59abac37d60cf3dedc0d0ed84c321b64240f39252f5c5bd7c76bec75d23d837a0e6bb49c2602ac3ef10856f7156075b604ab3315589dee86d53a6f50bf627d371fdc9f08b0baaf00abb325589da9c0ea7437acd6b5837a1db5c15cf2bb4fad804480d5d912acce546075ba1b56ebf8417d92ba621e7adc834be0d8324804589da9c0ea7437acb65b00f5586a9239ec39e73260711d2ccf824480d5e96e586da701eacfd433f3dfebd5bf050e6d80a53d7072012402acb64b019f78bb9a165a3bbcd6d97d30370a1637c1f20e38330256eb1d4ee8ead451eb8eeb743ab247b1cfb057d0efebd94377a49b547dad56ae2eafea07f574fa32bd95fe287456ba1595db4a273378aef6aa9f6aa03aa61685ae4c65b0ba5b2565155bd6396b95f5c69a61de878ece2c3493cc0619c9434ec90bd7d6f5f11adb0d9e8e3c638fda6f76efd3b52b09ab079760752e03abfbb76075761f56db4982fa6ffd8af5dd7c707f22c0ea5c0656f76fc1eaec3eacb60b05f5ee7a1db5c15cf2bbc7964122c0eafe2d589ddd87d576b0a0be5f9fa4ae98871e77711d2ccf824480d5d97d586df70bda33e8b1d42473d8731eda004b7be0e4024804586de70cda6fe8cfd433f3dfeb951b058b9b6079079c1901abf5ae3b4c29f4766aa1b5c36b7de1817db3bdaffdab3d68e8d8ed7074842aa815c715e23d7b14fb0c7b05fd7ee8f675dfba49d5d76ae5eaf2aa7e504fa72fd35b8549814e47b7a2725be96406cfd55ef5530d54c7c29441555119acee564959c59675ce5a65bdb166840985196c169a4966838ce421a7e4856bebfa38dd00ed09f5d07a0e6bb49c2602ac2eaec3eaa10d589d1b85d54e4640fb49fdb77ec5fa6e3eb83f1160f5d006acce8dc26aa72aa0bda8de5dafa336984b7e7779162402acce8dc26a2732a07dacbe5f9fa4ae98871e77690f9c5c008900ab9de680f6c04f7a869ac75293cc61cfb9b8099677c09911b05a9f0485a99bfd86fe4c3d33ffbd5e57ee39cb711ee34c254c91ecbaed527475aaa055c3abcc27ec9bed7ded5fc304ca6ed20e4747a8825a715c21deb347b1cfb05708d32b9dbbee5b37a9fa5aad5c5d5ed50feae9f46561f2a54bd2e9e856546e2b9dcce0b9daab7eaa81616aa622a92a2a83d5dd2a29abd8b2ce59abac3761e266f69bc166a1996436c8481e724a5eb8b64eeb40671cf6847a683d87355a4e13015697f660757113563be9039d8fd84feabff52bd677f3c1fd8900ab8b9bb0da2921e86cc55e54efaed7511bcc25bf7b72012402ac76c2083a97b18fd5f73ff149ea8a79e871ef80332360b53e9d0c53647b607b063d969a640e7bced3d3ce179d1186c9a693203b673b0d9d994a66e67ba5f89cb31ce731612aea74c4aedb2e4557a70a5a35bcca7cc2bed9de374c54ed44ed26ed7074842aa815c715e23d7b14fb8c308dd5f5ebdc75dfba49d5d76ae5eaf2aa7e504f1726b93a2c5d924e47b7a2725be96406cfd55ef5334c8155331549555119acee564959c59675ce5a1526c8560eb3df0c360bcd24b34146f29053f2c2e933e8ccce19873da11e5acf618d96d34480d5e51d58ede41a74dee77cc47e52ffad5fb1be9b0fee4f0458edd41b7456e86cc55e54efaed7511bcc25bf7b6604acd627e6e1ae887319fb587dbf3e495d310f3dee3b03cebcc3b4dde9a4d31cbb5fbb05dd956a64f67ab67cdaf96298d43bed731264e76ca7a13353c9cc7caf149f739613a6fc4e569c8ed875dba5e8ea5441ab8657994fd837873b0476b176a2769376383a4215d48ae30af19e3d4ab8bb60c7a0ebd7b9ebbe7593aaafd5cad5e555fd60b833a13bd361e992743aba1595db4a273378aef686bb1a2aa16aa622a92a2a83d5dd2a29abd8b2ce853b22561d2b87d96f069b856692d9202379c829efa680cea09dd939e3b027d443eb39acd1729a08b0da3b314eae9df43919b193d479eb54acec66827b82d5fa5d9c7097cf59a1b3157b51bdbb5e476d3097c25da07007c889b91346273276b03a7e1d928a62063626eee1ee91d36ba7934e73ec7eed167457aa91d9db986e863b4f4e0a9df63909b273b6d3d099a964667e639214ee5a399571b2e274c4aedb2e4557a70a5a351a5d7bb8e365076c176b276a376987a3235441ad388d0e29dc2db3dbb063d0f5ebdc75dfba49d5d76ad570a3e14e9bce4e77a6c3d225e974742b2ab795aea1fce12e9d2aaa12aa662a92aaa23258ddad928d2a1beef059b1ac3a560eb3df0c360bcd24b3a1c1685929b364872bec2a79a5bd5a9eb147ed3787bda7debcfd56e4df9988dbe8add197a39ee8f9e895e8dde8d707da0edc38f0f0a9b70e3ed3d4d6fc9596cbadbf4bfc20f9fe970ea67ed3f9afee1f7ff5c39eeb5fffd137de7eeeafcf7f74fadd177ff1d2e2abbf7ced7bb7befbcec77797572efff085d5177f76f2572f7c78f9a3998f7ffeb7cc3f36fffda7c79ff3f7ffe3f9bce3f1b719fc1683df5e9c7bc3df64243fe0b71afc3683df62449ff8fba2bfabb879f64c0f9b8ddf697cfaef0bc7fbefbf55216e263a17bd11ff9b895e8faec7af7c2bba154d45b9788b5fae3c170dff075cc15b29e2cfb78a
+    </script>
+    <!-- ======================================================================= -->
+
+</head>
+<body class="min-h-screen flex flex-col items-center p-8">
+
+    <div class="max-w-5xl w-full space-y-8">
+        <header class="text-center space-y-2">
+            <h1 class="text-4xl font-bold tracking-tighter text-white">HDR Flashbang Creator v7</h1>
+            <p class="text-neutral-400">
+                Mode: <code class="text-indigo-400">Hardcoded Hex Injection</code>
+            </p>
+        </header>
+
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+            <!-- Controls -->
+            <div class="space-y-6 bg-neutral-900 p-6 rounded-xl border border-neutral-800 h-fit">
+
+                <!-- 1. Input Image -->
+                <div class="p-4 bg-neutral-950 rounded-lg border border-neutral-800">
+                    <label class="block text-sm font-bold text-indigo-400 mb-2">1. Input Image</label>
+                    <input type="file" id="fileInput" accept="image/*" class="block w-full text-xs text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-xs file:font-semibold file:bg-indigo-900 file:text-indigo-200 hover:file:bg-indigo-800 cursor-pointer"/>
+                </div>
+
+                <!-- 2. Metadata Strategy -->
+                <div class="space-y-3">
+                    <label class="block text-sm font-bold text-neutral-300">2. Metadata Strategy</label>
+
+                    <!-- Option A: Standard -->
+                    <label class="radio-card flex items-start p-3 border border-neutral-700 rounded cursor-pointer transition-colors hover:bg-neutral-800">
+                        <input type="radio" name="metaMode" value="standard" class="mt-1 mr-3">
+                        <div>
+                            <div class="text-sm font-bold text-white">Generate Standard cICP</div>
+                            <div class="text-[10px] text-neutral-400">Standard Rec.2020 PQ chunk.</div>
+                        </div>
+                    </label>
+
+                    <!-- Option B: Hardcoded Hex -->
+                    <label class="radio-card flex items-start p-3 border border-neutral-700 rounded cursor-pointer transition-colors hover:bg-neutral-800">
+                        <input type="radio" name="metaMode" value="hex" class="mt-1 mr-3" checked>
+                        <div>
+                            <div class="text-sm font-bold text-pink-500">Use Hardcoded Hex</div>
+                            <div class="text-[10px] text-neutral-400">Reads hex from <code>&lt;head&gt;</code> script tag.</div>
+                            <div id="hexStatus" class="mt-1 text-[9px] font-mono text-neutral-500">Waiting for check...</div>
+                        </div>
+                    </label>
+
+                    <!-- Option C: Clone -->
+                    <label class="radio-card flex items-start p-3 border border-neutral-700 rounded cursor-pointer transition-colors hover:bg-neutral-800">
+                        <input type="radio" name="metaMode" value="clone" class="mt-1 mr-3">
+                        <div>
+                            <div class="text-sm font-bold text-yellow-500">Clone Reference File</div>
+                            <input type="file" id="refInput" accept="image/png" class="mt-2 block w-full text-xs text-slate-500 file:mr-2 file:py-1 file:px-2 file:rounded file:border-0 file:text-[10px] file:bg-yellow-900 file:text-yellow-200 hover:file:bg-yellow-800 cursor-pointer" onclick="document.querySelector('input[value=clone]').checked = true"/>
+                        </div>
+                    </label>
+                </div>
+
+                <!-- 3. Gain -->
+                <div>
+                    <label class="block text-sm font-medium mb-2 text-neutral-300 flex justify-between">
+                        <span>3. Exposure Gain</span>
+                        <span id="gainValue" class="text-indigo-400 font-mono">1.0</span>
+                    </label>
+                    <input type="range" id="gainSlider" min="0.1" max="50.0" step="0.1" value="1.0" class="w-full h-2 bg-neutral-700 rounded-lg appearance-none cursor-pointer">
+                    <div class="flex justify-between text-[10px] text-neutral-500 mt-1 font-mono">
+                        <span>100 nits</span>
+                        <span>1,000 nits</span>
+                        <span>10,000+ nits</span>
+                    </div>
+                </div>
+
+                <!-- Action -->
+                <div class="pt-4 border-t border-neutral-800 space-y-3">
+                    <button id="downloadBtn" class="w-full py-4 px-4 bg-indigo-600 hover:bg-indigo-500 text-white font-bold rounded-lg transition-colors flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed group" disabled>
+                        <svg class="w-5 h-5 group-hover:scale-110 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg>
+                        <span>Generate Preview</span>
+                    </button>
+                    <button id="saveBtn" class="w-full py-3 px-4 bg-emerald-600 hover:bg-emerald-500 text-white font-bold rounded-lg transition-colors flex items-center justify-center gap-2 hidden group">
+                        <svg class="w-5 h-5 group-hover:scale-110 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
+                        <span>Save Generated PNG</span>
+                    </button>
+                    <div id="logArea" class="hidden p-2 text-[10px] text-neutral-400 font-mono bg-black rounded border border-neutral-800 h-32 overflow-y-auto"></div>
+                </div>
+            </div>
+
+            <!-- Preview -->
+            <div class="flex flex-col items-center justify-center bg-black rounded-xl border border-neutral-800 overflow-hidden relative min-h-[400px] shadow-2xl">
+                <div class="canvas-container absolute inset-0 z-0 opacity-50"></div>
+                <canvas id="webgpuCanvas" class="max-w-full max-h-[500px] z-10 shadow-black drop-shadow-2xl"></canvas>
+                <img id="resultPreview" class="hidden max-w-full max-h-[500px] z-10 shadow-black drop-shadow-2xl" alt="Generated HDR Preview" />
+                <canvas id="exportCanvas" class="hidden"></canvas>
+
+                <div id="loadingOverlay" class="hidden absolute inset-0 z-50 bg-black/80 flex flex-col items-center justify-center backdrop-blur-sm">
+                    <div class="w-8 h-8 border-4 border-indigo-500 border-t-transparent rounded-full animate-spin mb-2"></div>
+                    <span id="loadingText" class="text-indigo-400 font-mono text-sm animate-pulse">Processing...</span>
+                </div>
+
+                <div id="previewBadge" class="hidden absolute top-4 right-4 bg-emerald-600/90 text-white text-[10px] font-bold px-2 py-1 rounded backdrop-blur-sm z-20 shadow-lg border border-emerald-400/50">
+                    WEBGPU ACTIVE
+                </div>
+            </div>
+        </div>
+    </div>
+
+<script type="module">
+    // --- Utils ---
+    function log(msg) {
+        const logArea = document.getElementById('logArea');
+        logArea.classList.remove('hidden');
+        const entry = document.createElement('div');
+        entry.textContent = `> ${msg}`;
+        logArea.appendChild(entry);
+        logArea.scrollTop = logArea.scrollHeight;
+        console.log(msg);
+    }
+
+    // --- State ---
+    const REF_WHITE_NITS = 1000;
+    const MAX_PQ_NITS = 10000;
+
+    // Elements
+    const fileInput = document.getElementById('fileInput');
+    const refInput = document.getElementById('refInput');
+    const gainSlider = document.getElementById('gainSlider');
+    const gainValue = document.getElementById('gainValue');
+    const downloadBtn = document.getElementById('downloadBtn');
+    const saveBtn = document.getElementById('saveBtn');
+    const canvas = document.getElementById('webgpuCanvas');
+    const resultPreview = document.getElementById('resultPreview');
+    const exportCanvas = document.getElementById('exportCanvas');
+    const loadingOverlay = document.getElementById('loadingOverlay');
+    const loadingText = document.getElementById('loadingText');
+    const previewBadge = document.getElementById('previewBadge');
+    const hexStatus = document.getElementById('hexStatus');
+
+    let device, context, pipeline, texture, sampler, uniformBuffer, bindGroup;
+    let sourceImageBitmap = null;
+    let webGpuReady = false;
+    let capturedMetadata = []; // Reference file chunks
+    let generatedBlobUrl = null;
+
+    // --- Hex Loader ---
+    function getHardcodedHex() {
+        const raw = document.getElementById('HARDCODED_ICC').textContent;
+        // Clean whitespace, newlines, comments
+        return raw.replace(/[^0-9A-Fa-f]/g, '');
+    }
+
+    function checkHexStatus() {
+        const hex = getHardcodedHex();
+        if (hex.length > 20) {
+            hexStatus.innerHTML = `<span class="text-emerald-400">Found ${hex.length/2} bytes</span>`;
+        } else {
+            hexStatus.innerHTML = `<span class="text-yellow-500">Empty or invalid hex in &lt;head&gt;</span>`;
+        }
+    }
+    // Check immediately
+    checkHexStatus();
+
+    // --- 1. WebGPU Init ---
+    async function initWebGPU() {
+        if (!navigator.gpu) { log("WebGPU not supported."); return false; }
+        try {
+            const adapter = await navigator.gpu.requestAdapter();
+            device = await adapter.requestDevice();
+            context = canvas.getContext('webgpu');
+            context.configure({
+                device,
+                format: 'rgba16float',
+                toneMapping: { mode: "extended" },
+                usage: GPUTextureUsage.RENDER_ATTACHMENT
+            });
+            createPipeline();
+            log("WebGPU Initialized (Extended Mode)");
+            return true;
+        } catch (e) {
+            log("WebGPU Error: " + e.message);
+            return false;
+        }
+    }
+
+    function createPipeline() {
+        const shaderModule = device.createShaderModule({
+            code: `
+                struct Uniforms { gain: f32 };
+                @group(0) @binding(0) var mySampler: sampler;
+                @group(0) @binding(1) var myTexture: texture_2d<f32>;
+                @group(0) @binding(2) var<uniform> uniforms: Uniforms;
+                struct VSOutput { @builtin(position) position: vec4f, @location(0) uv: vec2f };
+                @vertex fn vs_main(@builtin(vertex_index) vi : u32) -> VSOutput {
+                    var pos = array<vec2f, 4>(vec2f(-1, 1), vec2f(-1, -1), vec2f(1, 1), vec2f(1, -1));
+                    var uvs = array<vec2f, 4>(vec2f(0, 0), vec2f(0, 1), vec2f(1, 0), vec2f(1, 1));
+                    var out: VSOutput; out.position = vec4f(pos[vi], 0, 1); out.uv = uvs[vi]; return out;
+                }
+                @fragment fn fs_main(@location(0) uv: vec2f) -> @location(0) vec4f {
+                    let color = textureSample(myTexture, mySampler, uv);
+                    return vec4f(color.rgb * uniforms.gain, color.a);
+                }
+            `
+        });
+        pipeline = device.createRenderPipeline({
+            layout: 'auto',
+            vertex: { module: shaderModule, entryPoint: 'vs_main' },
+            fragment: { module: shaderModule, entryPoint: 'fs_main', targets: [{ format: 'rgba16float' }] },
+            primitive: { topology: 'triangle-strip' },
+        });
+        uniformBuffer = device.createBuffer({ size: 4, usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST });
+        sampler = device.createSampler({ magFilter: 'linear', minFilter: 'linear' });
+    }
+
+    (async () => { webGpuReady = await initWebGPU(); })();
+
+    // --- 2. Input Handlers ---
+    fileInput.addEventListener('change', async (e) => {
+        if (!e.target.files[0] || !webGpuReady) return;
+        sourceImageBitmap = await createImageBitmap(e.target.files[0]);
+        const maxDim = 2048;
+        let w = sourceImageBitmap.width, h = sourceImageBitmap.height;
+        if (w > maxDim || h > maxDim) { const r = Math.min(maxDim/w, maxDim/h); w*=r; h*=r; }
+        canvas.width = w; canvas.height = h;
+
+        texture = device.createTexture({ size: [sourceImageBitmap.width, sourceImageBitmap.height], format: 'rgba8unorm', usage: GPUTextureUsage.TEXTURE_BINDING | GPUTextureUsage.COPY_DST | GPUTextureUsage.RENDER_ATTACHMENT });
+        device.queue.copyExternalImageToTexture({ source: sourceImageBitmap }, { texture: texture }, [sourceImageBitmap.width, sourceImageBitmap.height]);
+        bindGroup = device.createBindGroup({ layout: pipeline.getBindGroupLayout(0), entries: [{binding:0, resource:sampler}, {binding:1, resource:texture.createView()}, {binding:2, resource:{buffer:uniformBuffer}}] });
+
+        previewBadge.classList.remove('hidden');
+        resetToWebGPU();
+        downloadBtn.disabled = false;
+        render();
+    });
+
+    function resetToWebGPU() {
+        canvas.classList.remove('hidden');
+        resultPreview.classList.add('hidden');
+        saveBtn.classList.add('hidden');
+        if (generatedBlobUrl) {
+            URL.revokeObjectURL(generatedBlobUrl);
+            generatedBlobUrl = null;
+        }
+    }
+
+    refInput.addEventListener('change', async (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+        const buffer = await file.arrayBuffer();
+        const view = new DataView(buffer);
+        const bytes = new Uint8Array(buffer);
+        if (view.getUint32(0) !== 0x89504E47) return;
+
+        capturedMetadata = [];
+        let cursor = 8;
+        while (cursor < bytes.length) {
+            const len = view.getUint32(cursor, false);
+            const type = new TextDecoder().decode(bytes.slice(cursor + 4, cursor + 8));
+            if (['iCCP', 'cHRM', 'gAMA', 'sRGB', 'cICP'].includes(type)) {
+                capturedMetadata.push(bytes.slice(cursor, cursor + len + 12));
+            }
+            cursor += len + 12;
+        }
+        log(`Reference loaded. Captured chunks: ${capturedMetadata.length}`);
+    });
+
+    gainSlider.addEventListener('input', (e) => {
+        gainValue.textContent = parseFloat(e.target.value).toFixed(1);
+        resetToWebGPU();
+        render();
+    });
+
+    function render() {
+        if (!device || !pipeline) return;
+        const gain = parseFloat(gainSlider.value);
+        device.queue.writeBuffer(uniformBuffer, 0, new Float32Array([gain]));
+        const enc = device.createCommandEncoder();
+        const pass = enc.beginRenderPass({ colorAttachments: [{ view: context.getCurrentTexture().createView(), clearValue: {r:0,g:0,b:0,a:1}, loadOp: 'clear', storeOp: 'store' }] });
+        pass.setPipeline(pipeline);
+        pass.setBindGroup(0, bindGroup);
+        pass.draw(4);
+        pass.end();
+        device.queue.submit([enc.finish()]);
+    }
+
+    // --- 4. Helpers ---
+    function calcAdler32(data) {
+        let a=1, b=0; const M=65521;
+        for(let i=0;i<data.length;i++){ a=(a+data[i])%M; b=(b+a)%M; }
+        return ((b<<16)|a)>>>0;
+    }
+    const crcTable = new Uint32Array(256);
+    for(let n=0;n<256;n++){ let c=n; for(let k=0;k<8;k++) c=(c&1)?(0xEDB88320^(c>>>1)):(c>>>1); crcTable[n]=c; }
+    function calcCRC32(buf) {
+        let c=0xFFFFFFFF; for(let i=0;i<buf.length;i++) c=(c>>>8)^crcTable[(c^buf[i])&0xFF]; return (c^0xFFFFFFFF)>>>0;
+    }
+    function toLinear(v) { return v<=0.04045 ? v/12.92 : Math.pow((v+0.055)/1.055, 2.4); }
+    function toPQ(v) {
+        const m1=2610/16384, m2=2523*128/4096, c1=3424/4096, c2=2413*32/4096, c3=2392*32/4096;
+        const Y = Math.max(0, v); const Ym1 = Math.pow(Y, m1);
+        return Math.pow((c1 + c2*Ym1)/(1 + c3*Ym1), m2);
+    }
+    function convertTo2020(r,g,b) {
+        return [
+            0.6274*r + 0.3293*g + 0.0433*b,
+            0.0691*r + 0.9195*g + 0.0114*b,
+            0.0164*r + 0.0880*g + 0.8956*b
+        ];
+    }
+    function hexToBytes(hex) {
+        const bytes = new Uint8Array(hex.length / 2);
+        for (let i = 0; i < bytes.length; i++) {
+            bytes[i] = parseInt(hex.substr(i * 2, 2), 16);
+        }
+        return bytes;
+    }
+
+    // --- Main Encoder ---
+    downloadBtn.addEventListener('click', async () => {
+        if (!sourceImageBitmap) return;
+
+        const mode = document.querySelector('input[name="metaMode"]:checked').value;
+        const hex = getHardcodedHex();
+
+        loadingOverlay.classList.remove('hidden');
+        loadingText.textContent = "Processing 16-bit Pixels...";
+        await new Promise(r=>requestAnimationFrame(r));
+
+        try {
+            exportCanvas.width = sourceImageBitmap.width;
+            exportCanvas.height = sourceImageBitmap.height;
+            const ctx = exportCanvas.getContext('2d', {colorSpace:'srgb'});
+            ctx.drawImage(sourceImageBitmap,0,0);
+            const sdrData = ctx.getImageData(0,0,exportCanvas.width,exportCanvas.height).data;
+            const w=exportCanvas.width, h=exportCanvas.height;
+            const gain = parseFloat(gainSlider.value);
+            const scaleFactor = (REF_WHITE_NITS/MAX_PQ_NITS) * gain;
+
+            const rowSize = 1 + w*8;
+            const rawBuffer = new Uint8Array(h*rowSize);
+            const view = new DataView(rawBuffer.buffer);
+            let srcIdx=0, dstIdx=0;
+
+            for(let y=0; y<h; y++) {
+                rawBuffer[dstIdx++] = 0;
+                for(let x=0; x<w; x++) {
+                    const lr = toLinear(sdrData[srcIdx]/255), lg = toLinear(sdrData[srcIdx+1]/255), lb = toLinear(sdrData[srcIdx+2]/255);
+                    const [r20,g20,b20] = convertTo2020(lr,lg,lb);
+
+                    view.setUint16(dstIdx, toPQ(Math.min(1, r20*scaleFactor))*65535, false); dstIdx+=2;
+                    view.setUint16(dstIdx, toPQ(Math.min(1, g20*scaleFactor))*65535, false); dstIdx+=2;
+                    view.setUint16(dstIdx, toPQ(Math.min(1, b20*scaleFactor))*65535, false); dstIdx+=2;
+                    view.setUint16(dstIdx, 65535, false); dstIdx+=2;
+                    srcIdx+=4;
+                }
+            }
+
+            loadingText.textContent = "Compressing...";
+            await new Promise(r=>setTimeout(r,10));
+            const stream = new Blob([rawBuffer]).stream().pipeThrough(new CompressionStream('deflate'));
+            const buf = await new Response(stream).arrayBuffer();
+            let zlibData = new Uint8Array(buf);
+
+            if(zlibData[0] !== 0x78) {
+                const wrapper = new Uint8Array(zlibData.length+6);
+                wrapper[0]=0x78; wrapper[1]=0x9C;
+                wrapper.set(zlibData,2);
+                new DataView(wrapper.buffer).setUint32(wrapper.length-4, calcAdler32(rawBuffer), false);
+                zlibData = wrapper;
+            }
+
+            // Assembly
+            const chunks = [];
+            chunks.push(new Uint8Array([0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A]));
+
+            const ihdr = new Uint8Array(13);
+            const dv = new DataView(ihdr.buffer);
+            dv.setUint32(0, w, false); dv.setUint32(4, h, false);
+            ihdr[8]=16; ihdr[9]=6;
+            writeChunk(chunks, 'IHDR', ihdr);
+
+            // METADATA INJECTION
+            if (mode === 'hex') {
+                if (hex.length < 20) throw new Error("Hardcoded Hex is empty!");
+                const bytes = hexToBytes(hex);
+
+                // Heuristic: Is it a Chunk (Start with len + iCCP) or Profile (acsp)?
+                const sig = new TextDecoder().decode(bytes.slice(4, 8)); // bytes 4-8 usually 'iCCP'
+
+                if (sig === 'iCCP') {
+                    log("Injecting RAW iCCP Chunk (Pre-wrapped)...");
+                    chunks.push(bytes);
+                } else {
+                    log("Injecting RAW ICC Profile (Auto-compressing)...");
+                    // 1. Deflate the profile
+                    const pStream = new Blob([bytes]).stream().pipeThrough(new CompressionStream('deflate'));
+                    const pBuf = await new Response(pStream).arrayBuffer();
+                    let pData = new Uint8Array(pBuf);
+
+                    // Wrap deflate if needed
+                    if (pData[0] !== 0x78) {
+                        const w = new Uint8Array(pData.length+6);
+                        w[0]=0x78; w[1]=0x9C; w.set(pData,2);
+                        new DataView(w.buffer).setUint32(w.length-4, calcAdler32(bytes), false);
+                        pData = w;
+                    }
+
+                    // 2. Wrap in iCCP chunk format: Name + Null + Method + CompressedProfile
+                    const name = new TextEncoder().encode("HDR");
+                    const method = new Uint8Array([0]);
+                    const payload = new Uint8Array(name.length + 1 + 1 + pData.length);
+                    payload.set(name, 0);
+                    payload[name.length] = 0; // Null separator
+                    payload[name.length + 1] = 0; // Compression method
+                    payload.set(pData, name.length + 2);
+
+                    writeChunk(chunks, 'iCCP', payload);
+                }
+            } else if (mode === 'clone') {
+                log("Transplanting reference chunks...");
+                if (capturedMetadata.length === 0) throw new Error("No reference loaded!");
+                chunks.push(...capturedMetadata);
+            } else {
+                log("Standard cICP...");
+                writeChunk(chunks, 'cICP', new Uint8Array([9, 16, 0, 1]));
+                const g = new Uint8Array(4); new DataView(g.buffer).setUint32(0, 100000, false);
+                writeChunk(chunks, 'gAMA', g);
+            }
+
+            writeChunk(chunks, 'IDAT', zlibData);
+            writeChunk(chunks, 'IEND', new Uint8Array(0));
+
+            generatedBlobUrl = URL.createObjectURL(new Blob(chunks, {type:'image/png'}));
+            resultPreview.src = generatedBlobUrl;
+
+            // Switch view
+            canvas.classList.add('hidden');
+            resultPreview.classList.remove('hidden');
+            saveBtn.classList.remove('hidden');
+
+            log("Generated. Check preview.");
+        } catch(e) {
+            log(e.message);
+            alert("Error: "+e.message);
+        } finally {
+            loadingOverlay.classList.add('hidden');
+        }
+    });
+
+    saveBtn.addEventListener('click', () => {
+        if (!generatedBlobUrl) return;
+        const a = document.createElement('a');
+        a.href = generatedBlobUrl;
+        a.download = `HDR-Flashbang-v7-${Date.now()}.png`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+    });
+
+    function writeChunk(chunks, type, data) {
+        const len = new Uint8Array(4); new DataView(len.buffer).setUint32(0, data.length, false);
+        chunks.push(len);
+        const t = new TextEncoder().encode(type);
+        chunks.push(t); chunks.push(data);
+        const crc = new Uint8Array(t.length+data.length); crc.set(t,0); crc.set(data,4);
+        const cVal = new Uint8Array(4); new DataView(cVal.buffer).setUint32(0, calcCRC32(crc), false);
+        chunks.push(cVal);
+    }
+</script>
+</body>
+</html>
