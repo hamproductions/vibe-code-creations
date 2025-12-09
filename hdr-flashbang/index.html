@@ -60,6 +60,21 @@
                 <!-- 2. Metadata Strategy -->
                 <div class="space-y-3">
                     <label class="block text-sm font-bold text-neutral-300">2. Metadata Strategy</label>
+                    
+                     <!-- Option New: Gain Map -->
+                     <label class="radio-card flex items-start p-3 border border-neutral-700 rounded cursor-pointer transition-colors hover:bg-neutral-800">
+                        <input type="radio" name="metaMode" value="gainmap" class="mt-1 mr-3">
+                        <div class="w-full">
+                            <div class="text-sm font-bold text-emerald-400">ISO 21496-1 Gain Map (New)</div>
+                            <div class="text-[10px] text-neutral-400">Generates UltraHDR/AdaptiveHDR JPEG. Best for compatibility.</div>
+                            
+                            <!-- Hybrid Toggle -->
+                            <div class="mt-2 flex items-center space-x-2 border-t border-neutral-800 pt-2" onclick="event.stopPropagation()">
+                                <input type="checkbox" id="hybridMode" class="rounded bg-neutral-800 border-neutral-600 text-emerald-500 focus:ring-emerald-500">
+                                <label for="hybridMode" class="text-[10px] text-neutral-300 font-mono select-none cursor-pointer">Inject Custom ICC (Hybrid)</label>
+                            </div>
+                        </div>
+                    </label>
 
                     <!-- Option A: Standard -->
                     <label class="radio-card flex items-start p-3 border border-neutral-700 rounded cursor-pointer transition-colors hover:bg-neutral-800">
@@ -135,368 +150,21 @@
                 </div>
             </div>
         </div>
+        
+        <!-- Test Mode Section -->
+        <div class="border-t border-neutral-800 pt-8">
+            <div class="flex items-center justify-between mb-6">
+                <h2 class="text-2xl font-bold text-white">Strategy Comparison Test</h2>
+                <button id="runTestBtn" class="py-2 px-6 bg-neutral-800 hover:bg-neutral-700 text-indigo-400 font-bold rounded-lg transition-colors disabled:opacity-50" disabled>
+                    Run All Strategies
+                </button>
+            </div>
+            <div id="testResults" class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4 hidden">
+                <!-- Results injected here -->
+            </div>
+        </div>
     </div>
 
-<script type="module">
-    // --- Utils ---
-    function log(msg) {
-        const logArea = document.getElementById('logArea');
-        logArea.classList.remove('hidden');
-        const entry = document.createElement('div');
-        entry.textContent = `> ${msg}`;
-        logArea.appendChild(entry);
-        logArea.scrollTop = logArea.scrollHeight;
-        console.log(msg);
-    }
-
-    // --- State ---
-    const REF_WHITE_NITS = 1000;
-    const MAX_PQ_NITS = 10000;
-
-    // Elements
-    const fileInput = document.getElementById('fileInput');
-    const refInput = document.getElementById('refInput');
-    const gainSlider = document.getElementById('gainSlider');
-    const gainValue = document.getElementById('gainValue');
-    const downloadBtn = document.getElementById('downloadBtn');
-    const saveBtn = document.getElementById('saveBtn');
-    const canvas = document.getElementById('webgpuCanvas');
-    const resultPreview = document.getElementById('resultPreview');
-    const exportCanvas = document.getElementById('exportCanvas');
-    const loadingOverlay = document.getElementById('loadingOverlay');
-    const loadingText = document.getElementById('loadingText');
-    const previewBadge = document.getElementById('previewBadge');
-    const hexStatus = document.getElementById('hexStatus');
-
-    let device, context, pipeline, texture, sampler, uniformBuffer, bindGroup;
-    let sourceImageBitmap = null;
-    let webGpuReady = false;
-    let capturedMetadata = []; // Reference file chunks
-    let generatedBlobUrl = null;
-
-    // --- Hex Loader ---
-    function getHardcodedHex() {
-        const raw = document.getElementById('HARDCODED_ICC').textContent;
-        // Clean whitespace, newlines, comments
-        return raw.replace(/[^0-9A-Fa-f]/g, '');
-    }
-
-    function checkHexStatus() {
-        const hex = getHardcodedHex();
-        if (hex.length > 20) {
-            hexStatus.innerHTML = `<span class="text-emerald-400">Found ${hex.length/2} bytes</span>`;
-        } else {
-            hexStatus.innerHTML = `<span class="text-yellow-500">Empty or invalid hex in &lt;head&gt;</span>`;
-        }
-    }
-    // Check immediately
-    checkHexStatus();
-
-    // --- 1. WebGPU Init ---
-    async function initWebGPU() {
-        if (!navigator.gpu) { log("WebGPU not supported."); return false; }
-        try {
-            const adapter = await navigator.gpu.requestAdapter();
-            device = await adapter.requestDevice();
-            context = canvas.getContext('webgpu');
-            context.configure({
-                device,
-                format: 'rgba16float',
-                toneMapping: { mode: "extended" },
-                usage: GPUTextureUsage.RENDER_ATTACHMENT
-            });
-            createPipeline();
-            log("WebGPU Initialized (Extended Mode)");
-            return true;
-        } catch (e) {
-            log("WebGPU Error: " + e.message);
-            return false;
-        }
-    }
-
-    function createPipeline() {
-        const shaderModule = device.createShaderModule({
-            code: `
-                struct Uniforms { gain: f32 };
-                @group(0) @binding(0) var mySampler: sampler;
-                @group(0) @binding(1) var myTexture: texture_2d<f32>;
-                @group(0) @binding(2) var<uniform> uniforms: Uniforms;
-                struct VSOutput { @builtin(position) position: vec4f, @location(0) uv: vec2f };
-                @vertex fn vs_main(@builtin(vertex_index) vi : u32) -> VSOutput {
-                    var pos = array<vec2f, 4>(vec2f(-1, 1), vec2f(-1, -1), vec2f(1, 1), vec2f(1, -1));
-                    var uvs = array<vec2f, 4>(vec2f(0, 0), vec2f(0, 1), vec2f(1, 0), vec2f(1, 1));
-                    var out: VSOutput; out.position = vec4f(pos[vi], 0, 1); out.uv = uvs[vi]; return out;
-                }
-                @fragment fn fs_main(@location(0) uv: vec2f) -> @location(0) vec4f {
-                    let color = textureSample(myTexture, mySampler, uv);
-                    return vec4f(color.rgb * uniforms.gain, color.a);
-                }
-            `
-        });
-        pipeline = device.createRenderPipeline({
-            layout: 'auto',
-            vertex: { module: shaderModule, entryPoint: 'vs_main' },
-            fragment: { module: shaderModule, entryPoint: 'fs_main', targets: [{ format: 'rgba16float' }] },
-            primitive: { topology: 'triangle-strip' },
-        });
-        uniformBuffer = device.createBuffer({ size: 4, usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST });
-        sampler = device.createSampler({ magFilter: 'linear', minFilter: 'linear' });
-    }
-
-    (async () => { webGpuReady = await initWebGPU(); })();
-
-    // --- 2. Input Handlers ---
-    fileInput.addEventListener('change', async (e) => {
-        if (!e.target.files[0] || !webGpuReady) return;
-        sourceImageBitmap = await createImageBitmap(e.target.files[0]);
-        const maxDim = 2048;
-        let w = sourceImageBitmap.width, h = sourceImageBitmap.height;
-        if (w > maxDim || h > maxDim) { const r = Math.min(maxDim/w, maxDim/h); w*=r; h*=r; }
-        canvas.width = w; canvas.height = h;
-
-        texture = device.createTexture({ size: [sourceImageBitmap.width, sourceImageBitmap.height], format: 'rgba8unorm', usage: GPUTextureUsage.TEXTURE_BINDING | GPUTextureUsage.COPY_DST | GPUTextureUsage.RENDER_ATTACHMENT });
-        device.queue.copyExternalImageToTexture({ source: sourceImageBitmap }, { texture: texture }, [sourceImageBitmap.width, sourceImageBitmap.height]);
-        bindGroup = device.createBindGroup({ layout: pipeline.getBindGroupLayout(0), entries: [{binding:0, resource:sampler}, {binding:1, resource:texture.createView()}, {binding:2, resource:{buffer:uniformBuffer}}] });
-
-        previewBadge.classList.remove('hidden');
-        resetToWebGPU();
-        downloadBtn.disabled = false;
-        render();
-    });
-
-    function resetToWebGPU() {
-        canvas.classList.remove('hidden');
-        resultPreview.classList.add('hidden');
-        saveBtn.classList.add('hidden');
-        if (generatedBlobUrl) {
-            URL.revokeObjectURL(generatedBlobUrl);
-            generatedBlobUrl = null;
-        }
-    }
-
-    refInput.addEventListener('change', async (e) => {
-        const file = e.target.files[0];
-        if (!file) return;
-        const buffer = await file.arrayBuffer();
-        const view = new DataView(buffer);
-        const bytes = new Uint8Array(buffer);
-        if (view.getUint32(0) !== 0x89504E47) return;
-
-        capturedMetadata = [];
-        let cursor = 8;
-        while (cursor < bytes.length) {
-            const len = view.getUint32(cursor, false);
-            const type = new TextDecoder().decode(bytes.slice(cursor + 4, cursor + 8));
-            if (['iCCP', 'cHRM', 'gAMA', 'sRGB', 'cICP'].includes(type)) {
-                capturedMetadata.push(bytes.slice(cursor, cursor + len + 12));
-            }
-            cursor += len + 12;
-        }
-        log(`Reference loaded. Captured chunks: ${capturedMetadata.length}`);
-    });
-
-    gainSlider.addEventListener('input', (e) => {
-        gainValue.textContent = parseFloat(e.target.value).toFixed(1);
-        resetToWebGPU();
-        render();
-    });
-
-    function render() {
-        if (!device || !pipeline) return;
-        const gain = parseFloat(gainSlider.value);
-        device.queue.writeBuffer(uniformBuffer, 0, new Float32Array([gain]));
-        const enc = device.createCommandEncoder();
-        const pass = enc.beginRenderPass({ colorAttachments: [{ view: context.getCurrentTexture().createView(), clearValue: {r:0,g:0,b:0,a:1}, loadOp: 'clear', storeOp: 'store' }] });
-        pass.setPipeline(pipeline);
-        pass.setBindGroup(0, bindGroup);
-        pass.draw(4);
-        pass.end();
-        device.queue.submit([enc.finish()]);
-    }
-
-    // --- 4. Helpers ---
-    function calcAdler32(data) {
-        let a=1, b=0; const M=65521;
-        for(let i=0;i<data.length;i++){ a=(a+data[i])%M; b=(b+a)%M; }
-        return ((b<<16)|a)>>>0;
-    }
-    const crcTable = new Uint32Array(256);
-    for(let n=0;n<256;n++){ let c=n; for(let k=0;k<8;k++) c=(c&1)?(0xEDB88320^(c>>>1)):(c>>>1); crcTable[n]=c; }
-    function calcCRC32(buf) {
-        let c=0xFFFFFFFF; for(let i=0;i<buf.length;i++) c=(c>>>8)^crcTable[(c^buf[i])&0xFF]; return (c^0xFFFFFFFF)>>>0;
-    }
-    function toLinear(v) { return v<=0.04045 ? v/12.92 : Math.pow((v+0.055)/1.055, 2.4); }
-    function toPQ(v) {
-        const m1=2610/16384, m2=2523*128/4096, c1=3424/4096, c2=2413*32/4096, c3=2392*32/4096;
-        const Y = Math.max(0, v); const Ym1 = Math.pow(Y, m1);
-        return Math.pow((c1 + c2*Ym1)/(1 + c3*Ym1), m2);
-    }
-    function convertTo2020(r,g,b) {
-        return [
-            0.6274*r + 0.3293*g + 0.0433*b,
-            0.0691*r + 0.9195*g + 0.0114*b,
-            0.0164*r + 0.0880*g + 0.8956*b
-        ];
-    }
-    function hexToBytes(hex) {
-        const bytes = new Uint8Array(hex.length / 2);
-        for (let i = 0; i < bytes.length; i++) {
-            bytes[i] = parseInt(hex.substr(i * 2, 2), 16);
-        }
-        return bytes;
-    }
-
-    // --- Main Encoder ---
-    downloadBtn.addEventListener('click', async () => {
-        if (!sourceImageBitmap) return;
-
-        const mode = document.querySelector('input[name="metaMode"]:checked').value;
-        const hex = getHardcodedHex();
-
-        loadingOverlay.classList.remove('hidden');
-        loadingText.textContent = "Processing 16-bit Pixels...";
-        await new Promise(r=>requestAnimationFrame(r));
-
-        try {
-            exportCanvas.width = sourceImageBitmap.width;
-            exportCanvas.height = sourceImageBitmap.height;
-            const ctx = exportCanvas.getContext('2d', {colorSpace:'srgb'});
-            ctx.drawImage(sourceImageBitmap,0,0);
-            const sdrData = ctx.getImageData(0,0,exportCanvas.width,exportCanvas.height).data;
-            const w=exportCanvas.width, h=exportCanvas.height;
-            const gain = parseFloat(gainSlider.value);
-            const scaleFactor = (REF_WHITE_NITS/MAX_PQ_NITS) * gain;
-
-            const rowSize = 1 + w*8;
-            const rawBuffer = new Uint8Array(h*rowSize);
-            const view = new DataView(rawBuffer.buffer);
-            let srcIdx=0, dstIdx=0;
-
-            for(let y=0; y<h; y++) {
-                rawBuffer[dstIdx++] = 0;
-                for(let x=0; x<w; x++) {
-                    const lr = toLinear(sdrData[srcIdx]/255), lg = toLinear(sdrData[srcIdx+1]/255), lb = toLinear(sdrData[srcIdx+2]/255);
-                    const [r20,g20,b20] = convertTo2020(lr,lg,lb);
-
-                    view.setUint16(dstIdx, toPQ(Math.min(1, r20*scaleFactor))*65535, false); dstIdx+=2;
-                    view.setUint16(dstIdx, toPQ(Math.min(1, g20*scaleFactor))*65535, false); dstIdx+=2;
-                    view.setUint16(dstIdx, toPQ(Math.min(1, b20*scaleFactor))*65535, false); dstIdx+=2;
-                    view.setUint16(dstIdx, 65535, false); dstIdx+=2;
-                    srcIdx+=4;
-                }
-            }
-
-            loadingText.textContent = "Compressing...";
-            await new Promise(r=>setTimeout(r,10));
-            const stream = new Blob([rawBuffer]).stream().pipeThrough(new CompressionStream('deflate'));
-            const buf = await new Response(stream).arrayBuffer();
-            let zlibData = new Uint8Array(buf);
-
-            if(zlibData[0] !== 0x78) {
-                const wrapper = new Uint8Array(zlibData.length+6);
-                wrapper[0]=0x78; wrapper[1]=0x9C;
-                wrapper.set(zlibData,2);
-                new DataView(wrapper.buffer).setUint32(wrapper.length-4, calcAdler32(rawBuffer), false);
-                zlibData = wrapper;
-            }
-
-            // Assembly
-            const chunks = [];
-            chunks.push(new Uint8Array([0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A]));
-
-            const ihdr = new Uint8Array(13);
-            const dv = new DataView(ihdr.buffer);
-            dv.setUint32(0, w, false); dv.setUint32(4, h, false);
-            ihdr[8]=16; ihdr[9]=6;
-            writeChunk(chunks, 'IHDR', ihdr);
-
-            // METADATA INJECTION
-            if (mode === 'hex') {
-                if (hex.length < 20) throw new Error("Hardcoded Hex is empty!");
-                const bytes = hexToBytes(hex);
-
-                // Heuristic: Is it a Chunk (Start with len + iCCP) or Profile (acsp)?
-                const sig = new TextDecoder().decode(bytes.slice(4, 8)); // bytes 4-8 usually 'iCCP'
-
-                if (sig === 'iCCP') {
-                    log("Injecting RAW iCCP Chunk (Pre-wrapped)...");
-                    chunks.push(bytes);
-                } else {
-                    log("Injecting RAW ICC Profile (Auto-compressing)...");
-                    // 1. Deflate the profile
-                    const pStream = new Blob([bytes]).stream().pipeThrough(new CompressionStream('deflate'));
-                    const pBuf = await new Response(pStream).arrayBuffer();
-                    let pData = new Uint8Array(pBuf);
-
-                    // Wrap deflate if needed
-                    if (pData[0] !== 0x78) {
-                        const w = new Uint8Array(pData.length+6);
-                        w[0]=0x78; w[1]=0x9C; w.set(pData,2);
-                        new DataView(w.buffer).setUint32(w.length-4, calcAdler32(bytes), false);
-                        pData = w;
-                    }
-
-                    // 2. Wrap in iCCP chunk format: Name + Null + Method + CompressedProfile
-                    const name = new TextEncoder().encode("HDR");
-                    const method = new Uint8Array([0]);
-                    const payload = new Uint8Array(name.length + 1 + 1 + pData.length);
-                    payload.set(name, 0);
-                    payload[name.length] = 0; // Null separator
-                    payload[name.length + 1] = 0; // Compression method
-                    payload.set(pData, name.length + 2);
-
-                    writeChunk(chunks, 'iCCP', payload);
-                }
-            } else if (mode === 'clone') {
-                log("Transplanting reference chunks...");
-                if (capturedMetadata.length === 0) throw new Error("No reference loaded!");
-                chunks.push(...capturedMetadata);
-            } else {
-                log("Standard cICP...");
-                writeChunk(chunks, 'cICP', new Uint8Array([9, 16, 0, 1]));
-                const g = new Uint8Array(4); new DataView(g.buffer).setUint32(0, 100000, false);
-                writeChunk(chunks, 'gAMA', g);
-            }
-
-            writeChunk(chunks, 'IDAT', zlibData);
-            writeChunk(chunks, 'IEND', new Uint8Array(0));
-
-            generatedBlobUrl = URL.createObjectURL(new Blob(chunks, {type:'image/png'}));
-            resultPreview.src = generatedBlobUrl;
-
-            // Switch view
-            canvas.classList.add('hidden');
-            resultPreview.classList.remove('hidden');
-            saveBtn.classList.remove('hidden');
-
-            log("Generated. Check preview.");
-        } catch(e) {
-            log(e.message);
-            alert("Error: "+e.message);
-        } finally {
-            loadingOverlay.classList.add('hidden');
-        }
-    });
-
-    saveBtn.addEventListener('click', () => {
-        if (!generatedBlobUrl) return;
-        const a = document.createElement('a');
-        a.href = generatedBlobUrl;
-        a.download = `HDR-Flashbang-v7-${Date.now()}.png`;
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-    });
-
-    function writeChunk(chunks, type, data) {
-        const len = new Uint8Array(4); new DataView(len.buffer).setUint32(0, data.length, false);
-        chunks.push(len);
-        const t = new TextEncoder().encode(type);
-        chunks.push(t); chunks.push(data);
-        const crc = new Uint8Array(t.length+data.length); crc.set(t,0); crc.set(data,4);
-        const cVal = new Uint8Array(4); new DataView(cVal.buffer).setUint32(0, calcCRC32(crc), false);
-        chunks.push(cVal);
-    }
-</script>
+<script type="module" src="./app.js"></script>
 </body>
 </html>
