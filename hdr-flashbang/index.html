@@ -107,8 +107,12 @@
                 <!-- Action -->
                 <div class="pt-4 border-t border-neutral-800 space-y-3">
                     <button id="downloadBtn" class="w-full py-4 px-4 bg-indigo-600 hover:bg-indigo-500 text-white font-bold rounded-lg transition-colors flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed group" disabled>
+                        <svg class="w-5 h-5 group-hover:scale-110 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg>
+                        <span>Generate Preview</span>
+                    </button>
+                    <button id="saveBtn" class="w-full py-3 px-4 bg-emerald-600 hover:bg-emerald-500 text-white font-bold rounded-lg transition-colors flex items-center justify-center gap-2 hidden group">
                         <svg class="w-5 h-5 group-hover:scale-110 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
-                        <span>Download 16-bit PNG</span>
+                        <span>Save Generated PNG</span>
                     </button>
                     <div id="logArea" class="hidden p-2 text-[10px] text-neutral-400 font-mono bg-black rounded border border-neutral-800 h-32 overflow-y-auto"></div>
                 </div>
@@ -118,6 +122,7 @@
             <div class="flex flex-col items-center justify-center bg-black rounded-xl border border-neutral-800 overflow-hidden relative min-h-[400px] shadow-2xl">
                 <div class="canvas-container absolute inset-0 z-0 opacity-50"></div>
                 <canvas id="webgpuCanvas" class="max-w-full max-h-[500px] z-10 shadow-black drop-shadow-2xl"></canvas>
+                <img id="resultPreview" class="hidden max-w-full max-h-[500px] z-10 shadow-black drop-shadow-2xl" alt="Generated HDR Preview" />
                 <canvas id="exportCanvas" class="hidden"></canvas>
 
                 <div id="loadingOverlay" class="hidden absolute inset-0 z-50 bg-black/80 flex flex-col items-center justify-center backdrop-blur-sm">
@@ -154,7 +159,9 @@
     const gainSlider = document.getElementById('gainSlider');
     const gainValue = document.getElementById('gainValue');
     const downloadBtn = document.getElementById('downloadBtn');
+    const saveBtn = document.getElementById('saveBtn');
     const canvas = document.getElementById('webgpuCanvas');
+    const resultPreview = document.getElementById('resultPreview');
     const exportCanvas = document.getElementById('exportCanvas');
     const loadingOverlay = document.getElementById('loadingOverlay');
     const loadingText = document.getElementById('loadingText');
@@ -165,6 +172,7 @@
     let sourceImageBitmap = null;
     let webGpuReady = false;
     let capturedMetadata = []; // Reference file chunks
+    let generatedBlobUrl = null;
 
     // --- Hex Loader ---
     function getHardcodedHex() {
@@ -251,9 +259,20 @@
         bindGroup = device.createBindGroup({ layout: pipeline.getBindGroupLayout(0), entries: [{binding:0, resource:sampler}, {binding:1, resource:texture.createView()}, {binding:2, resource:{buffer:uniformBuffer}}] });
 
         previewBadge.classList.remove('hidden');
+        resetToWebGPU();
         downloadBtn.disabled = false;
         render();
     });
+
+    function resetToWebGPU() {
+        canvas.classList.remove('hidden');
+        resultPreview.classList.add('hidden');
+        saveBtn.classList.add('hidden');
+        if (generatedBlobUrl) {
+            URL.revokeObjectURL(generatedBlobUrl);
+            generatedBlobUrl = null;
+        }
+    }
 
     refInput.addEventListener('change', async (e) => {
         const file = e.target.files[0];
@@ -278,6 +297,7 @@
 
     gainSlider.addEventListener('input', (e) => {
         gainValue.textContent = parseFloat(e.target.value).toFixed(1);
+        resetToWebGPU();
         render();
     });
 
@@ -441,16 +461,31 @@
             writeChunk(chunks, 'IDAT', zlibData);
             writeChunk(chunks, 'IEND', new Uint8Array(0));
 
-            const url = URL.createObjectURL(new Blob(chunks, {type:'image/png'}));
-            const a = document.createElement('a'); a.href=url; a.download=`HDR-Flashbang-v7-${Date.now()}.png`;
-            document.body.appendChild(a); a.click(); document.body.removeChild(a);
-            log("Done.");
+            generatedBlobUrl = URL.createObjectURL(new Blob(chunks, {type:'image/png'}));
+            resultPreview.src = generatedBlobUrl;
+
+            // Switch view
+            canvas.classList.add('hidden');
+            resultPreview.classList.remove('hidden');
+            saveBtn.classList.remove('hidden');
+
+            log("Generated. Check preview.");
         } catch(e) {
             log(e.message);
             alert("Error: "+e.message);
         } finally {
             loadingOverlay.classList.add('hidden');
         }
+    });
+
+    saveBtn.addEventListener('click', () => {
+        if (!generatedBlobUrl) return;
+        const a = document.createElement('a');
+        a.href = generatedBlobUrl;
+        a.download = `HDR-Flashbang-v7-${Date.now()}.png`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
     });
 
     function writeChunk(chunks, type, data) {
