@@ -210,107 +210,192 @@
     }
 
     // --- Core Processing Logic ---
-    async function processImage(mode, gain, hex, sourceBitmap, useHybrid = false) {
+    async function processImage(mode, gain, hex, sourceBitmap, useHybrid = false, forceLimit = false, twitterMode = false) {
         if (mode === 'gainmap') {
             // ISO 21496-1 Gain Map
             const iccHex = useHybrid ? hex : null;
             if (useHybrid) log("Hybrid Mode: Injecting custom ICC...");
             
-            const resultApi = await generateGainMapJpeg(sourceBitmap, gain, iccHex);
+            if (twitterMode) log("Processing for Twitter Mode (400x400)...");
+            const resultApi = await generateGainMapJpeg(sourceBitmap, gain, iccHex, forceLimit, twitterMode);
             return new Blob([resultApi], {type: 'image/jpeg'});
         } else {
             // Standard/Hex/Clone (PNG Path)
-            exportCanvas.width = sourceBitmap.width;
-            exportCanvas.height = sourceBitmap.height;
-            const ctx = exportCanvas.getContext('2d', {colorSpace:'srgb'});
-            ctx.drawImage(sourceBitmap,0,0);
-            const sdrData = ctx.getImageData(0,0,exportCanvas.width,exportCanvas.height).data;
-            const w=exportCanvas.width, h=exportCanvas.height;
-            const scaleFactor = (REF_WHITE_NITS/MAX_PQ_NITS) * gain;
+            const TARGET_SIZE = 700 * 1024;
+            let attempts = 0;
+            const maxAttempts = (forceLimit || twitterMode) ? 6 : 1;
+            let scaleFactor = 1.0;
+            let resultBlob = null;
+            let currentBitDepth = 16;
 
-            const rowSize = 1 + w*8;
-            const rawBuffer = new Uint8Array(h*rowSize);
-            const view = new DataView(rawBuffer.buffer);
-            let srcIdx=0, dstIdx=0;
+            while (attempts < maxAttempts) {
+                attempts++;
+                
+                // 1. Resize/Setup
+                let workW, workH;
 
-            for(let y=0; y<h; y++) {
-                rawBuffer[dstIdx++] = 0;
-                for(let x=0; x<w; x++) {
-                    const lr = toLinear(sdrData[srcIdx]/255), lg = toLinear(sdrData[srcIdx+1]/255), lb = toLinear(sdrData[srcIdx+2]/255);
-                    const [r20,g20,b20] = convertTo2020(lr,lg,lb);
-
-                    view.setUint16(dstIdx, toPQ(Math.min(1, r20*scaleFactor))*65535, false); dstIdx+=2;
-                    view.setUint16(dstIdx, toPQ(Math.min(1, g20*scaleFactor))*65535, false); dstIdx+=2;
-                    view.setUint16(dstIdx, toPQ(Math.min(1, b20*scaleFactor))*65535, false); dstIdx+=2;
-                    view.setUint16(dstIdx, 65535, false); dstIdx+=2;
-                    srcIdx+=4;
-                }
-            }
-
-            // Inline Compression Logic (simulated sync for simplicity in flow, but it's async)
-            const stream = new Blob([rawBuffer]).stream().pipeThrough(new CompressionStream('deflate'));
-            const buf = await new Response(stream).arrayBuffer();
-            let zlibData = new Uint8Array(buf);
-
-            if(zlibData[0] !== 0x78) {
-                const wrapper = new Uint8Array(zlibData.length+6);
-                wrapper[0]=0x78; wrapper[1]=0x9C;
-                wrapper.set(zlibData,2);
-                new DataView(wrapper.buffer).setUint32(wrapper.length-4, calcAdler32(rawBuffer), false);
-                zlibData = wrapper;
-            }
-
-            // Assembly
-            const chunks = [];
-            chunks.push(new Uint8Array([0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A]));
-
-            const ihdr = new Uint8Array(13);
-            const dv = new DataView(ihdr.buffer);
-            dv.setUint32(0, w, false); dv.setUint32(4, h, false);
-            ihdr[8]=16; ihdr[9]=6;
-            writeChunk(chunks, 'IHDR', ihdr);
-
-            // METADATA INJECTION
-            if (mode === 'hex') {
-                if (hex.length < 20) throw new Error("Hardcoded Hex is empty!");
-                const bytes = hexToBytes(hex);
-                // Heuristic: Is it a Chunk (Start with len + iCCP) or Profile (acsp)?
-                const sig = new TextDecoder().decode(bytes.slice(4, 8)); // bytes 4-8 usually 'iCCP'
-                if (sig === 'iCCP') {
-                    chunks.push(bytes);
+                if (twitterMode) {
+                    // Force 400x400, no scaling
+                    workW = 400;
+                    workH = 400;
                 } else {
-                    // Profile compression logic...
-                    const pStream = new Blob([bytes]).stream().pipeThrough(new CompressionStream('deflate'));
-                    const pBuf = await new Response(pStream).arrayBuffer();
-                    let pData = new Uint8Array(pBuf);
-                    if (pData[0] !== 0x78) {
-                        const w = new Uint8Array(pData.length+6);
-                        w[0]=0x78; w[1]=0x9C; w.set(pData,2);
-                        new DataView(w.buffer).setUint32(w.length-4, calcAdler32(bytes), false);
-                        pData = w;
-                    }
-                    const name = new TextEncoder().encode("HDR");
-                    const method = new Uint8Array([0]);
-                    const payload = new Uint8Array(name.length + 1 + 1 + pData.length);
-                    payload.set(name, 0);
-                    payload[name.length] = 0; // Null
-                    payload[name.length + 1] = 0; // Method
-                    payload.set(pData, name.length + 2);
-                    writeChunk(chunks, 'iCCP', payload);
+                    workW = Math.floor(sourceBitmap.width * scaleFactor);
+                    workH = Math.floor(sourceBitmap.height * scaleFactor);
                 }
-            } else if (mode === 'clone') {
-                if (capturedMetadata.length === 0) throw new Error("No reference loaded!");
-                chunks.push(...capturedMetadata);
-            } else {
-                writeChunk(chunks, 'cICP', new Uint8Array([9, 16, 0, 1]));
-                const g = new Uint8Array(4); new DataView(g.buffer).setUint32(0, 100000, false);
-                writeChunk(chunks, 'gAMA', g);
+                
+                if ((forceLimit || twitterMode) && attempts > 1) {
+                    log(`Attempt ${attempts}/${maxAttempts}: Scale=${scaleFactor.toFixed(2)}, Depth=${currentBitDepth}-bit...`);
+                }
+
+                exportCanvas.width = workW;
+                exportCanvas.height = workH;
+                const ctx = exportCanvas.getContext('2d', {colorSpace:'srgb'});
+
+                if (twitterMode) {
+                    // Center Crop logic
+                    const sw = sourceBitmap.width;
+                    const sh = sourceBitmap.height;
+                    let sx, sy, sDim;
+                    if (sw > sh) {
+                        sDim = sh; sx = (sw - sh) / 2; sy = 0;
+                    } else {
+                        sDim = sw; sx = 0; sy = (sh - sw) / 2;
+                    }
+                    
+                    // Apply Circular Mask
+                    ctx.beginPath();
+                    ctx.arc(workW/2, workH/2, workW/2, 0, Math.PI * 2);
+                    ctx.clip();
+                    // Clear first to ensure transparency outside clip (standard canvas behavior handles clip, but clearing is safe)
+                    ctx.clearRect(0,0,workW,workH);
+
+                    ctx.drawImage(sourceBitmap, sx, sy, sDim, sDim, 0, 0, workW, workH);
+                } else {
+                    ctx.drawImage(sourceBitmap,0,0, workW, workH);
+                }
+
+                // 2. Extract Data
+                const sdrData = ctx.getImageData(0,0,workW,workH).data;
+                const w=exportCanvas.width, h=exportCanvas.height;
+                const gainFactor = (REF_WHITE_NITS/MAX_PQ_NITS) * gain;
+
+                const bytesPerPixel = (currentBitDepth === 16) ? 8 : 4;
+                const rowSize = 1 + w * bytesPerPixel;
+                const rawBuffer = new Uint8Array(h*rowSize);
+                const view = new DataView(rawBuffer.buffer);
+                let srcIdx=0, dstIdx=0;
+
+                for(let y=0; y<h; y++) {
+                    rawBuffer[dstIdx++] = 0; // Filter Type 0
+                    for(let x=0; x<w; x++) {
+                        const lr = toLinear(sdrData[srcIdx]/255), lg = toLinear(sdrData[srcIdx+1]/255), lb = toLinear(sdrData[srcIdx+2]/255);
+                        const [r20,g20,b20] = convertTo2020(lr,lg,lb);
+                        
+                        // Apply Gain
+                        const r = Math.min(1, r20*gainFactor);
+                        const g = Math.min(1, g20*gainFactor);
+                        const b = Math.min(1, b20*gainFactor);
+
+                        if (currentBitDepth === 16) {
+                            view.setUint16(dstIdx, toPQ(r)*65535, false); dstIdx+=2;
+                            view.setUint16(dstIdx, toPQ(g)*65535, false); dstIdx+=2;
+                            view.setUint16(dstIdx, toPQ(b)*65535, false); dstIdx+=2;
+                            view.setUint16(dstIdx, 65535, false); dstIdx+=2;
+                        } else {
+                            // 8-bit Fallback
+                            rawBuffer[dstIdx++] = toPQ(r)*255;
+                            rawBuffer[dstIdx++] = toPQ(g)*255;
+                            rawBuffer[dstIdx++] = toPQ(b)*255;
+                            rawBuffer[dstIdx++] = 255;
+                        }
+                        srcIdx+=4;
+                    }
+                }
+
+                // Inline Compression Logic
+                const stream = new Blob([rawBuffer]).stream().pipeThrough(new CompressionStream('deflate'));
+                const buf = await new Response(stream).arrayBuffer();
+                let zlibData = new Uint8Array(buf);
+
+                if(zlibData[0] !== 0x78) {
+                    const wrapper = new Uint8Array(zlibData.length+6);
+                    wrapper[0]=0x78; wrapper[1]=0x9C;
+                    wrapper.set(zlibData,2);
+                    new DataView(wrapper.buffer).setUint32(wrapper.length-4, calcAdler32(rawBuffer), false);
+                    zlibData = wrapper;
+                }
+
+                // Assembly
+                const chunks = [];
+                chunks.push(new Uint8Array([0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A]));
+
+                const ihdr = new Uint8Array(13);
+                const dv = new DataView(ihdr.buffer);
+                dv.setUint32(0, w, false); dv.setUint32(4, h, false);
+                ihdr[8] = currentBitDepth; // Dynamic Bit Depth
+                ihdr[9] = 6; // ColorType 6 (Truecolor with Alpha)
+                writeChunk(chunks, 'IHDR', ihdr);
+
+                // METADATA INJECTION
+                if (mode === 'hex') {
+                    if (hex.length < 20) throw new Error("Hardcoded Hex is empty!");
+                    const bytes = hexToBytes(hex);
+                    const sig = new TextDecoder().decode(bytes.slice(4, 8)); 
+                    if (sig === 'iCCP') {
+                        chunks.push(bytes);
+                    } else {
+                        // Profile compression logic...
+                        const pStream = new Blob([bytes]).stream().pipeThrough(new CompressionStream('deflate'));
+                        const pBuf = await new Response(pStream).arrayBuffer();
+                        let pData = new Uint8Array(pBuf);
+                        if (pData[0] !== 0x78) {
+                            const w = new Uint8Array(pData.length+6);
+                            w[0]=0x78; w[1]=0x9C; w.set(pData,2);
+                            new DataView(w.buffer).setUint32(w.length-4, calcAdler32(bytes), false);
+                            pData = w;
+                        }
+                        const name = new TextEncoder().encode("HDR");
+                        const method = new Uint8Array([0]);
+                        const payload = new Uint8Array(name.length + 1 + 1 + pData.length);
+                        payload.set(name, 0);
+                        payload[name.length] = 0; 
+                        payload[name.length + 1] = 0; 
+                        payload.set(pData, name.length + 2);
+                        writeChunk(chunks, 'iCCP', payload);
+                    }
+                } else if (mode === 'clone') {
+                    if (capturedMetadata.length === 0) throw new Error("No reference loaded!");
+                    chunks.push(...capturedMetadata);
+                } else {
+                    writeChunk(chunks, 'cICP', new Uint8Array([9, 16, 0, 1]));
+                    const g = new Uint8Array(4); new DataView(g.buffer).setUint32(0, 100000, false);
+                    writeChunk(chunks, 'gAMA', g);
+                }
+
+                writeChunk(chunks, 'IDAT', zlibData);
+                writeChunk(chunks, 'IEND', new Uint8Array(0));
+
+                resultBlob = new Blob(chunks, {type:'image/png'});
+                
+                if (!forceLimit) break;
+                if (resultBlob.size < TARGET_SIZE) {
+                    log(`Size OK: ${(resultBlob.size/1024).toFixed(1)}KB`);
+                    break;
+                } else {
+                    log(`Size Too Large: ${(resultBlob.size/1024).toFixed(1)}KB > ${TARGET_SIZE/1024}KB`);
+                    if (twitterMode && currentBitDepth === 16) {
+                        log("Strategy Switch: Dropping to 8-bit depth to maintain 400x400 resolution...");
+                        currentBitDepth = 8;
+                    } else {
+                        scaleFactor *= 0.75;
+                    }
+                }
+            } // End While
+
+            if (forceLimit && resultBlob.size > TARGET_SIZE) {
+                log("Warning: Could not meet size target after max attempts.");
             }
-
-            writeChunk(chunks, 'IDAT', zlibData);
-            writeChunk(chunks, 'IEND', new Uint8Array(0));
-
-            return new Blob(chunks, {type:'image/png'});
+            return resultBlob;
         }
     }
 
@@ -328,7 +413,9 @@
 
         try {
             const gain = parseFloat(gainSlider.value);
-            const blob = await processImage(mode, gain, hex, sourceImageBitmap, useHybrid);
+            const useLimit = document.getElementById('forceSizeLimit') ? document.getElementById('forceSizeLimit').checked : false;
+            const useTwitter = document.getElementById('twitterMode') ? document.getElementById('twitterMode').checked : false;
+            const blob = await processImage(mode, gain, hex, sourceImageBitmap, useHybrid, useLimit, useTwitter);
             
             generatedBlobUrl = URL.createObjectURL(blob);
             
@@ -563,87 +650,185 @@
         return out;
     }
 
-    async function generateGainMapJpeg(sourceBitmap, gain, injectIccHex = null) {
-        // 1. Prepare SDR JPEG
-        exportCanvas.width = sourceBitmap.width;
-        exportCanvas.height = sourceBitmap.height;
-        const ctx = exportCanvas.getContext('2d', {colorSpace:'srgb'});
-        ctx.drawImage(sourceBitmap, 0, 0);
-        const sdrBlob = await new Promise(r => exportCanvas.toBlob(r, 'image/jpeg', 0.95));
-        let sdrBytes = new Uint8Array(await sdrBlob.arrayBuffer());
-
-
-
-        // 2. Prepare Gain Map JPEG (Solid White = Max Boost)
-        // We'll scale it down slightly for efficiency, standard practice
-        const gmW = Math.max(1, Math.floor(sourceBitmap.width / 2));
-        const gmH = Math.max(1, Math.floor(sourceBitmap.height / 2));
-        const gmCanvas = document.createElement('canvas');
-        gmCanvas.width = gmW;
-        gmCanvas.height = gmH;
-        const gmCtx = gmCanvas.getContext('2d');
-        gmCtx.fillStyle = '#FFFFFF'; // All pixels = 1.0 (Mapped to GainMapMax)
-        gmCtx.fillRect(0, 0, gmW, gmH);
-        const gmBlob = await new Promise(r => gmCanvas.toBlob(r, 'image/jpeg', 0.8));
-        const gmBytes = new Uint8Array(await gmBlob.arrayBuffer());
-
-        // 3. Metadata Parameters (Log2 space)
-        // Gain is linear multiplier (e.g., 5.0x). 
-        // ISO 21496-1 uses log2 for Min/Max.
-        // CORRECTION: Standard path treats gain=1.0 as 1000 nits.
-        // GainMap applies multiplier to SDR Base (approx 203 nits).
-        // Scaling Factor = (Gain * 1000) / 203.
-        const sdrNits = 203;
-        const targetNits = gain * 1000;
-        const linearGain = targetNits / sdrNits;
+    async function generateGainMapJpeg(sourceBitmap, gain, injectIccHex = null, forceLimit = false, twitterMode = false) {
         
-        const logGain = Math.log2(Math.max(1, linearGain)); 
+        let currentSdrQ = 0.95;
+        let currentGmQ = 0.8;
+        let scaleFactor = 1.0;
+        const TARGET_SIZE = 700 * 1024; // 700KB
         
-        const metadata = {
-            gainMapMax: logGain,      // The Gain when Map Pixel is 1.0 (White)
-            gainMapMin: 0.0,          // The Gain when Map Pixel is 0.0 (Black) -> 0 log2 = 1.0 linear
-            mapGamma: 1.0,            // Linear mapping
-            offsetSdr: 0.0,
-            offsetHdr: 0.0,
-            hdrCapacityMin: 0.0,
-            hdrCapacityMax: Math.max(logGain, Math.log2(10)) // Claim at least 1000 nits capacity if requested is lower
-        };
+        let attempts = 0;
+        const maxAttempts = (forceLimit || twitterMode) ? 6 : 1; // Loop if limited
+        let result = null;
 
-        // 4. Invoke Library
-        log("Loading libultrahdr...");
-        const lib = await getUltraHdr();
-        
-        log(`Embedding GainMap... Max Gain: ${gain.toFixed(1)}x (${logGain.toFixed(2)} log2)`);
-        
-        let result = lib.appendGainMap(
-            exportCanvas.width, exportCanvas.height, // Width/Height of Final Container
-            sdrBytes, sdrBytes.length,
-            gmBytes, gmBytes.length,
-            metadata.gainMapMax, metadata.gainMapMin, metadata.mapGamma, 
-            metadata.offsetSdr, metadata.offsetHdr, 
-            metadata.hdrCapacityMin, metadata.hdrCapacityMax
-        );
-
-        if (!result) throw new Error("Failed to generate Gain Map image.");
-
-        // --- Hybrid Mode Injection (Post-Process) ---
-        // Injecting AFTER generation ensures the library doesn't strip our custom APP2 logic.
-        if (injectIccHex) {
-            try {
-                log("Hybrid Mode: Parsing custom ICC...");
-                const rawIcc = await getRawIccFromHex(injectIccHex);
-                if (rawIcc) {
-                    log(`Extracted ICC Profile (${rawIcc.length} bytes). Creating APP2...`);
-                    const app2 = createJpegApp2Marker(rawIcc);
-                    // Inject into the FINAL Gain Map JPEG
-                    result = injectApp2(result, app2);
-                    log("Injected APP2 ICC Marker into Gain Map JPEG.");
-                }
-            } catch (e) {
-                log("Hybrid Injection Failed: " + e.message);
-                throw new Error("Hybrid Injection Failed: " + e.message);
+        while (attempts < maxAttempts) {
+            attempts++;
+            if ((forceLimit || twitterMode) && attempts > 1) {
+                log(`Attempt ${attempts}/${maxAttempts}: Scale=${scaleFactor.toFixed(2)}, SDR_Q=${currentSdrQ.toFixed(2)}, GM_Q=${currentGmQ.toFixed(2)}...`);
             }
-        }
 
+            // 0. Resize if needed
+            // If Twitter Mode, we FORCE 400x400 immediately, ignoring partial scaleFactor for dims
+            // But we might need to reduce quality if 400x400 is too big (unlikely)
+            
+            let workW, workH;
+
+            if (twitterMode) {
+                workW = 400;
+                workH = 400;
+                // We need to cropped draw
+            } else {
+                workW = Math.floor(sourceBitmap.width * scaleFactor);
+                workH = Math.floor(sourceBitmap.height * scaleFactor);
+                 // Ensure even dims
+                if (workW % 2 !== 0) workW--;
+                if (workH % 2 !== 0) workH--;
+            }
+
+            exportCanvas.width = workW;
+            exportCanvas.height = workH;
+            const ctx = exportCanvas.getContext('2d', {colorSpace:'srgb'});
+            
+            if (twitterMode) {
+                // Center Crop
+                const sw = sourceBitmap.width;
+                const sh = sourceBitmap.height;
+                const aspect = sw / sh;
+                let sx, sy, sDim;
+                
+                // Crop to square
+                if (sw > sh) {
+                    sDim = sh;
+                    sx = (sw - sh) / 2;
+                    sy = 0;
+                } else {
+                    sDim = sw;
+                    sx = 0;
+                    sy = (sh - sw) / 2;
+                }
+                ctx.drawImage(sourceBitmap, sx, sy, sDim, sDim, 0, 0, 400, 400);
+            } else {
+                ctx.drawImage(sourceBitmap, 0, 0, workW, workH);
+            }
+
+            // 1. Prepare SDR JPEG
+            let sdrQuality = 0.95;
+            if (forceLimit) sdrQuality = currentSdrQ;
+            
+            const sdrBlobFull = await new Promise(r => exportCanvas.toBlob(r, 'image/jpeg', sdrQuality));
+            let sdrBytes = null;
+
+            // ADAPTIVE COMPRESSION (SDR)
+            // If forcing limit OR twitter mode, check limit logic later. 
+            // Here just basic check if raw sdr is huge. 
+            if (!forceLimit && !twitterMode && sdrBlobFull.size > 2 * 1024 * 1024) { // > 2MB
+                log(`SDR Layer large (${(sdrBlobFull.size/1024).toFixed(0)}KB). Compressing to 0.75...`);
+                const compressedBlob = await new Promise(r => exportCanvas.toBlob(r, 'image/jpeg', 0.75));
+                sdrBytes = new Uint8Array(await compressedBlob.arrayBuffer());
+            } else {
+                sdrBytes = new Uint8Array(await sdrBlobFull.arrayBuffer());
+            }
+
+            // 2. Prepare Gain Map JPEG (Solid White = Max Boost)
+            let gmQuality = 0.8;
+            if (forceLimit) gmQuality = currentGmQ;
+
+            const gmW = Math.max(1, Math.floor(workW / 2));
+            const gmH = Math.max(1, Math.floor(workH / 2));
+            const gmCanvas = document.createElement('canvas');
+            gmCanvas.width = gmW;
+            gmCanvas.height = gmH;
+            const gmCtx = gmCanvas.getContext('2d');
+            gmCtx.fillStyle = '#FFFFFF'; // All pixels = 1.0 (Mapped to GainMapMax)
+            gmCtx.fillRect(0, 0, gmW, gmH);
+            
+            const gmBlobFull = await new Promise(r => gmCanvas.toBlob(r, 'image/jpeg', gmQuality));
+            let gmBytes = null;
+
+            // ADAPTIVE COMPRESSION (GainMap)
+            if (!forceLimit && !twitterMode && gmBlobFull.size > 1024 * 1024) { // > 1MB
+                log(`GainMap Layer large (${(gmBlobFull.size/1024).toFixed(0)}KB). Compressing to 0.6...`);
+                const compressedGm = await new Promise(r => gmCanvas.toBlob(r, 'image/jpeg', 0.6));
+                gmBytes = new Uint8Array(await compressedGm.arrayBuffer());
+            } else {
+                gmBytes = new Uint8Array(await gmBlobFull.arrayBuffer());
+            }
+
+            // 3. Metadata Parameters (Log2 space)
+            const sdrNits = 203;
+            const targetNits = gain * 1000;
+            const linearGain = targetNits / sdrNits;
+            
+            const logGain = Math.log2(Math.max(1, linearGain)); 
+            
+            const metadata = {
+                gainMapMax: logGain,      // The Gain when Map Pixel is 1.0 (White)
+                gainMapMin: 0.0,          // The Gain when Map Pixel is 0.0 (Black) -> 0 log2 = 1.0 linear
+                mapGamma: 1.0,            // Linear mapping
+                offsetSdr: 0.0,
+                offsetHdr: 0.0,
+                hdrCapacityMin: 0.0,
+                hdrCapacityMax: Math.max(logGain, Math.log2(10)) // Claim at least 1000 nits capacity if requested is lower
+            };
+
+            // 4. Invoke Library
+            if (attempts === 1) log("Loading libultrahdr...");
+            const lib = await getUltraHdr();
+            
+            if (attempts === 1) log(`Embedding GainMap... Max Gain: ${gain.toFixed(1)}x (${logGain.toFixed(2)} log2)`);
+            
+            result = lib.appendGainMap(
+                workW, workH, // Width/Height of Final Container
+                sdrBytes, sdrBytes.length,
+                gmBytes, gmBytes.length,
+                metadata.gainMapMax, metadata.gainMapMin, metadata.mapGamma, 
+                metadata.offsetSdr, metadata.offsetHdr, 
+                metadata.hdrCapacityMin, metadata.hdrCapacityMax
+            );
+
+            if (!result) throw new Error("Failed to generate Gain Map image.");
+
+            // --- Hybrid Mode Injection (Post-Process) ---
+            // Injecting AFTER generation ensures the library doesn't strip our custom APP2 logic.
+            if (injectIccHex) {
+                try {
+                    log("Hybrid Mode: Parsing custom ICC...");
+                    const rawIcc = await getRawIccFromHex(injectIccHex);
+                    if (rawIcc) {
+                        log(`Extracted ICC Profile (${rawIcc.length} bytes). Creating APP2...`);
+                        const app2 = createJpegApp2Marker(rawIcc);
+                        // Inject into the FINAL Gain Map JPEG
+                        result = injectApp2(result, app2);
+                        log("Injected APP2 ICC Marker into Gain Map JPEG.");
+                    }
+                } catch (e) {
+                    log("Hybrid Injection Failed: " + e.message);
+                    throw new Error("Hybrid Injection Failed: " + e.message);
+                }
+            }
+
+            if (!forceLimit && !twitterMode) return result;
+
+            // CHECK SIZE
+            if (result.length < TARGET_SIZE) {
+                log(`Size OK: ${(result.length/1024).toFixed(1)}KB`);
+                return result;
+            } else {
+                log(`Size Too Large: ${(result.length/1024).toFixed(1)}KB > ${TARGET_SIZE/1024}KB`);
+                // Adjust params for next loop
+                if (currentSdrQ > 0.6) {
+                    currentSdrQ -= 0.15;
+                    currentGmQ = Math.max(0.5, currentGmQ - 0.1);
+                } else {
+                    // If quality is already low, reduce resolution
+                    scaleFactor *= 0.75;
+                    // Reset quality slightly so we don't look like trash immediately at lower res
+                    if (scaleFactor < 0.5) currentSdrQ = 0.6; 
+                }
+            }
+        } // End While
+
+        // Fallback
+        log("Warning: Could not meet size target after max attempts. Returning best effort.");
         return result;
     }

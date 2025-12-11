@@ -119,6 +119,26 @@
                     </div>
                 </div>
 
+
+                <!-- 4. Export Settings -->
+                <div class="space-y-3">
+                    <label class="block text-sm font-bold text-neutral-300">4. Export Constraints</label>
+                    <div class="p-3 bg-neutral-950 rounded border border-neutral-800 flex items-center space-x-3">
+                        <input type="checkbox" id="forceSizeLimit" class="w-4 h-4 rounded bg-neutral-800 border-neutral-600 text-emerald-500 focus:ring-emerald-500">
+                        <div>
+                            <label for="forceSizeLimit" class="block text-sm font-bold text-white cursor-pointer">Force Output < 700KB</label>
+                            <div class="text-[10px] text-neutral-500">Iteratively reduces quality/resolution to meet limit.</div>
+                        </div>
+                    </div>
+                    <div class="p-3 bg-neutral-950 rounded border border-neutral-800 flex items-center space-x-3">
+                        <input type="checkbox" id="twitterMode" class="w-4 h-4 rounded bg-neutral-800 border-neutral-600 text-sky-500 focus:ring-sky-500">
+                        <div>
+                            <label for="twitterMode" class="block text-sm font-bold text-white cursor-pointer">Twitter Mode (400x400)</label>
+                            <div class="text-[10px] text-neutral-500">Center crops to 400x400px & enforces < 700KB.</div>
+                        </div>
+                    </div>
+                </div>
+
                 <!-- Action -->
                 <div class="pt-4 border-t border-neutral-800 space-y-3">
                     <button id="downloadBtn" class="w-full py-4 px-4 bg-indigo-600 hover:bg-indigo-500 text-white font-bold rounded-lg transition-colors flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed group" disabled>
