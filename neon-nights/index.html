@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Neon Nights: Party Deck</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;500;700;900&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body class="bg-gray-900 min-h-screen flex flex-col items-center justify-center p-4">
+
+    <!-- Setup Screen -->
+    <div id="setup-screen" class="w-full max-w-md space-y-8 text-center slide-in">
+        <div>
+            <h1 class="text-5xl font-black mb-2 text-transparent bg-clip-text bg-gradient-to-r from-pink-500 via-purple-500 to-indigo-500 neon-text-pink">
+                NEON<br>NIGHTS
+            </h1>
+            <p class="text-gray-400 text-lg">The Ultimate Party Deck</p>
+        </div>
+
+        <div class="bg-gray-800/50 p-6 rounded-2xl border border-gray-700 backdrop-blur-sm">
+            <h3 class="text-xl font-bold mb-4 text-white">Add Players</h3>
+            <div class="flex gap-2 mb-4">
+                <input type="text" id="player-input" placeholder="Enter name..."
+                    class="flex-1 bg-gray-900 border border-gray-600 rounded-lg px-4 py-3 text-white focus:outline-none focus:border-pink-500 transition-colors"
+                    onkeypress="handleEnter(event)">
+                <button onclick="addPlayer()"
+                    class="bg-pink-600 hover:bg-pink-500 text-white px-4 py-3 rounded-lg font-bold transition-all active:scale-95">
+                    +
+                </button>
+            </div>
+
+            <div id="player-list" class="flex flex-wrap gap-2 justify-center min-h-[50px]">
+                <!-- Player tags go here -->
+            </div>
+        </div>
+
+        <button onclick="startGame()"
+            class="w-full bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white text-xl font-bold py-4 rounded-xl shadow-lg shadow-indigo-500/30 transition-all transform hover:-translate-y-1 active:scale-95">
+            START PARTY
+        </button>
+    </div>
+
+    <!-- Game Screen -->
+    <div id="game-screen" class="hidden w-full max-w-md h-screen max-h-[800px] flex flex-col relative">
+
+        <!-- Header -->
+        <div class="flex justify-between items-center py-4 px-2">
+            <button onclick="restartGame()" class="text-gray-500 hover:text-white text-sm uppercase tracking-widest font-bold">
+                Exit
+            </button>
+            <div class="bg-gray-800 px-4 py-1 rounded-full text-xs font-mono text-gray-400 border border-gray-700">
+                <span id="card-counter">0</span> CARDS PLAYED
+            </div>
+        </div>
+
+        <!-- Current Player Indicator -->
+        <div class="text-center mb-6 slide-in">
+            <p class="text-gray-400 text-sm uppercase tracking-wider mb-1">Current Turn</p>
+            <h2 id="current-player-display" class="text-3xl font-black text-white truncate px-4">
+                Waiting...
+            </h2>
+        </div>
+
+        <!-- The Card Area -->
+        <div class="flex-1 relative flex items-center justify-center card-container mb-8">
+            <div id="main-card" class="card w-full h-full max-h-[450px] relative" onclick="drawCard()">
+
+                <!-- Back of Card (Face Down) -->
+                <div class="card-face card-back rounded-3xl border-4 border-indigo-500/30 shadow-2xl deck-pulse">
+                    <div class="text-center">
+                        <div class="text-6xl mb-4">🎲</div>
+                        <p class="text-indigo-300 font-bold text-xl tracking-widest uppercase">Tap to Draw</p>
+                    </div>
+                </div>
+
+                <!-- Front of Card (Face Up) -->
+                <div class="card-face card-front rounded-3xl border border-gray-600 shadow-2xl p-6 flex-col justify-between neon-box-blue">
+
+                    <!-- Card Header -->
+                    <div class="w-full flex justify-between items-start">
+                        <span id="card-icon" class="text-4xl">🍺</span>
+                        <span id="card-type" class="px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wide bg-gray-800 text-gray-300">
+                            DRINK
+                        </span>
+                    </div>
+
+                    <!-- Card Content -->
+                    <div class="text-center w-full my-auto">
+                        <h3 id="card-title" class="text-2xl font-black mb-3 text-white leading-tight">
+                            Title Here
+                        </h3>
+                        <p id="card-desc" class="text-lg text-gray-300 font-medium leading-relaxed">
+                            Description goes here.
+                        </p>
+                    </div>
+
+                    <!-- Card Footer -->
+                    <div class="w-full text-center">
+                        <p class="text-xs text-gray-500 font-mono uppercase">Neon Nights</p>
+                    </div>
+
+                </div>
+            </div>
+        </div>
+
+        <!-- Controls -->
+        <div class="flex gap-4 pb-8 px-2">
+            <button id="next-btn" onclick="nextTurn()" disabled
+                class="flex-1 bg-white text-gray-900 font-black py-4 rounded-xl text-lg shadow-lg disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-100 transition-colors">
+                NEXT TURN
+            </button>
+        </div>
+
+    </div>
+
+    <script src="app.js"></script>
+</body>
+</html>
