@@ -1,3 +1,4 @@
-127.0.0.1 - - [20/Feb/2026 13:07:39] "GET / HTTP/1.1" 200 -
-127.0.0.1 - - [20/Feb/2026 13:07:42] "GET /namecard-prepper/ HTTP/1.1" 200 -
-127.0.0.1 - - [20/Feb/2026 13:07:42] "GET /namecard-prepper/app.js HTTP/1.1" 200 -
+127.0.0.1 - - [25/Mar/2026 05:36:53] "GET /image-comparator/index.html HTTP/1.1" 200 -
+127.0.0.1 - - [25/Mar/2026 05:36:53] "GET /image-comparator/styles.css HTTP/1.1" 200 -
+127.0.0.1 - - [25/Mar/2026 05:36:54] "GET /image-comparator/app.js HTTP/1.1" 200 -
+127.0.0.1 - - [25/Mar/2026 05:36:54] "GET /index.html HTTP/1.1" 200 -
