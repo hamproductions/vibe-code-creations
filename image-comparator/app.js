@@ -32,11 +32,18 @@ const FIT_CLASSES = {
   fill: 'object-fill'
 };
 
+const ALIGN_CLASSES = {
+  top: 'object-top',
+  center: 'object-center',
+  bottom: 'object-bottom'
+};
+
 function App() {
   const [imageA, setImageA] = useState(null);
   const [imageB, setImageB] = useState(null);
   const [mode, setMode] = useState('split-h'); // split-h, split-v, opacity, difference, blink, side-by-side
   const [fitMode, setFitMode] = useState('contain'); // contain, cover, fill
+  const [alignment, setAlignment] = useState('center'); // top, center, bottom
   const [value, setValue] = useState(50);
   const [blinkSpeed, setBlinkSpeed] = useState(500);
   const [showA, setShowA] = useState(true);
@@ -71,10 +78,20 @@ function App() {
     window.addEventListener('pointerup', handlePointerUp);
     return () => {
       window.removeEventListener('pointerup', handlePointerUp);
-      if (imageA) URL.revokeObjectURL(imageA);
-      if (imageB) URL.revokeObjectURL(imageB);
     };
   }, []);
+
+  useEffect(() => {
+    return () => {
+      if (imageA) URL.revokeObjectURL(imageA);
+    };
+  }, [imageA]);
+
+  useEffect(() => {
+    return () => {
+      if (imageB) URL.revokeObjectURL(imageB);
+    };
+  }, [imageB]);
 
   useEffect(() => {
     let interval;
@@ -95,16 +112,16 @@ function App() {
       return (
         <div className="flex w-full h-full bg-black overflow-hidden">
           <div className="w-1/2 h-full border-r border-neutral-800 relative">
-            <img src={imageA} alt="Base" className={`absolute inset-0 w-full h-full ${FIT_CLASSES[fitMode]} select-none`} />
+            <img src={imageA} alt="Base" className={`absolute inset-0 w-full h-full ${FIT_CLASSES[fitMode]} ${ALIGN_CLASSES[alignment]} select-none`} />
           </div>
           <div className="w-1/2 h-full relative">
-            <img src={imageB} alt="Overlay" className={`absolute inset-0 w-full h-full ${FIT_CLASSES[fitMode]} select-none`} />
+            <img src={imageB} alt="Overlay" className={`absolute inset-0 w-full h-full ${FIT_CLASSES[fitMode]} ${ALIGN_CLASSES[alignment]} select-none`} />
           </div>
         </div>
       );
     }
 
-    const baseImageClass = `absolute inset-0 w-full h-full ${FIT_CLASSES[fitMode]} pointer-events-none select-none`;
+    const baseImageClass = `absolute inset-0 w-full h-full ${FIT_CLASSES[fitMode]} ${ALIGN_CLASSES[alignment]} pointer-events-none select-none`;
 
     let imageBStyle = {};
     let overlay = null;
@@ -212,6 +229,17 @@ function App() {
               <option value="cover">Scale: Cover (Crop)</option>
               <option value="fill">Scale: Fill (Stretch)</option>
             </select>
+            {fitMode !== 'fill' && (
+              <select
+                value={alignment}
+                onChange={(e) => setAlignment(e.target.value)}
+                className="bg-neutral-900 border border-neutral-700 rounded p-1.5 text-sm outline-none focus:border-blue-500"
+              >
+                <option value="top">Align: Top</option>
+                <option value="center">Align: Center</option>
+                <option value="bottom">Align: Bottom</option>
+              </select>
+            )}
           </div>
         </div>
       </header>
