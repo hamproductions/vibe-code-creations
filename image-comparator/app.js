@@ -34,6 +34,15 @@ const RotateCcwIcon = ({ size = 18 }) => (
 const CopyIcon = ({ size = 18 }) => (
   <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect width="14" height="14" x="8" y="8" rx="2" ry="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></svg>
 );
+const LockIcon = ({ size = 18 }) => (
+  <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect width="18" height="11" x="3" y="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+);
+const UnlockIcon = ({ size = 18 }) => (
+  <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect width="18" height="11" x="3" y="11" rx="2" ry="2"/><path d="M7 11V5a5 5 0 0 1 9.9-1"/></svg>
+);
+const MaximizeIcon = ({ size = 18 }) => (
+  <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M8 3H5a2 2 0 0 0-2 2v3"/><path d="M21 8V5a2 2 0 0 0-2-2h-3"/><path d="M3 16v3a2 2 0 0 0 2 2h3"/><path d="M16 21h3a2 2 0 0 0 2-2v-3"/></svg>
+);
 
 const FIT_CLASSES = {
   contain: 'object-contain',
@@ -57,6 +66,9 @@ function App() {
   const [transformTarget, setTransformTarget] = useState('B');
   const [transformA, setTransformA] = useState({ scale: 1, x: 0, y: 0 });
   const [transformB, setTransformB] = useState({ scale: 1, x: 0, y: 0 });
+  const [isLocked, setIsLocked] = useState(false);
+  const [dimsA, setDimsA] = useState({ w: 0, h: 0 });
+  const [dimsB, setDimsB] = useState({ w: 0, h: 0 });
   const [value, setValue] = useState(50);
   const [blinkSpeed, setBlinkSpeed] = useState(500);
   const [showA, setShowA] = useState(true);
@@ -78,12 +90,18 @@ function App() {
     if (!isDragging || !containerRef.current) return;
 
     if (isTransformMode) {
-      const setter = transformTarget === 'A' ? setTransformA : setTransformB;
-      setter(prev => ({
-        ...prev,
-        x: prev.x + e.movementX,
-        y: prev.y + e.movementY
-      }));
+      if (isLocked) {
+        const move = { x: e.movementX, y: e.movementY };
+        setTransformA(prev => ({ ...prev, x: prev.x + move.x, y: prev.y + move.y }));
+        setTransformB(prev => ({ ...prev, x: prev.x + move.x, y: prev.y + move.y }));
+      } else {
+        const setter = transformTarget === 'A' ? setTransformA : setTransformB;
+        setter(prev => ({
+          ...prev,
+          x: prev.x + e.movementX,
+          y: prev.y + e.movementY
+        }));
+      }
       return;
     }
 
@@ -102,11 +120,17 @@ function App() {
     e.preventDefault();
     const delta = -e.deltaY;
     const factor = delta > 0 ? 1.1 : 0.9;
-    const setter = transformTarget === 'A' ? setTransformA : setTransformB;
-    setter(prev => ({
-      ...prev,
-      scale: Math.max(0.1, Math.min(10, prev.scale * factor))
-    }));
+
+    if (isLocked) {
+      setTransformA(prev => ({ ...prev, scale: Math.max(0.1, Math.min(10, prev.scale * factor)) }));
+      setTransformB(prev => ({ ...prev, scale: Math.max(0.1, Math.min(10, prev.scale * factor)) }));
+    } else {
+      const setter = transformTarget === 'A' ? setTransformA : setTransformB;
+      setter(prev => ({
+        ...prev,
+        scale: Math.max(0.1, Math.min(10, prev.scale * factor))
+      }));
+    }
   };
 
   useEffect(() => {
@@ -213,8 +237,16 @@ function App() {
 
       comparisonContent = (
         <>
-          <img src={imageA} alt="Base" className={baseImageClass} style={styleA} />
-          <img src={imageB} alt="Overlay" className={baseImageClass} style={imageBStyle} />
+          <img
+            src={imageA} alt="Base"
+            className={baseImageClass} style={styleA}
+            onLoad={(e) => setDimsA({ w: e.target.naturalWidth, h: e.target.naturalHeight })}
+          />
+          <img
+            src={imageB} alt="Overlay"
+            className={baseImageClass} style={imageBStyle}
+            onLoad={(e) => setDimsB({ w: e.target.naturalWidth, h: e.target.naturalHeight })}
+          />
           {overlay}
         </>
       );
@@ -294,6 +326,13 @@ function App() {
                   >B</button>
                 </div>
                 <button
+                  onClick={() => setIsLocked(!isLocked)}
+                  className={`p-2 rounded transition-colors ${isLocked ? 'bg-amber-600 text-white' : 'text-neutral-400 hover:text-white hover:bg-neutral-800'}`}
+                  title={isLocked ? 'Unlock Transforms' : 'Lock Transforms (Pan/Zoom Together)'}
+                >
+                  {isLocked ? <LockIcon size={18}/> : <UnlockIcon size={18}/>}
+                </button>
+                <button
                   onClick={() => {
                     if (transformTarget === 'A') setTransformA({ ...transformB });
                     else setTransformB({ ...transformA });
@@ -303,6 +342,18 @@ function App() {
                 >
                   <CopyIcon size={18} />
                 </button>
+                {(dimsA.w > 0 && dimsB.w > 0) && (
+                  <button
+                    onClick={() => {
+                      const ratio = dimsA.w / dimsB.w;
+                      setTransformB(prev => ({ ...prev, scale: transformA.scale * ratio }));
+                    }}
+                    className="p-2 rounded text-neutral-400 hover:text-white hover:bg-neutral-800"
+                    title="Auto-Match Scale (Based on natural width ratio)"
+                  >
+                    <MaximizeIcon size={18} />
+                  </button>
+                )}
                 <button
                   onClick={() => {
                     if (transformTarget === 'A') setTransformA({ scale: 1, x: 0, y: 0 });
@@ -389,6 +440,35 @@ function App() {
                   className="w-full max-w-xl h-2 bg-neutral-800 rounded-lg appearance-none cursor-pointer accent-blue-600"
                 />
                 <span className="text-sm font-mono text-neutral-400">Slow</span>
+              </div>
+            )}
+            {isTransformMode && (
+              <div className="h-16 bg-neutral-950 flex items-center justify-center px-8 gap-4 shadow-[0_-5px_15px_rgba(0,0,0,0.5)] z-20">
+                <span className="text-sm font-mono text-neutral-400">0.1x</span>
+                <div className="flex-1 max-w-xl flex flex-col gap-1">
+                  <input
+                    type="range"
+                    min="0.1" max="10"
+                    step="0.01"
+                    value={transformTarget === 'A' ? transformA.scale : transformB.scale}
+                    onChange={(e) => {
+                      const newScale = Number(e.target.value);
+                      if (isLocked) {
+                        setTransformA(prev => ({ ...prev, scale: newScale }));
+                        setTransformB(prev => ({ ...prev, scale: newScale }));
+                      } else {
+                        const setter = transformTarget === 'A' ? setTransformA : setTransformB;
+                        setter(prev => ({ ...prev, scale: newScale }));
+                      }
+                    }}
+                    className="w-full h-2 bg-neutral-800 rounded-lg appearance-none cursor-pointer accent-amber-600"
+                  />
+                  <div className="flex justify-between text-[10px] text-neutral-500 font-mono uppercase">
+                    <span>Target: {isLocked ? 'Locked (A+B)' : transformTarget}</span>
+                    <span>Scale: {(transformTarget === 'A' ? transformA.scale : transformB.scale).toFixed(2)}x</span>
+                  </div>
+                </div>
+                <span className="text-sm font-mono text-neutral-400">10x</span>
               </div>
             )}
           </>
