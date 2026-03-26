@@ -25,6 +25,24 @@ const TimerIcon = ({ size = 18 }) => (
 const ColumnsIcon = ({ size = 18 }) => (
   <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect width="7" height="18" x="3" y="3" rx="1"/><rect width="7" height="18" x="14" y="3" rx="1"/></svg>
 );
+const MoveIcon = ({ size = 18 }) => (
+  <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="5 9 2 12 5 15"/><polyline points="9 5 12 2 15 5"/><polyline points="15 19 12 22 9 19"/><polyline points="19 9 22 12 19 15"/><line x1="2" x2="22" y1="12" y2="12"/><line x1="12" x2="12" y1="2" y2="22"/></svg>
+);
+const RotateCcwIcon = ({ size = 18 }) => (
+  <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg>
+);
+const CopyIcon = ({ size = 18 }) => (
+  <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect width="14" height="14" x="8" y="8" rx="2" ry="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></svg>
+);
+const LockIcon = ({ size = 18 }) => (
+  <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect width="18" height="11" x="3" y="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+);
+const UnlockIcon = ({ size = 18 }) => (
+  <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect width="18" height="11" x="3" y="11" rx="2" ry="2"/><path d="M7 11V5a5 5 0 0 1 9.9-1"/></svg>
+);
+const MaximizeIcon = ({ size = 18 }) => (
+  <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M8 3H5a2 2 0 0 0-2 2v3"/><path d="M21 8V5a2 2 0 0 0-2-2h-3"/><path d="M3 16v3a2 2 0 0 0 2 2h3"/><path d="M16 21h3a2 2 0 0 0 2-2v-3"/></svg>
+);
 
 const FIT_CLASSES = {
   contain: 'object-contain',
@@ -44,6 +62,13 @@ function App() {
   const [mode, setMode] = useState('split-h'); // split-h, split-v, opacity, difference, blink, side-by-side
   const [fitMode, setFitMode] = useState('contain'); // contain, cover, fill
   const [alignment, setAlignment] = useState('center'); // top, center, bottom
+  const [isTransformMode, setIsTransformMode] = useState(false);
+  const [transformTarget, setTransformTarget] = useState('B');
+  const [transformA, setTransformA] = useState({ scale: 1, x: 0, y: 0 });
+  const [transformB, setTransformB] = useState({ scale: 1, x: 0, y: 0 });
+  const [isLocked, setIsLocked] = useState(false);
+  const [dimsA, setDimsA] = useState({ w: 0, h: 0 });
+  const [dimsB, setDimsB] = useState({ w: 0, h: 0 });
   const [value, setValue] = useState(50);
   const [blinkSpeed, setBlinkSpeed] = useState(500);
   const [showA, setShowA] = useState(true);
@@ -63,14 +88,48 @@ function App() {
 
   const handlePointerMove = (e) => {
     if (!isDragging || !containerRef.current) return;
-    const rect = containerRef.current.getBoundingClientRect();
 
+    if (isTransformMode) {
+      if (isLocked) {
+        const move = { x: e.movementX, y: e.movementY };
+        setTransformA(prev => ({ ...prev, x: prev.x + move.x, y: prev.y + move.y }));
+        setTransformB(prev => ({ ...prev, x: prev.x + move.x, y: prev.y + move.y }));
+      } else {
+        const setter = transformTarget === 'A' ? setTransformA : setTransformB;
+        setter(prev => ({
+          ...prev,
+          x: prev.x + e.movementX,
+          y: prev.y + e.movementY
+        }));
+      }
+      return;
+    }
+
+    const rect = containerRef.current.getBoundingClientRect();
     if (mode === 'split-h') {
       const x = Math.max(0, Math.min(e.clientX - rect.left, rect.width));
       setValue((x / rect.width) * 100);
     } else if (mode === 'split-v') {
       const y = Math.max(0, Math.min(e.clientY - rect.top, rect.height));
       setValue((y / rect.height) * 100);
+    }
+  };
+
+  const handleWheel = (e) => {
+    if (!isTransformMode) return;
+    e.preventDefault();
+    const delta = -e.deltaY;
+    const factor = delta > 0 ? 1.1 : 0.9;
+
+    if (isLocked) {
+      setTransformA(prev => ({ ...prev, scale: Math.max(0.1, Math.min(10, prev.scale * factor)) }));
+      setTransformB(prev => ({ ...prev, scale: Math.max(0.1, Math.min(10, prev.scale * factor)) }));
+    } else {
+      const setter = transformTarget === 'A' ? setTransformA : setTransformB;
+      setter(prev => ({
+        ...prev,
+        scale: Math.max(0.1, Math.min(10, prev.scale * factor))
+      }));
     }
   };
 
@@ -108,74 +167,101 @@ function App() {
   const renderComparison = () => {
     if (!imageA || !imageB) return null;
 
-    if (mode === 'side-by-side') {
-      return (
-        <div className="flex w-full h-full bg-black overflow-hidden">
-          <div className="w-1/2 h-full border-r border-neutral-800 relative">
-            <img src={imageA} alt="Base" className={`absolute inset-0 w-full h-full ${FIT_CLASSES[fitMode]} ${ALIGN_CLASSES[alignment]} select-none`} />
-          </div>
-          <div className="w-1/2 h-full relative">
-            <img src={imageB} alt="Overlay" className={`absolute inset-0 w-full h-full ${FIT_CLASSES[fitMode]} ${ALIGN_CLASSES[alignment]} select-none`} />
-          </div>
-        </div>
-      );
-    }
+    const styleA = {
+      transform: `translate(${transformA.x}px, ${transformA.y}px) scale(${transformA.scale})`,
+      transformOrigin: 'center center'
+    };
+    const styleB = {
+      transform: `translate(${transformB.x}px, ${transformB.y}px) scale(${transformB.scale})`,
+      transformOrigin: 'center center'
+    };
 
     const baseImageClass = `absolute inset-0 w-full h-full ${FIT_CLASSES[fitMode]} ${ALIGN_CLASSES[alignment]} pointer-events-none select-none`;
 
-    let imageBStyle = {};
-    let overlay = null;
+    let comparisonContent;
 
-    switch (mode) {
-      case 'split-h':
-        imageBStyle = { clipPath: `polygon(0 0, ${value}% 0, ${value}% 100%, 0 100%)` };
-        overlay = (
-          <div
-            className="absolute top-0 bottom-0 w-1 bg-white cursor-col-resize shadow-[0_0_5px_rgba(0,0,0,0.5)] z-10"
-            style={{ left: `calc(${value}% - 2px)` }}
-          >
-            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-6 h-8 bg-white rounded shadow-md flex items-center justify-center">
-              <div className="w-0.5 h-4 bg-gray-400 mx-0.5"></div>
-              <div className="w-0.5 h-4 bg-gray-400 mx-0.5"></div>
-            </div>
+    if (mode === 'side-by-side') {
+      comparisonContent = (
+        <div className="flex w-full h-full bg-black overflow-hidden pointer-events-none">
+          <div className="w-1/2 h-full border-r border-neutral-800 relative">
+            <img src={imageA} alt="Base" className={`absolute inset-0 w-full h-full ${FIT_CLASSES[fitMode]} ${ALIGN_CLASSES[alignment]} select-none`} style={styleA} />
           </div>
-        );
-        break;
-      case 'split-v':
-        imageBStyle = { clipPath: `polygon(0 0, 100% 0, 100% ${value}%, 0 ${value}%)` };
-        overlay = (
-          <div
-            className="absolute left-0 right-0 h-1 bg-white cursor-row-resize shadow-[0_0_5px_rgba(0,0,0,0.5)] z-10"
-            style={{ top: `calc(${value}% - 2px)` }}
-          >
-            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 h-6 w-8 bg-white rounded shadow-md flex flex-col items-center justify-center">
-              <div className="h-0.5 w-4 bg-gray-400 my-0.5"></div>
-              <div className="h-0.5 w-4 bg-gray-400 my-0.5"></div>
-            </div>
+          <div className="w-1/2 h-full relative">
+            <img src={imageB} alt="Overlay" className={`absolute inset-0 w-full h-full ${FIT_CLASSES[fitMode]} ${ALIGN_CLASSES[alignment]} select-none`} style={styleB} />
           </div>
-        );
-        break;
-      case 'opacity':
-        imageBStyle = { opacity: value / 100 };
-        break;
-      case 'difference':
-        imageBStyle = { mixBlendMode: 'difference' };
-        break;
-      case 'blink':
-        imageBStyle = { opacity: showA ? 0 : 1 };
-        break;
+        </div>
+      );
+    } else {
+      let imageBStyle = { ...styleB };
+      let overlay = null;
+
+      switch (mode) {
+        case 'split-h':
+          imageBStyle.clipPath = `polygon(0 0, ${value}% 0, ${value}% 100%, 0 100%)`;
+          overlay = (
+            <div
+              className={`absolute top-0 bottom-0 w-1 bg-white shadow-[0_0_5px_rgba(0,0,0,0.5)] z-10 ${isTransformMode ? 'pointer-events-none' : 'cursor-col-resize'}`}
+              style={{ left: `calc(${value}% - 2px)` }}
+            >
+              <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-6 h-8 bg-white rounded shadow-md flex items-center justify-center">
+                <div className="w-0.5 h-4 bg-gray-400 mx-0.5"></div>
+                <div className="w-0.5 h-4 bg-gray-400 mx-0.5"></div>
+              </div>
+            </div>
+          );
+          break;
+        case 'split-v':
+          imageBStyle.clipPath = `polygon(0 0, 100% 0, 100% ${value}%, 0 ${value}%)`;
+          overlay = (
+            <div
+              className={`absolute left-0 right-0 h-1 bg-white shadow-[0_0_5px_rgba(0,0,0,0.5)] z-10 ${isTransformMode ? 'pointer-events-none' : 'cursor-row-resize'}`}
+              style={{ top: `calc(${value}% - 2px)` }}
+            >
+              <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 h-6 w-8 bg-white rounded shadow-md flex flex-col items-center justify-center">
+                <div className="h-0.5 w-4 bg-gray-400 my-0.5"></div>
+                <div className="h-0.5 w-4 bg-gray-400 my-0.5"></div>
+              </div>
+            </div>
+          );
+          break;
+        case 'opacity':
+          imageBStyle.opacity = value / 100;
+          break;
+        case 'difference':
+          imageBStyle.mixBlendMode = 'difference';
+          break;
+        case 'blink':
+          imageBStyle.opacity = showA ? 0 : 1;
+          break;
+      }
+
+      comparisonContent = (
+        <>
+          <img
+            src={imageA} alt="Base"
+            className={baseImageClass} style={styleA}
+            onLoad={(e) => setDimsA({ w: e.target.naturalWidth, h: e.target.naturalHeight })}
+          />
+          <img
+            src={imageB} alt="Overlay"
+            className={baseImageClass} style={imageBStyle}
+            onLoad={(e) => setDimsB({ w: e.target.naturalWidth, h: e.target.naturalHeight })}
+          />
+          {overlay}
+        </>
+      );
     }
 
     return (
       <div
         ref={containerRef}
-        className={`relative w-full h-full bg-black overflow-hidden ${mode.startsWith('split') ? (mode === 'split-h' ? 'cursor-col-resize' : 'cursor-row-resize') : ''}`}
+        className={`relative w-full h-full bg-black overflow-hidden
+          ${isTransformMode ? 'cursor-move' : (mode.startsWith('split') ? (mode === 'split-h' ? 'cursor-col-resize' : 'cursor-row-resize') : '')}`}
         onPointerDown={handlePointerDown}
         onPointerMove={handlePointerMove}
+        onWheel={handleWheel}
       >
-        <img src={imageA} alt="Base" className={baseImageClass} />
-        <img src={imageB} alt="Overlay" className={baseImageClass} style={imageBStyle} />
-        {overlay}
+        {comparisonContent}
       </div>
     );
   };
@@ -216,6 +302,70 @@ function App() {
             <button onClick={() => setMode('blink')} className={`p-2 rounded ${mode === 'blink' ? 'bg-blue-600 text-white' : 'text-neutral-400 hover:text-white hover:bg-neutral-800'}`} title="Blink Toggle">
               <TimerIcon size={18} />
             </button>
+          </div>
+
+          <div className="flex items-center gap-2 bg-neutral-900 p-1 rounded-lg border border-neutral-800">
+            <button
+              onClick={() => setIsTransformMode(!isTransformMode)}
+              className={`p-2 rounded flex items-center gap-2 transition-colors ${isTransformMode ? 'bg-amber-600 text-white' : 'text-neutral-400 hover:text-white hover:bg-neutral-800'}`}
+              title="Manual Match Mode (Pan/Zoom Image B)"
+            >
+              <MoveIcon size={18} />
+              <span className="text-xs font-bold uppercase tracking-wider">{isTransformMode ? 'On' : 'Off'}</span>
+            </button>
+            {isTransformMode && (
+              <>
+                <div className="flex items-center bg-neutral-800 rounded p-0.5 border border-neutral-700 mx-1">
+                  <button
+                    onClick={() => setTransformTarget('A')}
+                    className={`px-2 py-0.5 rounded text-[10px] font-bold transition-colors ${transformTarget === 'A' ? 'bg-amber-600 text-white' : 'text-neutral-400 hover:text-white'}`}
+                  >A</button>
+                  <button
+                    onClick={() => setTransformTarget('B')}
+                    className={`px-2 py-0.5 rounded text-[10px] font-bold transition-colors ${transformTarget === 'B' ? 'bg-amber-600 text-white' : 'text-neutral-400 hover:text-white'}`}
+                  >B</button>
+                </div>
+                <button
+                  onClick={() => setIsLocked(!isLocked)}
+                  className={`p-2 rounded transition-colors ${isLocked ? 'bg-amber-600 text-white' : 'text-neutral-400 hover:text-white hover:bg-neutral-800'}`}
+                  title={isLocked ? 'Unlock Transforms' : 'Lock Transforms (Pan/Zoom Together)'}
+                >
+                  {isLocked ? <LockIcon size={18}/> : <UnlockIcon size={18}/>}
+                </button>
+                <button
+                  onClick={() => {
+                    if (transformTarget === 'A') setTransformA({ ...transformB });
+                    else setTransformB({ ...transformA });
+                  }}
+                  className="p-2 rounded text-neutral-400 hover:text-white hover:bg-neutral-800"
+                  title={`Match ${transformTarget} to ${transformTarget === 'A' ? 'B' : 'A'}`}
+                >
+                  <CopyIcon size={18} />
+                </button>
+                {(dimsA.w > 0 && dimsB.w > 0) && (
+                  <button
+                    onClick={() => {
+                      const ratio = dimsA.w / dimsB.w;
+                      setTransformB(prev => ({ ...prev, scale: transformA.scale * ratio }));
+                    }}
+                    className="p-2 rounded text-neutral-400 hover:text-white hover:bg-neutral-800"
+                    title="Auto-Match Scale (Based on natural width ratio)"
+                  >
+                    <MaximizeIcon size={18} />
+                  </button>
+                )}
+                <button
+                  onClick={() => {
+                    if (transformTarget === 'A') setTransformA({ scale: 1, x: 0, y: 0 });
+                    else setTransformB({ scale: 1, x: 0, y: 0 });
+                  }}
+                  className="p-2 rounded text-neutral-400 hover:text-white hover:bg-neutral-800"
+                  title={`Reset Image ${transformTarget} Transform`}
+                >
+                  <RotateCcwIcon size={18} />
+                </button>
+              </>
+            )}
           </div>
 
           <div className="flex items-center gap-2">
@@ -290,6 +440,35 @@ function App() {
                   className="w-full max-w-xl h-2 bg-neutral-800 rounded-lg appearance-none cursor-pointer accent-blue-600"
                 />
                 <span className="text-sm font-mono text-neutral-400">Slow</span>
+              </div>
+            )}
+            {isTransformMode && (
+              <div className="h-16 bg-neutral-950 flex items-center justify-center px-8 gap-4 shadow-[0_-5px_15px_rgba(0,0,0,0.5)] z-20">
+                <span className="text-sm font-mono text-neutral-400">0.1x</span>
+                <div className="flex-1 max-w-xl flex flex-col gap-1">
+                  <input
+                    type="range"
+                    min="0.1" max="10"
+                    step="0.01"
+                    value={transformTarget === 'A' ? transformA.scale : transformB.scale}
+                    onChange={(e) => {
+                      const newScale = Number(e.target.value);
+                      if (isLocked) {
+                        setTransformA(prev => ({ ...prev, scale: newScale }));
+                        setTransformB(prev => ({ ...prev, scale: newScale }));
+                      } else {
+                        const setter = transformTarget === 'A' ? setTransformA : setTransformB;
+                        setter(prev => ({ ...prev, scale: newScale }));
+                      }
+                    }}
+                    className="w-full h-2 bg-neutral-800 rounded-lg appearance-none cursor-pointer accent-amber-600"
+                  />
+                  <div className="flex justify-between text-[10px] text-neutral-500 font-mono uppercase">
+                    <span>Target: {isLocked ? 'Locked (A+B)' : transformTarget}</span>
+                    <span>Scale: {(transformTarget === 'A' ? transformA.scale : transformB.scale).toFixed(2)}x</span>
+                  </div>
+                </div>
+                <span className="text-sm font-mono text-neutral-400">10x</span>
               </div>
             )}
           </>
