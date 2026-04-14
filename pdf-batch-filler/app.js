@@ -168,7 +168,8 @@ function App() {
             color: FIELD_COLORS[fields.length % FIELD_COLORS.length],
             page: currentPage,
             isGlobal: false,
-            fontWeight: 'normal'
+            fontWeight: 'normal',
+            vertical: false
         };
         setFields(prev => [...prev, f]);
         setSelectedField(f.id);
@@ -331,14 +332,28 @@ function App() {
                         page.drawLine({ start: { x: cx, y: cy + (ey - cy) * 0.45 }, end: { x: mx, y: my }, thickness: t, color: rgb(r, g, b) });
                         page.drawLine({ start: { x: mx, y: my }, end: { x: ex, y: ey }, thickness: t, color: rgb(r, g, b) });
                     } else if (field.type === 'text' && typeof value === 'string' && value.length > 0) {
-                        const lines = value.split('\n');
-                        const lineH = field.fontSize * 1.3;
-                        lines.forEach((line, li) => {
-                            if (line.length > 0) {
-                                const y = pdfY - (li * lineH);
-                                page.drawText(line, { x: pdfX, y, size: field.fontSize, font, color: rgb(r, g, b) });
+                        if (field.vertical) {
+                            const chars = [...value];
+                            const charH = field.fontSize * 1.1;
+                            let col = 0;
+                            let row = 0;
+                            for (const ch of chars) {
+                                if (ch === '\n') { col++; row = 0; continue; }
+                                const x = pdfX - (col * charH);
+                                const y = pdfY - (row * charH);
+                                page.drawText(ch, { x, y, size: field.fontSize, font, color: rgb(r, g, b) });
+                                row++;
                             }
-                        });
+                        } else {
+                            const lines = value.split('\n');
+                            const lineH = field.fontSize * 1.3;
+                            lines.forEach((line, li) => {
+                                if (line.length > 0) {
+                                    const y = pdfY - (li * lineH);
+                                    page.drawText(line, { x: pdfX, y, size: field.fontSize, font, color: rgb(r, g, b) });
+                                }
+                            });
+                        }
                     }
                 }
 
@@ -515,7 +530,7 @@ function App() {
                                             style: { width: scaledSize, height: scaledSize, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', color: f.color, fontSize: `${scaledSize * 0.8}px`, fontWeight: 'bold', backgroundColor: 'rgba(0,0,0,0.2)' }
                                         }, previewVal ? '✓' : '☐')
                                         : React.createElement('span', {
-                                            style: { borderLeft: `2px solid ${f.color}`, backgroundColor: 'rgba(0,0,0,0.3)', padding: '0 2px', opacity: previewVal ? 1 : 0.5, whiteSpace: 'pre-wrap', lineHeight: 1.3, fontWeight: f.fontWeight || 'normal' }
+                                            style: { borderLeft: `2px solid ${f.color}`, backgroundColor: 'rgba(0,0,0,0.3)', padding: '0 2px', opacity: previewVal ? 1 : 0.5, whiteSpace: 'pre-wrap', lineHeight: 1.3, fontWeight: f.fontWeight || 'normal', writingMode: f.vertical ? 'vertical-rl' : 'horizontal-tb' }
                                         }, label),
                                     selectedField === f.id && React.createElement('div', {
                                         className: 'absolute -right-2 -bottom-2 w-3 h-3 bg-white rounded-full cursor-ns-resize',
@@ -650,6 +665,10 @@ function FieldEditor({ field, updateField }) {
                     style: { fontWeight: w }
                 }, w === 'normal' ? 'R' : 'B')
             ),
+            React.createElement('button', {
+                onClick: () => updateField(field.id, { vertical: !field.vertical }),
+                className: `px-1.5 py-0.5 text-[10px] rounded transition ${field.vertical ? 'bg-indigo-600 text-white' : 'bg-gray-700 text-gray-400 hover:bg-gray-600'}`
+            }, '縦'),
             React.createElement('span', { className: 'text-[10px] text-gray-500' }, 'Pg'),
             React.createElement('input', {
                 type: 'number', value: field.page + 1, min: 1,
