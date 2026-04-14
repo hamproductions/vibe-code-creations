@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PDF Batch Auto-Filler</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.development.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        surface: { 50: '#f8fafc', 100: '#f1f5f9', 200: '#e2e8f0', 700: '#334155', 800: '#1e293b', 900: '#0f172a' }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        .field-marker { cursor: grab; user-select: none; }
+        .field-marker:active { cursor: grabbing; }
+        .field-marker.check-type { border-radius: 4px; }
+        [data-tab].active { border-color: rgb(99 102 241); color: rgb(99 102 241); }
+    </style>
+</head>
+<body class="bg-gray-950 text-gray-200 min-h-screen">
+    <div id="root"></div>
+    <script type="text/babel" src="app.js"></script>
+</body>
+</html>
