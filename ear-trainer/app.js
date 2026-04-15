@@ -65,6 +65,40 @@ const CLEFS = [
   { id: "tenor", label: "Tenor", vexId: "tenor", midiLow: 45, midiHigh: 69 }
 ]
 
+const CHORD_FORMATS = {
+  standard: {
+    "major":"","minor":"m","diminished":"dim","augmented":"aug","sus2":"sus2","sus4":"sus4",
+    "M7":"maj7","m7":"m7","7":"7","m7b5":"m7♭5","dim7":"dim7","mM7":"m(maj7)","M7#5":"maj7♯5","7sus4":"7sus4",
+    "9":"9","M9":"maj9","m9":"m9","13":"13","7b9":"7♭9","7#9":"7♯9","7b5":"7♭5","7#5":"7♯5",
+    "7b9b5":"7♭9♭5","7b9#5":"7♭9♯5","7#9b5":"7♯9♭5","7#9#5":"7♯9♯5"
+  },
+  jazz: {
+    "major":"","minor":"-","diminished":"°","augmented":"+","sus2":"sus2","sus4":"sus4",
+    "M7":"Δ7","m7":"-7","7":"7","m7b5":"ø7","dim7":"°7","mM7":"-(Δ7)","M7#5":"+Δ7","7sus4":"7sus4",
+    "9":"9","M9":"Δ9","m9":"-9","13":"13","7b9":"7♭9","7#9":"7♯9","7b5":"7♭5","7#5":"7♯5",
+    "7b9b5":"7♭9♭5","7b9#5":"7♭9♯5","7#9b5":"7♯9♭5","7#9#5":"7♯9♯5"
+  },
+  full: {
+    "major":"Major","minor":"minor","diminished":"dim","augmented":"aug","sus2":"sus2","sus4":"sus4",
+    "M7":"Maj7","m7":"min7","7":"dom7","m7b5":"min7♭5","dim7":"dim7","mM7":"min(Maj7)","M7#5":"Maj7♯5","7sus4":"7sus4",
+    "9":"dom9","M9":"Maj9","m9":"min9","13":"dom13","7b9":"7♭9","7#9":"7♯9","7b5":"7♭5","7#5":"7♯5",
+    "7b9b5":"7♭9♭5","7b9#5":"7♭9♯5","7#9b5":"7♯9♭5","7#9#5":"7♯9♯5"
+  }
+}
+
+function formatChord(root, chordId, style) {
+  const fmt = CHORD_FORMATS[style] || CHORD_FORMATS.standard
+  return root + (fmt[chordId] ?? chordId)
+}
+
+function formatChordLabel(chordId, style) {
+  const fmt = CHORD_FORMATS[style] || CHORD_FORMATS.standard
+  return fmt[chordId] ?? chordId
+}
+
+const NOTE_DISPLAY = { "Db":"D♭","Eb":"E♭","Gb":"G♭","Ab":"A♭","Bb":"B♭","F#":"F♯" }
+function displayNote(n) { return NOTE_DISPLAY[n] || n }
+
 const PIANO_NOTES = ["C","Db","D","Eb","E","F","Gb","G","Ab","A","Bb","B"]
 const PIANO_WHITE = ["C","D","E","F","G","A","B"]
 const PIANO_BLACK_MAP = { "C": "Db", "D": "Eb", "F": "Gb", "G": "Ab", "A": "Bb" }
@@ -139,6 +173,7 @@ const DEFAULTS = {
   tonicPool: "starter",
   noteMode: "functional",
   presentMode: "both",
+  chordSymbol: "standard",
   degrees: [...QUICK_SETS.notesFunctional.essentials],
   noteNames: [...QUICK_SETS.notesAbsolute.essentials],
   intervals: [...QUICK_SETS.intervals.essentials],
@@ -176,6 +211,7 @@ function normalizeSettings(input) {
     scales: normalizeList(source.scales, DEFAULTS.scales, SCALES.map(item => item.id)),
     progressions: normalizeList(source.progressions, DEFAULTS.progressions, PROGRESSIONS.map(item => item.id)),
     presentMode: ["audio","staff","both"].includes(source.presentMode) ? source.presentMode : DEFAULTS.presentMode,
+    chordSymbol: ["standard","jazz","full"].includes(source.chordSymbol) ? source.chordSymbol : DEFAULTS.chordSymbol,
     spellingIntervals: normalizeList(source.spellingIntervals, DEFAULTS.spellingIntervals, SPELLING_INTERVALS.map(item => item.id)),
     spellingChords: normalizeList(source.spellingChords, DEFAULTS.spellingChords, CHORDS.map(item => item.id)),
     readingClefs: normalizeList(source.readingClefs, DEFAULTS.readingClefs, CLEFS.map(item => item.id))
@@ -449,8 +485,8 @@ function App() {
       const voicing = chordQuestionVoicing(root, item)
       return {
         title: "Chord Quality", prompt: "Which chord quality was it?", answerId: item.id, tonicName,
-        answers: settings.chords.map(id => CHORDS.find(entry => entry.id === id)),
-        notation: { title: item.label, subtitle: item.subtitle, notes: voicing, chord: true },
+        answers: settings.chords.map(id => { const c = CHORDS.find(entry => entry.id === id); return { ...c, label: formatChordLabel(c.id, settings.chordSymbol) || c.label } }),
+        notation: { title: formatChord(displayNote(tonicName), item.id, settings.chordSymbol), subtitle: item.subtitle, notes: voicing, chord: true },
         targetStart: 0, playback: [{ type: "chord", notes: voicing, role: "target" }]
       }
     }
@@ -479,10 +515,10 @@ function App() {
       const answerNote = NOTE_NAMES[answerPc]
       const midi = fitMidi(57 + answerPc, 57, 68)
       return {
-        title: "Chord Spelling", prompt: `What's the ${interval.label} of ${tonicName}${chord.label}?`,
+        title: "Chord Spelling", prompt: `What's the ${interval.label} of ${formatChord(displayNote(tonicName), chord.id, settings.chordSymbol)}?`,
         answerId: normNote(answerNote), tonicName, usePiano: true,
         answers: PIANO_NOTES.map(n => ({ id: n, label: n, subtitle: "" })),
-        notation: { title: `${answerNote}`, subtitle: `${interval.label} of ${tonicName}${chord.label}`, notes: [midi] },
+        notation: { title: displayNote(answerNote), subtitle: `${interval.label} of ${formatChord(displayNote(tonicName), chord.id, settings.chordSymbol)}`, notes: [midi] },
         targetStart: 0, playback: [{ type: "note", midi, role: "target" }]
       }
     }
@@ -843,7 +879,7 @@ function App() {
                 {phase === "answering" && "answer"}
                 {phase === "feedback" && "feedback"}
               </div>
-              <h2 className="mt-2 font-display text-xl font-bold uppercase leading-tight tracking-wide sm:text-2xl md:text-3xl">
+              <h2 className="mt-2 font-display text-xl font-bold leading-tight tracking-wide sm:text-2xl md:text-3xl">
                 {phase === "prepare" && "Listen..."}
                 {phase === "context" && "Hear The Key"}
                 {phase === "target" && "Hear The Question"}
@@ -873,7 +909,10 @@ function App() {
 
             {question?.usePiano ? (
               <div className="mt-3 fade-up">
-                <PianoKeyboard onNote={id => submitAnswer(id)} feedback={feedback} correctId={question?.answerId} disabled={phase !== "answering"} />
+                <NoteInput onSubmit={id => submitAnswer(id)} disabled={phase !== "answering"} />
+                <div className="mt-2">
+                  <PianoKeyboard onNote={id => submitAnswer(id)} feedback={feedback} correctId={question?.answerId} disabled={phase !== "answering"} />
+                </div>
               </div>
             ) : (
               <div className={`mt-3 grid gap-1.5 sm:gap-2 ${answerCols}`}>
@@ -893,7 +932,7 @@ function App() {
                     >
                       <div className="flex items-center justify-between gap-2">
                         <div className="min-w-0">
-                          <span className="block truncate font-display text-base font-semibold uppercase leading-tight sm:text-lg">{answer.label}</span>
+                          <span className="block truncate font-display text-base font-semibold leading-tight sm:text-lg">{answer.label}</span>
                           <span className="mt-0.5 block truncate font-mono text-[10px] leading-tight text-mist/80 sm:text-xs">{answer.subtitle}</span>
                         </div>
                         {KEY_HINTS[index] && <span className="hidden flex-shrink-0 font-mono text-[10px] text-accent/50 sm:block">{KEY_HINTS[index]}</span>}
@@ -978,6 +1017,7 @@ function App() {
 
             <div className="mt-3 grid gap-3 sm:grid-cols-2">
               <SelectCard label="Presentation" value={settings.presentMode} onChange={value => setSettings(current => ({ ...current, presentMode: value }))} options={[["both","Both (Audio + Staff)"],["audio","Audio Only"],["staff","Staff Only"]]} />
+              <SelectCard label="Chord Symbols" value={settings.chordSymbol} onChange={value => setSettings(current => ({ ...current, chordSymbol: value }))} options={[["standard","Standard (Cm7, dim, aug)"],["jazz","Jazz (C-7, ø7, °, +)"],["full","Full (Cmin7, dom7)"]]} />
             </div>
 
             <div className="mt-4 grid gap-2">
@@ -1065,12 +1105,40 @@ function OptionGroup({ title, items, selected, onToggle }) {
           <label key={item.id} className={`flex cursor-pointer items-center gap-2 rounded-xl px-3 py-2.5 transition ${selected.includes(item.id) ? "bg-accent/10 border border-accent/25 shadow-sm shadow-accent/5" : "glass hover:bg-white/[0.04]"}`}>
             <input type="checkbox" checked={selected.includes(item.id)} onChange={() => onToggle(item.id)} className="h-3.5 w-3.5 cursor-pointer rounded accent-[#818CF8]" />
             <span className="min-w-0 truncate">
-              <strong className="block truncate font-display text-sm font-semibold uppercase">{item.label}</strong>
+              <strong className="block truncate font-display text-sm font-semibold">{item.label}</strong>
               <small className="block truncate font-mono text-[9px] leading-tight text-mist/70">{item.subtitle}</small>
             </span>
           </label>
         ))}
       </div>
+    </div>
+  )
+}
+
+function NoteInput({ onSubmit, disabled }) {
+  const [value, setValue] = useState("")
+  const handleKey = e => {
+    if (e.key !== "Enter" || !value.trim()) return
+    const raw = value.trim()
+    const cap = raw.charAt(0).toUpperCase() + raw.slice(1).toLowerCase()
+    const resolved = normNote(cap) || cap.charAt(0).toUpperCase()
+    if (NOTE_NAMES.includes(resolved) || PIANO_NOTES.includes(resolved)) {
+      onSubmit(resolved)
+      setValue("")
+    }
+  }
+  return (
+    <div className="mx-auto max-w-lg">
+      <input
+        type="text"
+        value={value}
+        onChange={e => setValue(e.target.value)}
+        onKeyDown={handleKey}
+        disabled={disabled}
+        placeholder="Type note (e.g. C, Eb, F#) + Enter"
+        className="w-full glass rounded-xl px-4 py-3 font-mono text-sm text-white placeholder-mist/80 outline-none transition focus:border-accent/40 disabled:opacity-40"
+        autoComplete="off"
+      />
     </div>
   )
 }
