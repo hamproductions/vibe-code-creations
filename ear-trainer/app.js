@@ -65,9 +65,9 @@ const CLEFS = [
   { id: "tenor", label: "Tenor", vexId: "tenor", midiLow: 45, midiHigh: 69 }
 ]
 
-const PIANO_NOTES = ["A","Bb","B","C","Db","D","Eb","E","F","Gb","G","Ab"]
-const PIANO_WHITE = ["A","B","C","D","E","F","G"]
-const PIANO_BLACK_MAP = { "A": "Bb", "C": "Db", "D": "Eb", "F": "Gb", "G": "Ab" }
+const PIANO_NOTES = ["C","Db","D","Eb","E","F","Gb","G","Ab","A","Bb","B"]
+const PIANO_WHITE = ["C","D","E","F","G","A","B"]
+const PIANO_BLACK_MAP = { "C": "Db", "D": "Eb", "F": "Gb", "G": "Ab", "A": "Bb" }
 const ENHARMONIC = { "A#":"Bb","Bb":"Bb","B#":"C","Cb":"B","C#":"Db","Db":"Db","D#":"Eb","Eb":"Eb","E#":"F","Fb":"E","F#":"Gb","Gb":"Gb","G#":"Ab","Ab":"Ab" }
 function normNote(n) { return ENHARMONIC[n] || n }
 const PIANO_KEYS = ["a","s","d","f","g","h","j"]
