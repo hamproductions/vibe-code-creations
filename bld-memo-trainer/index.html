@@ -39,12 +39,11 @@ body {
     margin: 0;
     min-height: 100vh;
     background:
-        linear-gradient(90deg, rgba(194, 255, 77, 0.035) 1px, transparent 1px),
-        linear-gradient(0deg, rgba(194, 255, 77, 0.028) 1px, transparent 1px),
-        radial-gradient(circle at 12% 10%, rgba(139, 214, 70, 0.16), transparent 26rem),
-        radial-gradient(circle at 88% 2%, rgba(122, 182, 255, 0.12), transparent 28rem),
+        linear-gradient(90deg, rgba(255, 255, 255, 0.025) 1px, transparent 1px),
+        linear-gradient(0deg, rgba(255, 255, 255, 0.018) 1px, transparent 1px),
+        radial-gradient(circle at 12% 10%, rgba(122, 182, 255, 0.06), transparent 26rem),
         var(--bg);
-    background-size: 34px 34px, 34px 34px, auto, auto, auto;
+    background-size: 34px 34px, 34px 34px, auto, auto;
     color: var(--ink);
     font-family: Inter, system-ui, sans-serif;
 }
@@ -226,6 +225,19 @@ select:focus {
     align-items: start;
 }
 
+.layout.guided-active {
+    grid-template-columns: minmax(620px, 1fr) minmax(320px, 380px);
+    gap: 18px;
+}
+
+.layout.guided-active #viewerPanel {
+    min-height: calc(100vh - 140px);
+}
+
+.layout.guided-active .memo-grid {
+    display: none;
+}
+
 .panel {
     border: 1px solid var(--line);
     border-radius: 8px;
@@ -295,10 +307,10 @@ select:focus {
 
 .twisty-box,
 .blind-box {
-    height: 390px;
+    height: 430px;
     border-radius: 8px;
     border: 1px solid var(--line);
-    background: radial-gradient(circle at center, #121911 0, #050605 70%);
+    background: radial-gradient(circle at center, #11170f 0, #030403 74%);
     overflow: hidden;
 }
 
@@ -306,6 +318,7 @@ select:focus {
     display: block;
     width: 100%;
     height: 100%;
+    filter: saturate(1.08) contrast(1.08);
 }
 
 .blind-box {
@@ -331,6 +344,10 @@ select:focus {
     background: #090b08;
     padding: 14px;
     overflow-x: auto;
+}
+
+.guided-active .cube-net-wrap {
+    display: none;
 }
 
 .cube-net {
@@ -432,6 +449,13 @@ select:focus {
     gap: 12px;
 }
 
+.layout.guided-active .guided-panel {
+    margin-top: 0;
+    border: 0;
+    background: transparent;
+    padding: 0;
+}
+
 .guided-top {
     display: grid;
     grid-template-columns: minmax(0, 1fr) auto;
@@ -471,6 +495,10 @@ select:focus {
     align-items: start;
 }
 
+.layout.guided-active .guided-body {
+    grid-template-columns: 1fr;
+}
+
 .guided-buffer {
     display: grid;
     align-content: center;
@@ -481,6 +509,12 @@ select:focus {
     min-height: 104px;
     padding: 12px;
     color: var(--blue);
+}
+
+.layout.guided-active .guided-buffer {
+    min-height: auto;
+    grid-template-columns: auto minmax(0, 1fr);
+    align-items: center;
 }
 
 .guided-card-label {
@@ -503,39 +537,30 @@ select:focus {
 
 .guided-main {
     display: grid;
-    gap: 10px;
+    gap: 12px;
     min-width: 0;
 }
 
-.guided-step-grid {
-    display: grid;
-    grid-template-columns: minmax(0, 1fr) minmax(180px, 0.8fr);
-    gap: 10px;
-}
-
-.guided-card {
+.guided-cue {
     border: 1px solid var(--line);
     border-radius: 8px;
     background: #0d100c;
-    padding: 10px;
+    padding: 12px;
     display: grid;
-    gap: 8px;
-    align-content: start;
+    gap: 6px;
     min-width: 0;
 }
 
-.guided-target-value {
-    color: var(--gold);
-    font: 800 24px/1 "IBM Plex Mono", monospace;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
+.layout.guided-active .guided-cue,
+.layout.guided-active .guided-copy {
+    display: none;
 }
 
-.guided-choice-list {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 6px;
+.guided-cue strong {
+    color: var(--gold);
+    font: 800 18px/1.25 "IBM Plex Mono", monospace;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
 }
 
 .guided-copy {
@@ -551,11 +576,25 @@ select:focus {
     gap: 8px;
 }
 
+.layout.guided-active .guided-input-row {
+    grid-template-columns: minmax(0, 1fr) 84px;
+    padding: 12px;
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    background: rgba(7, 8, 7, 0.94);
+}
+
 .guided-input {
     height: 52px;
     font: 800 24px/1 "IBM Plex Mono", monospace;
     letter-spacing: 0.12em;
     text-transform: uppercase;
+}
+
+.layout.guided-active .guided-input {
+    height: 64px;
+    font-size: 34px;
+    letter-spacing: 0.04em;
 }
 
 .guided-log {
@@ -826,6 +865,10 @@ select:focus {
         grid-template-columns: 1fr;
     }
 
+    .layout.guided-active {
+        grid-template-columns: 1fr;
+    }
+
     .toolbar {
         justify-content: stretch;
     }
@@ -841,6 +884,10 @@ select:focus {
     .twisty-box,
     .blind-box {
         height: 280px;
+    }
+
+    .layout.guided-active .twisty-box {
+        height: 360px;
     }
 }
 
@@ -871,7 +918,6 @@ select:focus {
     .guided-top,
     .viewer-head,
     .guided-body,
-    .guided-step-grid,
     .guided-input-row {
         grid-template-columns: 1fr;
     }
@@ -883,6 +929,10 @@ select:focus {
     .guided-buffer {
         min-height: 72px;
         font-size: 30px;
+    }
+
+    .layout.guided-active .twisty-box {
+        height: 320px;
     }
 
     .buffer-chip {
@@ -957,7 +1007,7 @@ select:focus {
                         </div>
                         <div class="viewer-actions">
                             <button class="btn" type="button" id="viewerViewBtn" title="Rotate to current guided piece"><span data-icon="target"></span><span id="viewerViewText">View piece</span></button>
-                            <button class="btn active" type="button" id="viewerFocusBtn" title="Focus guided pieces in 3D"><span data-icon="target"></span><span id="viewerFocusText">Focus 3D</span></button>
+                            <button class="btn active" type="button" id="viewerFocusBtn" title="Show only guided pieces"><span data-icon="target"></span><span id="viewerFocusText">Focus on</span></button>
                             <button class="btn" type="button" id="viewerResetBtn" title="Reset viewer camera"><span data-icon="refresh"></span>Reset view</button>
                         </div>
                     </div>
@@ -1007,21 +1057,16 @@ select:focus {
                             <span class="guided-card-meta" id="guidedBufferMeta"></span>
                         </div>
                         <div class="guided-main">
-                            <div class="guided-step-grid">
-                                <div class="guided-card">
-                                    <span class="guided-card-label">Current piece</span>
-                                    <strong class="guided-target-value" id="guidedTarget"></strong>
-                                    <span class="guided-card-meta" id="guidedTargetMeta"></span>
-                                </div>
-                                <div class="guided-card">
-                                    <span class="guided-card-label">Input</span>
-                                    <div class="guided-choice-list" id="guidedChoices"></div>
-                                </div>
+                            <div class="guided-cue">
+                                <span class="guided-card-label">Isolated piece</span>
+                                <strong id="guidedTarget"></strong>
+                                <span class="guided-card-meta" id="guidedTargetMeta"></span>
+                                <span id="guidedChoices" hidden></span>
                             </div>
                             <div class="guided-copy" id="guidedPrompt"></div>
                             <div class="guided-input-row">
                                 <input class="guided-input" id="guidedInput" autocomplete="off" spellcheck="false" inputmode="text" maxlength="2">
-                                <button class="btn primary" type="button" id="guidedSubmitBtn">Submit</button>
+                                <button class="btn primary" type="button" id="guidedSubmitBtn">Check</button>
                             </div>
                             <div class="guided-feedback" id="guidedFeedback"></div>
                             <div class="guided-log" id="guidedLog"></div>
@@ -1102,6 +1147,7 @@ const edgeStickers = [
 const db = window.BLD_PAIR_DATA;
 const els = {
     dbStats: document.getElementById('dbStats'),
+    trainerRoot: document.getElementById('trainerRoot'),
     settingsBtn: document.getElementById('settingsBtn'),
     settingsPanel: document.getElementById('settingsPanel'),
     edgeBuffer: document.getElementById('edgeBuffer'),
@@ -1415,7 +1461,7 @@ function submitGuidedLetter(value = els.guidedInput.value) {
     const parsed = parseInputToSpeffz(Array.from(value.trim())[0] || '');
     els.guidedInput.value = '';
     if (parsed.error || !parsed.parsed) {
-        state.guided.feedback = parsed.error || 'Type one sticker letter.';
+        state.guided.feedback = parsed.error || 'Enter one sticker.';
         state.guided.lastCorrect = false;
         render();
         els.guidedInput.focus();
@@ -1594,9 +1640,9 @@ function renderTwisty() {
     const player = document.createElement('twisty-player');
     player.setAttribute('experimental-setup-alg', state.scramble);
     player.setAttribute('puzzle', '3x3x3');
-    player.setAttribute('control-panel', 'bottom-row');
+    player.setAttribute('control-panel', 'none');
     player.setAttribute('background', 'none');
-    player.setAttribute('hint-facelets', 'floating');
+    player.setAttribute('hint-facelets', 'none');
     player.setAttribute('back-view', 'top-right');
     player.setAttribute('camera-latitude', '22');
     player.setAttribute('camera-longitude', '45');
@@ -1617,9 +1663,9 @@ function facelets(mask, length = 5) {
 function guidedTwistyMask() {
     const prompt = guidedPrompt();
     if (!state.viewerFocus || !prompt || prompt.complete) return null;
-    const edges = Array.from({ length: 12 }, () => facelets('dim', 2));
-    const corners = Array.from({ length: 8 }, () => facelets('dim', 3));
-    const centers = Array.from({ length: 6 }, () => facelets('dim', 1));
+    const edges = Array.from({ length: 12 }, () => facelets('invisible', 2));
+    const corners = Array.from({ length: 8 }, () => facelets('invisible', 3));
+    const centers = Array.from({ length: 6 }, () => facelets('invisible', 1));
     const nativePieces = prompt.isCorner ? corners : edges;
     const nativeIndex = prompt.isCorner ? NATIVE_CORNER_INDEX : NATIVE_EDGE_INDEX;
     nativePieces[nativeIndex[prompt.bPiece.id]] = facelets('regular', prompt.isCorner ? 3 : 2);
@@ -1642,11 +1688,11 @@ function applyTwistyFocusMask() {
     if (mask) {
         twistyPlayer.experimentalStickeringMaskOrbits = mask;
     } else {
-        twistyPlayer.experimentalModel.twistySceneModel.stickeringMaskRequest.set(null);
+        twistyPlayer.experimentalModel?.twistySceneModel?.stickeringMaskRequest?.set(null);
         twistyPlayer.experimentalStickering = 'full';
     }
     els.viewerFocusBtn.classList.toggle('active', Boolean(mask));
-    els.viewerFocusText.textContent = mask ? 'Focused 3D' : 'Full 3D';
+    els.viewerFocusText.textContent = mask ? 'Focus on' : 'Focus off';
 }
 
 function setViewerStatus(text) {
@@ -1728,17 +1774,17 @@ function renderGuided() {
     const edgePairs = rawToPairs(state.guided.edgeRaw);
     const cornerPairs = rawToPairs(state.guided.cornerRaw);
     const joinedPairs = [...edgePairs, ...cornerPairs];
-    els.guidedLog.innerHTML = guidedAcceptedRaw().length ? guidedAcceptedRaw().map((letter) => '<span class="letter-chip ok">' + escapeHtml(getCharDisplay(letter)) + '</span>').join('') : '<span class="empty-line">No stickers entered</span>';
+    els.guidedLog.innerHTML = guidedAcceptedRaw().length ? guidedAcceptedRaw().map((letter) => '<span class="letter-chip ok">' + escapeHtml(getCharDisplay(letter)) + '</span>').join('') : '';
     els.guidedFeedback.className = 'guided-feedback ' + (state.guided.lastCorrect === false ? 'bad' : state.guided.lastCorrect === true ? 'ok' : '');
     els.guidedFeedback.textContent = state.guided.feedback;
     if (prompt?.complete) {
         els.guidedPhase.textContent = 'Complete';
-        els.guidedBuffer.textContent = '✓';
-        els.guidedBufferMeta.textContent = 'Done';
+        els.guidedBuffer.textContent = 'Done';
+        els.guidedBufferMeta.textContent = 'Complete';
         els.guidedTarget.textContent = 'Solved';
-        els.guidedTargetMeta.textContent = 'Edges and corners complete';
-        els.guidedChoices.innerHTML = '<span class="empty-line">Score memo</span>';
-        els.guidedPrompt.textContent = 'All guided targets are solved. Score memo to verify.';
+        els.guidedTargetMeta.textContent = 'Score memo to verify.';
+        els.guidedChoices.textContent = '';
+        els.guidedPrompt.textContent = 'All guided targets solved.';
         els.guidedSubmitBtn.disabled = true;
         els.guidedInput.disabled = true;
         els.guidedInput.placeholder = '';
@@ -1751,11 +1797,11 @@ function renderGuided() {
     els.guidedPhase.textContent = phaseLabel + ' · ' + prompt.mode;
     els.guidedBuffer.textContent = getCharDisplay(guidedBufferLetter(prompt.isCorner));
     els.guidedBufferMeta.textContent = phaseLabel + ' buffer';
-    els.guidedTarget.textContent = '3D';
-    els.guidedTargetMeta.textContent = 'Use the highlighted 3D piece';
-    els.guidedChoices.innerHTML = '<span class="empty-line">Type one sticker</span>';
+    els.guidedTarget.textContent = 'Look at cube';
+    els.guidedTargetMeta.textContent = 'Only buffer and current piece are visible.';
+    els.guidedChoices.textContent = '';
     els.guidedInput.placeholder = 'Sticker letter';
-    els.guidedPrompt.textContent = 'Use the focused cube piece and buffer to choose the next sticker.';
+    els.guidedPrompt.textContent = 'Enter sticker.';
     if (joinedPairs.length) els.guidedLog.innerHTML += '<div class="dict-grid">' + renderDictionary(joinedPairs.slice(-4)) + '</div>';
 }
 
@@ -1768,6 +1814,7 @@ function render() {
     els.blindText.textContent = state.blind ? 'Show cube' : 'Hide cube';
     els.blindBtn.classList.toggle('active', state.blind);
     els.viewerPanel.classList.toggle('blind', state.blind);
+    els.trainerRoot.classList.toggle('guided-active', Boolean(state.guided?.active));
     els.analysisPanel.classList.toggle('open', state.analysisOpen);
     els.analysisText.textContent = state.analysisOpen ? 'Hide canonical cycles' : 'Show canonical cycles';
     els.analysisBtn.querySelector('[data-icon]').dataset.icon = state.analysisOpen ? 'chevron-up' : 'chevron-down';
