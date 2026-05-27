@@ -1568,11 +1568,11 @@ function submitGuidedLetter(value = els.guidedInput.value) {
     const prompt = guidedPrompt();
     if (!prompt || prompt.complete) return { accepted: false, reason: 'complete' };
     if (!prompt.validTargets.includes(letter)) {
-        state.guided.feedback = getCharDisplay(letter) + ' is not valid. Accepted now: ' + expectedText(prompt.validTargets) + '.';
+        state.guided.feedback = getCharDisplay(letter) + ' does not match the focused piece.';
         state.guided.lastCorrect = false;
         render();
         els.guidedInput.focus();
-        return { accepted: false, reason: 'wrong', expected: prompt.validTargets };
+        return { accepted: false, reason: 'wrong' };
     }
     const stickers = guidedStickers(prompt.isCorner);
     const tPiece = stickers.find((piece) => piece.letters.includes(letter));
