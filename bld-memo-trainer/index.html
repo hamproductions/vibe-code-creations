@@ -957,6 +957,7 @@ select:focus {
                         </div>
                         <div class="viewer-actions">
                             <button class="btn active" type="button" id="viewerPlayBtn" title="Replay scramble preview"><span data-icon="play"></span><span id="viewerPlayText">Playing</span></button>
+                            <button class="btn active" type="button" id="viewerFocusBtn" title="Focus guided pieces in 3D"><span data-icon="target"></span><span id="viewerFocusText">Focus 3D</span></button>
                             <button class="btn" type="button" id="viewerResetBtn" title="Reset scramble preview"><span data-icon="target"></span>Reset preview</button>
                         </div>
                     </div>
@@ -1061,6 +1062,8 @@ const HIRAGANA = 'あいうえなにぬねかきくけさしすせたちつて�
 const SOLVED_STATE = Array.from({ length: 54 }, (_, index) => Math.floor(index / 9));
 const FACE_COLORS = ['#f8faf3', '#e64848', '#23b05c', '#f4cd3a', '#f18a2d', '#3578e5'];
 const DARK_FACE = new Set([1, 2, 4, 5]);
+const NATIVE_EDGE_INDEX = [2, 1, 0, 3, 9, 8, 10, 11, 4, 5, 6, 7];
+const NATIVE_CORNER_INDEX = [2, 1, 0, 3, 5, 4, 7, 6];
 const ICONS = {
     settings: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.38a2 2 0 0 0-.73-2.73l-.15-.09a2 2 0 0 1-1-1.74v-.51a2 2 0 0 1 1-1.72l.15-.1a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2Z"/><circle cx="12" cy="12" r="3"/></svg>',
     refresh: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 12a9 9 0 0 1 15.1-6.6L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-15.1 6.6L3 16"/><path d="M3 21v-5h5"/></svg>',
@@ -1114,6 +1117,8 @@ const els = {
     viewerStatus: document.getElementById('viewerStatus'),
     viewerPlayBtn: document.getElementById('viewerPlayBtn'),
     viewerPlayText: document.getElementById('viewerPlayText'),
+    viewerFocusBtn: document.getElementById('viewerFocusBtn'),
+    viewerFocusText: document.getElementById('viewerFocusText'),
     viewerResetBtn: document.getElementById('viewerResetBtn'),
     twistyBox: document.getElementById('twistyBox'),
     cubeNet: document.getElementById('cubeNet'),
@@ -1169,6 +1174,7 @@ const state = {
     result: null,
     answerOpen: false,
     analysisOpen: false,
+    viewerFocus: true,
     guided: null
 };
 const SCRAMBLE_STORAGE_KEY = 'bld_trainer_scramble';
@@ -1395,6 +1401,7 @@ function startGuidedPractice() {
     state.highlighted = null;
     els.guidedInput.value = '';
     render();
+    restartTwistyPreview();
     els.guidedInput.focus();
 }
 
@@ -1611,12 +1618,54 @@ function renderTwisty() {
     player.setAttribute('camera-latitude', '22');
     player.setAttribute('camera-longitude', '45');
     player.setAttribute('tempo-scale', '1.5');
+    player.setAttribute('experimental-facelet-scale', '0.92');
     player.setAttribute('experimental-drag-input', 'auto');
+    player.setAttribute('experimental-move-press-input', 'basic');
     els.twistyBox.appendChild(player);
     twistyPlayer = player;
     player.addEventListener('pointerdown', stopTwistyPreview);
     player.addEventListener('wheel', stopTwistyPreview, { passive: true });
+    applyTwistyFocusMask();
     playTwistyPreview(player);
+}
+
+function facelets(mask, length = 5) {
+    return { facelets: Array.from({ length }, () => mask) };
+}
+
+function guidedTwistyMask() {
+    const prompt = guidedPrompt();
+    if (!state.viewerFocus || !prompt || prompt.complete) return null;
+    const edges = Array.from({ length: 12 }, () => facelets('dim', 2));
+    const corners = Array.from({ length: 8 }, () => facelets('dim', 3));
+    const centers = Array.from({ length: 6 }, () => facelets('dim', 1));
+    const nativePieces = prompt.isCorner ? corners : edges;
+    const nativeIndex = prompt.isCorner ? NATIVE_CORNER_INDEX : NATIVE_EDGE_INDEX;
+    nativePieces[nativeIndex[prompt.bPiece.id]] = facelets('regular', prompt.isCorner ? 3 : 2);
+    for (const piece of prompt.targetPieces || []) {
+        nativePieces[nativeIndex[piece.id]] = facelets('regular', prompt.isCorner ? 3 : 2);
+    }
+    return {
+        name: 'guided-focus',
+        orbits: {
+            EDGES: { pieces: edges },
+            CORNERS: { pieces: corners },
+            CENTERS: { pieces: centers }
+        }
+    };
+}
+
+function applyTwistyFocusMask() {
+    if (!twistyPlayer) return;
+    const mask = guidedTwistyMask();
+    if (mask) {
+        twistyPlayer.experimentalStickeringMaskOrbits = mask;
+    } else {
+        twistyPlayer.experimentalModel.twistySceneModel.stickeringMaskRequest.set(null);
+        twistyPlayer.experimentalStickering = 'full';
+    }
+    els.viewerFocusBtn.classList.toggle('active', Boolean(mask));
+    els.viewerFocusText.textContent = mask ? 'Focused 3D' : 'Full 3D';
 }
 
 function setViewerStatus(text, playing) {
@@ -1734,6 +1783,7 @@ function render() {
     renderGuided();
     renderCubeNet();
     renderTwisty();
+    applyTwistyFocusMask();
     renderResult();
 }
 
@@ -1825,6 +1875,10 @@ function bindEvents() {
         else restartTwistyPreview();
     });
     els.viewerPlayBtn.addEventListener('click', restartTwistyPreview);
+    els.viewerFocusBtn.addEventListener('click', () => {
+        state.viewerFocus = !state.viewerFocus;
+        applyTwistyFocusMask();
+    });
     els.viewerResetBtn.addEventListener('click', resetTwistyPreview);
     els.scoreBtn.addEventListener('click', scoreMemo);
     els.guidedBtn.addEventListener('click', () => {
