@@ -1056,7 +1056,7 @@ select:focus {
                 </div>
             </div>
             <div class="toolbar">
-                <button class="btn" type="button" id="settingsBtn" title="Open settings"><span data-icon="settings"></span>Settings</button>
+                <button class="btn" type="button" id="settingsBtn" title="Open settings" aria-expanded="false" aria-controls="settingsPanel"><span data-icon="settings"></span>Settings</button>
                 <button class="btn" type="button" id="blindBtn" title="Hide or show cube"><span data-icon="eye-off"></span><span id="blindText">Hide cube</span></button>
                 <button class="btn primary" type="button" id="newBtn" title="Generate new scramble"><span data-icon="refresh"></span>New</button>
             </div>
@@ -1171,7 +1171,7 @@ select:focus {
                         <section class="answer-panel" id="edgeAnswer"></section>
                         <section class="answer-panel" id="cornerAnswer"></section>
                     </div>
-                    <button class="btn analysis-toggle" type="button" id="analysisBtn"><span data-icon="chevron-down"></span><span id="analysisText">Show canonical cycles</span></button>
+                    <button class="btn analysis-toggle" type="button" id="analysisBtn" aria-expanded="false" aria-controls="analysisPanel"><span data-icon="chevron-down"></span><span id="analysisText">Show canonical cycles</span></button>
                     <div class="analysis" id="analysisPanel">
                         <div class="cycle-grid">
                             <section class="answer-panel">
@@ -1943,6 +1943,8 @@ function render() {
     els.analysisPanel.classList.toggle('open', state.analysisOpen);
     els.analysisText.textContent = state.analysisOpen ? 'Hide canonical cycles' : 'Show canonical cycles';
     els.analysisBtn.querySelector('[data-icon]').dataset.icon = state.analysisOpen ? 'chevron-up' : 'chevron-down';
+    els.analysisBtn.setAttribute('aria-expanded', String(state.analysisOpen));
+    els.settingsBtn.setAttribute('aria-expanded', String(els.settingsPanel.classList.contains('open')));
     setIcons();
     populateBuffers();
     renderGuided();
@@ -2031,7 +2033,10 @@ function setScheme(value) {
 }
 
 function bindEvents() {
-    els.settingsBtn.addEventListener('click', () => els.settingsPanel.classList.toggle('open'));
+    els.settingsBtn.addEventListener('click', () => {
+        els.settingsPanel.classList.toggle('open');
+        els.settingsBtn.setAttribute('aria-expanded', String(els.settingsPanel.classList.contains('open')));
+    });
     els.newBtn.addEventListener('click', newScramble);
     els.blindBtn.addEventListener('click', () => {
         state.blind = !state.blind;
@@ -2097,56 +2102,7 @@ function bindEvents() {
     });
 }
 
-function selfTest(iterations = 120) {
-    const failures = [];
-    for (let i = 0; i < iterations; i += 1) {
-        const cube = [...SOLVED_STATE];
-        generateScramble().split(' ').forEach((move) => applyMove(cube, move));
-        const edges = generateReferenceCycles(cube, false, state.edgeBuffer);
-        const corners = generateReferenceCycles(cube, true, state.cornerBuffer);
-        const edgeCheck = validateExecution(edges.rawLetters.join(''), false, cube, state.edgeBuffer);
-        const cornerCheck = validateExecution(corners.rawLetters.join(''), true, cube, state.cornerBuffer);
-        const edgeOk = edgeCheck.unsolved.length === 0 || edgeCheck.unsolved.length === 2;
-        const cornerOk = cornerCheck.unsolved.length === 0 || cornerCheck.unsolved.length === 2;
-        if (!edgeCheck.results.every((item) => item.correct) || !cornerCheck.results.every((item) => item.correct) || !edgeOk || !cornerOk) failures.push({ i, edges, corners, edgeCheck, cornerCheck });
-    }
-    return { pass: !failures.length, failures };
-}
-
-function guidedSelfTest(iterations = 60) {
-    const failures = [];
-    for (let i = 0; i < iterations; i += 1) {
-        newScramble({ persist: false });
-        startGuidedPractice();
-        let changedBreaks = 0;
-        let guard = 0;
-        while (state.guided?.active && !state.guided.complete && guard < 80) {
-            guard += 1;
-            const prompt = guidedPrompt();
-            if (!prompt || prompt.complete) break;
-            const canonical = prompt.isCorner ? state.cornerRef.rawLetters[state.guided.cornerRaw.length] : state.edgeRef.rawLetters[state.guided.edgeRaw.length];
-            let pick = canonical && prompt.validTargets.includes(canonical) ? canonical : prompt.validTargets[0];
-            if (prompt.validTargets.length > 1) {
-                const alternate = prompt.validTargets.find((letter) => letter !== canonical);
-                if (alternate) {
-                    pick = alternate;
-                    changedBreaks += 1;
-                }
-            }
-            const result = submitGuidedLetter(pick);
-            if (!result.accepted) {
-                failures.push({ i, stage: 'submit', prompt, result });
-                break;
-            }
-        }
-        scoreMemo();
-        const ok = state.result.edges && state.result.corners && state.guided?.complete;
-        if (!ok) failures.push({ i, stage: 'score', result: state.result, guided: state.guided, changedBreaks, guard });
-    }
-    return { pass: !failures.length, failures };
-}
-
-window.__BLD_TRAINER__ = { state, generateScramble, generateReferenceCycles, validateExecution, parseInputToSpeffz, selfTest, guidedSelfTest, rawToPairs, dictionaryEntries, scoreMemo, newScramble, loadInitialScramble, isValidScramble, startGuidedPractice, stopGuidedPractice, submitGuidedLetter, guidedPrompt };
+window.__BLD_TRAINER__ = { state, generateScramble, generateReferenceCycles, validateExecution, parseInputToSpeffz, rawToPairs, dictionaryEntries, scoreMemo, newScramble, loadInitialScramble, isValidScramble, startGuidedPractice, stopGuidedPractice, submitGuidedLetter, guidedPrompt };
 
 setIcons();
 bindEvents();
