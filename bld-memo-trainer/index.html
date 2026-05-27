@@ -953,12 +953,12 @@ select:focus {
                     <div class="viewer-head">
                         <div class="viewer-title">
                             <strong>Interactive cube viewer</strong>
-                            <span id="viewerStatus">Saved alg · preview auto-plays</span>
+                            <span id="viewerStatus">Saved scramble · focused view</span>
                         </div>
                         <div class="viewer-actions">
-                            <button class="btn active" type="button" id="viewerPlayBtn" title="Replay scramble preview"><span data-icon="play"></span><span id="viewerPlayText">Playing</span></button>
+                            <button class="btn" type="button" id="viewerViewBtn" title="Rotate to current guided piece"><span data-icon="target"></span><span id="viewerViewText">View piece</span></button>
                             <button class="btn active" type="button" id="viewerFocusBtn" title="Focus guided pieces in 3D"><span data-icon="target"></span><span id="viewerFocusText">Focus 3D</span></button>
-                            <button class="btn" type="button" id="viewerResetBtn" title="Reset scramble preview"><span data-icon="target"></span>Reset preview</button>
+                            <button class="btn" type="button" id="viewerResetBtn" title="Reset viewer camera"><span data-icon="refresh"></span>Reset view</button>
                         </div>
                     </div>
                     <div class="twisty-box" id="twistyBox"></div>
@@ -1115,8 +1115,8 @@ const els = {
     viewerPanel: document.getElementById('viewerPanel'),
     scrambleText: document.getElementById('scrambleText'),
     viewerStatus: document.getElementById('viewerStatus'),
-    viewerPlayBtn: document.getElementById('viewerPlayBtn'),
-    viewerPlayText: document.getElementById('viewerPlayText'),
+    viewerViewBtn: document.getElementById('viewerViewBtn'),
+    viewerViewText: document.getElementById('viewerViewText'),
     viewerFocusBtn: document.getElementById('viewerFocusBtn'),
     viewerFocusText: document.getElementById('viewerFocusText'),
     viewerResetBtn: document.getElementById('viewerResetBtn'),
@@ -1401,7 +1401,7 @@ function startGuidedPractice() {
     state.highlighted = null;
     els.guidedInput.value = '';
     render();
-    restartTwistyPreview();
+    focusTwistyCamera();
     els.guidedInput.focus();
 }
 
@@ -1607,9 +1607,8 @@ function renderTwisty() {
     if (renderedTwistyScramble === state.scramble && els.twistyBox.childElementCount) return;
     renderedTwistyScramble = state.scramble;
     els.twistyBox.innerHTML = '';
-    stopTwistyPreview();
     const player = document.createElement('twisty-player');
-    player.setAttribute('alg', state.scramble);
+    player.setAttribute('experimental-setup-alg', state.scramble);
     player.setAttribute('puzzle', '3x3x3');
     player.setAttribute('control-panel', 'bottom-row');
     player.setAttribute('background', 'none');
@@ -1623,10 +1622,8 @@ function renderTwisty() {
     player.setAttribute('experimental-move-press-input', 'basic');
     els.twistyBox.appendChild(player);
     twistyPlayer = player;
-    player.addEventListener('pointerdown', stopTwistyPreview);
-    player.addEventListener('wheel', stopTwistyPreview, { passive: true });
     applyTwistyFocusMask();
-    playTwistyPreview(player);
+    focusTwistyCamera();
 }
 
 function facelets(mask, length = 5) {
@@ -1668,40 +1665,52 @@ function applyTwistyFocusMask() {
     els.viewerFocusText.textContent = mask ? 'Focused 3D' : 'Full 3D';
 }
 
-function setViewerStatus(text, playing) {
+function setViewerStatus(text) {
     els.viewerStatus.textContent = text;
-    els.viewerPlayText.textContent = playing ? 'Playing' : 'Replay';
-    els.viewerPlayBtn.classList.toggle('active', playing);
 }
 
-function stopTwistyPreview() {
-    if (twistyPlayer?.controller?.animationController?.pause) twistyPlayer.controller.animationController.pause();
-    else if (twistyPlayer?.pause) twistyPlayer.pause();
-    setViewerStatus('Saved alg · manual control', false);
+function pieceCamera(piece) {
+    if (!piece) return { latitude: 22, longitude: 45 };
+    const vectors = {
+        0: [0, 1, 0],
+        1: [1, 0, 0],
+        2: [0, 0, 1],
+        3: [0, -1, 0],
+        4: [-1, 0, 0],
+        5: [0, 0, -1]
+    };
+    const vector = piece.colors.reduce((acc, color) => {
+        const face = vectors[color];
+        return [acc[0] + face[0], acc[1] + face[1], acc[2] + face[2]];
+    }, [0, 0, 0]);
+    const length = Math.hypot(...vector) || 1;
+    const latitude = Math.asin(vector[1] / length) * 180 / Math.PI;
+    const longitude = Math.atan2(vector[0], vector[2]) * 180 / Math.PI;
+    return {
+        latitude: Math.max(-36, Math.min(36, latitude)),
+        longitude
+    };
 }
 
-async function playTwistyPreview(player = twistyPlayer) {
-    if (!player || state.blind) return;
-    await customElements.whenDefined('twisty-player');
-    if (!player.isConnected) return;
-    if (player.jumpToStart) player.jumpToStart();
-    setViewerStatus('Saved alg · animating scramble', true);
-    if (player.controller?.animationController?.play) {
-        player.controller.animationController.play({ loop: true });
-        return;
-    }
-    if (typeof player.play === 'function') player.play();
+function focusTwistyCamera() {
+    if (!twistyPlayer) return;
+    const prompt = guidedPrompt();
+    const piece = prompt && !prompt.complete ? prompt.targetPiece || prompt.targetPieces?.[0] : null;
+    const camera = pieceCamera(piece);
+    twistyPlayer.setAttribute('camera-latitude', camera.latitude.toFixed(2));
+    twistyPlayer.setAttribute('camera-longitude', camera.longitude.toFixed(2));
+    els.viewerViewBtn.classList.toggle('active', Boolean(piece));
+    els.viewerViewText.textContent = piece ? 'Viewing piece' : 'View piece';
+    setViewerStatus(piece ? 'Saved scramble · camera on current piece' : 'Saved scramble · static cube');
 }
 
-function resetTwistyPreview() {
-    if (twistyPlayer?.controller?.animationController?.pause) twistyPlayer.controller.animationController.pause();
-    else if (twistyPlayer?.pause) twistyPlayer.pause();
-    if (twistyPlayer?.jumpToStart) twistyPlayer.jumpToStart();
-    setViewerStatus('Saved alg · reset to start', false);
-}
-
-function restartTwistyPreview() {
-    playTwistyPreview(twistyPlayer);
+function resetTwistyView() {
+    if (!twistyPlayer) return;
+    twistyPlayer.setAttribute('camera-latitude', '22');
+    twistyPlayer.setAttribute('camera-longitude', '45');
+    els.viewerViewBtn.classList.remove('active');
+    els.viewerViewText.textContent = 'View piece';
+    setViewerStatus('Saved scramble · default view');
 }
 
 function recomputeReferences() {
@@ -1871,15 +1880,14 @@ function bindEvents() {
     els.blindBtn.addEventListener('click', () => {
         state.blind = !state.blind;
         render();
-        if (state.blind) stopTwistyPreview();
-        else restartTwistyPreview();
+        if (!state.blind) focusTwistyCamera();
     });
-    els.viewerPlayBtn.addEventListener('click', restartTwistyPreview);
+    els.viewerViewBtn.addEventListener('click', focusTwistyCamera);
     els.viewerFocusBtn.addEventListener('click', () => {
         state.viewerFocus = !state.viewerFocus;
         applyTwistyFocusMask();
     });
-    els.viewerResetBtn.addEventListener('click', resetTwistyPreview);
+    els.viewerResetBtn.addEventListener('click', resetTwistyView);
     els.scoreBtn.addEventListener('click', scoreMemo);
     els.guidedBtn.addEventListener('click', () => {
         if (state.guided?.active) stopGuidedPractice();
