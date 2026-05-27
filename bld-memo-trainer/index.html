@@ -259,6 +259,40 @@ select:focus {
     gap: 12px;
 }
 
+.viewer-head {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 12px;
+    align-items: center;
+}
+
+.viewer-title {
+    display: grid;
+    gap: 5px;
+    min-width: 0;
+}
+
+.viewer-title strong {
+    color: var(--ink);
+    font: 800 13px/1 "IBM Plex Mono", monospace;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+}
+
+.viewer-title span {
+    color: var(--muted);
+    font: 700 11px/1.3 "IBM Plex Mono", monospace;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+.viewer-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    justify-content: flex-end;
+}
+
 .twisty-box,
 .blind-box {
     height: 390px;
@@ -835,10 +869,15 @@ select:focus {
     }
 
     .guided-top,
+    .viewer-head,
     .guided-body,
     .guided-step-grid,
     .guided-input-row {
         grid-template-columns: 1fr;
+    }
+
+    .viewer-actions {
+        justify-content: flex-start;
     }
 
     .guided-buffer {
@@ -911,6 +950,16 @@ select:focus {
             <div class="panel pad" id="viewerPanel">
                 <div class="scramble" id="scrambleText">Loading...</div>
                 <div class="viewer">
+                    <div class="viewer-head">
+                        <div class="viewer-title">
+                            <strong>Interactive cube viewer</strong>
+                            <span id="viewerStatus">Saved alg · preview auto-plays</span>
+                        </div>
+                        <div class="viewer-actions">
+                            <button class="btn active" type="button" id="viewerPlayBtn" title="Replay scramble preview"><span data-icon="play"></span><span id="viewerPlayText">Playing</span></button>
+                            <button class="btn" type="button" id="viewerResetBtn" title="Reset scramble preview"><span data-icon="target"></span>Reset preview</button>
+                        </div>
+                    </div>
                     <div class="twisty-box" id="twistyBox"></div>
                     <div class="blind-box">Blindfolded</div>
                     <div class="cube-net-wrap">
@@ -1018,6 +1067,7 @@ const ICONS = {
     eye: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></svg>',
     'eye-off': '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.7 5.1A10.8 10.8 0 0 1 12 5c6.5 0 10 7 10 7a18 18 0 0 1-2.1 3.1"/><path d="M6.6 6.6C3.7 8.5 2 12 2 12s3.5 7 10 7a9.8 9.8 0 0 0 5.4-1.6"/><path d="m2 2 20 20"/><path d="M9.9 9.9a3 3 0 0 0 4.2 4.2"/></svg>',
     check: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 6 9 17l-5-5"/></svg>',
+    play: '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7Z"/></svg>',
     target: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="3"/><path d="M12 2v3"/><path d="M12 19v3"/><path d="M2 12h3"/><path d="M19 12h3"/></svg>',
     'chevron-down': '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m6 9 6 6 6-6"/></svg>',
     'chevron-up': '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m18 15-6-6-6 6"/></svg>'
@@ -1061,6 +1111,10 @@ const els = {
     newBtn: document.getElementById('newBtn'),
     viewerPanel: document.getElementById('viewerPanel'),
     scrambleText: document.getElementById('scrambleText'),
+    viewerStatus: document.getElementById('viewerStatus'),
+    viewerPlayBtn: document.getElementById('viewerPlayBtn'),
+    viewerPlayText: document.getElementById('viewerPlayText'),
+    viewerResetBtn: document.getElementById('viewerResetBtn'),
     twistyBox: document.getElementById('twistyBox'),
     cubeNet: document.getElementById('cubeNet'),
     edgesMemo: document.getElementById('edgesMemo'),
@@ -1119,8 +1173,7 @@ const state = {
 };
 const SCRAMBLE_STORAGE_KEY = 'bld_trainer_scramble';
 let renderedTwistyScramble = '';
-let twistyOrbitFrame = 0;
-let twistyOrbitLongitude = 45;
+let twistyPlayer = null;
 
 function setIcons() {
     document.querySelectorAll('[data-icon]').forEach((node) => {
@@ -1547,7 +1600,7 @@ function renderTwisty() {
     if (renderedTwistyScramble === state.scramble && els.twistyBox.childElementCount) return;
     renderedTwistyScramble = state.scramble;
     els.twistyBox.innerHTML = '';
-    stopTwistyOrbit();
+    stopTwistyPreview();
     const player = document.createElement('twisty-player');
     player.setAttribute('alg', state.scramble);
     player.setAttribute('puzzle', '3x3x3');
@@ -1556,36 +1609,50 @@ function renderTwisty() {
     player.setAttribute('hint-facelets', 'floating');
     player.setAttribute('back-view', 'top-right');
     player.setAttribute('camera-latitude', '22');
-    player.setAttribute('camera-longitude', String(twistyOrbitLongitude));
+    player.setAttribute('camera-longitude', '45');
+    player.setAttribute('tempo-scale', '1.5');
     player.setAttribute('experimental-drag-input', 'auto');
     els.twistyBox.appendChild(player);
-    startTwistyOrbit(player);
+    twistyPlayer = player;
+    player.addEventListener('pointerdown', stopTwistyPreview);
+    player.addEventListener('wheel', stopTwistyPreview, { passive: true });
+    playTwistyPreview(player);
 }
 
-function stopTwistyOrbit() {
-    if (!twistyOrbitFrame) return;
-    cancelAnimationFrame(twistyOrbitFrame);
-    twistyOrbitFrame = 0;
+function setViewerStatus(text, playing) {
+    els.viewerStatus.textContent = text;
+    els.viewerPlayText.textContent = playing ? 'Playing' : 'Replay';
+    els.viewerPlayBtn.classList.toggle('active', playing);
 }
 
-function startTwistyOrbit(player) {
-    let last = performance.now();
-    let pausedUntil = 0;
-    const pause = () => {
-        pausedUntil = performance.now() + 3500;
-    };
-    const tick = (now) => {
-        const delta = Math.min(now - last, 80);
-        last = now;
-        if (now >= pausedUntil && !state.blind) {
-            twistyOrbitLongitude = (twistyOrbitLongitude + delta * 0.006) % 360;
-            player.setAttribute('camera-longitude', twistyOrbitLongitude.toFixed(2));
-        }
-        twistyOrbitFrame = requestAnimationFrame(tick);
-    };
-    player.addEventListener('pointerdown', pause);
-    player.addEventListener('wheel', pause, { passive: true });
-    twistyOrbitFrame = requestAnimationFrame(tick);
+function stopTwistyPreview() {
+    if (twistyPlayer?.controller?.animationController?.pause) twistyPlayer.controller.animationController.pause();
+    else if (twistyPlayer?.pause) twistyPlayer.pause();
+    setViewerStatus('Saved alg · manual control', false);
+}
+
+async function playTwistyPreview(player = twistyPlayer) {
+    if (!player || state.blind) return;
+    await customElements.whenDefined('twisty-player');
+    if (!player.isConnected) return;
+    if (player.jumpToStart) player.jumpToStart();
+    setViewerStatus('Saved alg · animating scramble', true);
+    if (player.controller?.animationController?.play) {
+        player.controller.animationController.play({ loop: true });
+        return;
+    }
+    if (typeof player.play === 'function') player.play();
+}
+
+function resetTwistyPreview() {
+    if (twistyPlayer?.controller?.animationController?.pause) twistyPlayer.controller.animationController.pause();
+    else if (twistyPlayer?.pause) twistyPlayer.pause();
+    if (twistyPlayer?.jumpToStart) twistyPlayer.jumpToStart();
+    setViewerStatus('Saved alg · reset to start', false);
+}
+
+function restartTwistyPreview() {
+    playTwistyPreview(twistyPlayer);
 }
 
 function recomputeReferences() {
@@ -1754,7 +1821,11 @@ function bindEvents() {
     els.blindBtn.addEventListener('click', () => {
         state.blind = !state.blind;
         render();
+        if (state.blind) stopTwistyPreview();
+        else restartTwistyPreview();
     });
+    els.viewerPlayBtn.addEventListener('click', restartTwistyPreview);
+    els.viewerResetBtn.addEventListener('click', resetTwistyPreview);
     els.scoreBtn.addEventListener('click', scoreMemo);
     els.guidedBtn.addEventListener('click', () => {
         if (state.guided?.active) stopGuidedPractice();
