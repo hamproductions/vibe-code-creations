@@ -1520,6 +1520,7 @@ function guidedAcceptedDisplay() {
 }
 
 function startGuidedPractice() {
+    state.blind = false;
     state.guided = {
         active: true,
         complete: false,
@@ -1927,19 +1928,21 @@ function renderGuided() {
 }
 
 function render() {
+    const guidedActive = Boolean(state.guided?.active);
     els.dbStats.textContent = db.pairCount + ' pairs / ' + db.entryCount + ' images';
     els.schemeInput.value = state.scheme;
     els.edgeBufferLabel.textContent = 'Buffer [' + getCharDisplay(state.edgeBuffer) + ']';
     els.cornerBufferLabel.textContent = 'Buffer [' + getCharDisplay(state.cornerBuffer) + ']';
     els.scrambleText.textContent = state.scramble || 'Loading...';
-    els.blindText.textContent = state.blind ? 'Show cube' : 'Hide cube';
+    els.blindText.textContent = guidedActive ? 'Cube visible' : state.blind ? 'Show cube' : 'Hide cube';
+    els.blindBtn.disabled = guidedActive;
     els.blindBtn.classList.toggle('active', state.blind);
     els.blindBtn.setAttribute('aria-pressed', String(state.blind));
-    els.guidedBtn.setAttribute('aria-expanded', String(Boolean(state.guided?.active)));
+    els.guidedBtn.setAttribute('aria-expanded', String(guidedActive));
     els.guidedBtn.setAttribute('aria-controls', 'guidedPanel');
     els.viewerFocusBtn.setAttribute('aria-pressed', String(state.viewerFocus));
     els.viewerPanel.classList.toggle('blind', state.blind);
-    els.trainerRoot.classList.toggle('guided-active', Boolean(state.guided?.active));
+    els.trainerRoot.classList.toggle('guided-active', guidedActive);
     els.analysisPanel.classList.toggle('open', state.analysisOpen);
     els.analysisText.textContent = state.analysisOpen ? 'Hide canonical cycles' : 'Show canonical cycles';
     els.analysisBtn.querySelector('[data-icon]').dataset.icon = state.analysisOpen ? 'chevron-up' : 'chevron-down';
@@ -2039,6 +2042,7 @@ function bindEvents() {
     });
     els.newBtn.addEventListener('click', newScramble);
     els.blindBtn.addEventListener('click', () => {
+        if (state.guided?.active) return;
         state.blind = !state.blind;
         render();
         if (!state.blind) focusTwistyCamera();
