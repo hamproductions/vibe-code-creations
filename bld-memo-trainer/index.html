@@ -1490,7 +1490,7 @@ function validGuidedTargets(cube, isCorner) {
     if (pieceAtBuffer.id === bPiece.id) {
         const nonBuffer = unsolved.filter((piece) => piece.id !== bPiece.id);
         const targetPiece = nonBuffer[0] || bPiece;
-        const validTargets = nonBuffer.length ? nonBuffer.flatMap((piece) => piece.letters) : bPiece.letters.filter((letter) => letter !== bufferLetter);
+        const validTargets = nonBuffer.length ? targetPiece.letters : bPiece.letters.filter((letter) => letter !== bufferLetter);
         return { mode: nonBuffer.length ? 'break' : 'twist', bPiece, targetPiece, targetPieces: [targetPiece], validTargets, unsolved };
     }
     const letterIndex = pieceAtBuffer.colors.indexOf(colorsAtBuffer[0]);
