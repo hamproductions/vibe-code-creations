@@ -231,7 +231,7 @@ select:focus {
 }
 
 .layout.guided-active #viewerPanel {
-    min-height: calc(100vh - 140px);
+    min-height: 0;
 }
 
 .layout.guided-active .memo-grid {
@@ -331,6 +331,10 @@ select:focus {
     width: 100%;
     height: 100%;
     filter: saturate(1.08) contrast(1.08);
+}
+
+.layout.guided-active .twisty-box {
+    height: 300px;
 }
 
 .blind-box {
@@ -1978,10 +1982,6 @@ function bindEvents() {
     });
     els.guidedStopBtn.addEventListener('click', stopGuidedPractice);
     els.guidedSubmitBtn.addEventListener('click', () => submitGuidedLetter());
-    els.guidedInput.addEventListener('input', () => {
-        const chars = Array.from(els.guidedInput.value.trim());
-        if (chars.length) submitGuidedLetter(chars[0]);
-    });
     els.guidedInput.addEventListener('keydown', (event) => {
         if (event.key === 'Enter') submitGuidedLetter();
     });
