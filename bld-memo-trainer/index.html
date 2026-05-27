@@ -1117,7 +1117,10 @@ const state = {
     analysisOpen: false,
     guided: null
 };
+const SCRAMBLE_STORAGE_KEY = 'bld_trainer_scramble';
 let renderedTwistyScramble = '';
+let twistyOrbitFrame = 0;
+let twistyOrbitLongitude = 45;
 
 function setIcons() {
     document.querySelectorAll('[data-icon]').forEach((node) => {
@@ -1544,6 +1547,7 @@ function renderTwisty() {
     if (renderedTwistyScramble === state.scramble && els.twistyBox.childElementCount) return;
     renderedTwistyScramble = state.scramble;
     els.twistyBox.innerHTML = '';
+    stopTwistyOrbit();
     const player = document.createElement('twisty-player');
     player.setAttribute('alg', state.scramble);
     player.setAttribute('puzzle', '3x3x3');
@@ -1551,10 +1555,37 @@ function renderTwisty() {
     player.setAttribute('background', 'none');
     player.setAttribute('hint-facelets', 'floating');
     player.setAttribute('back-view', 'top-right');
-    player.setAttribute('camera-latitude', '25');
-    player.setAttribute('camera-longitude', '45');
+    player.setAttribute('camera-latitude', '22');
+    player.setAttribute('camera-longitude', String(twistyOrbitLongitude));
     player.setAttribute('experimental-drag-input', 'auto');
     els.twistyBox.appendChild(player);
+    startTwistyOrbit(player);
+}
+
+function stopTwistyOrbit() {
+    if (!twistyOrbitFrame) return;
+    cancelAnimationFrame(twistyOrbitFrame);
+    twistyOrbitFrame = 0;
+}
+
+function startTwistyOrbit(player) {
+    let last = performance.now();
+    let pausedUntil = 0;
+    const pause = () => {
+        pausedUntil = performance.now() + 3500;
+    };
+    const tick = (now) => {
+        const delta = Math.min(now - last, 80);
+        last = now;
+        if (now >= pausedUntil && !state.blind) {
+            twistyOrbitLongitude = (twistyOrbitLongitude + delta * 0.006) % 360;
+            player.setAttribute('camera-longitude', twistyOrbitLongitude.toFixed(2));
+        }
+        twistyOrbitFrame = requestAnimationFrame(tick);
+    };
+    player.addEventListener('pointerdown', pause);
+    player.addEventListener('wheel', pause, { passive: true });
+    twistyOrbitFrame = requestAnimationFrame(tick);
 }
 
 function recomputeReferences() {
@@ -1653,10 +1684,29 @@ function resetSession() {
     state.guided = null;
 }
 
-function newScramble() {
-    state.scramble = generateScramble();
+function isValidScramble(scramble) {
+    return typeof scramble === 'string' && scramble.trim().split(/\s+/).every((move) => /^[UDLRFB](2|'|2')?$/.test(move));
+}
+
+function applyScramble(scramble) {
+    state.scramble = scramble.trim();
     state.cube = [...SOLVED_STATE];
     state.scramble.split(' ').forEach((move) => applyMove(state.cube, move));
+}
+
+function loadInitialScramble() {
+    const saved = localStorage.getItem(SCRAMBLE_STORAGE_KEY);
+    const scramble = isValidScramble(saved) ? saved : generateScramble();
+    applyScramble(scramble);
+    localStorage.setItem(SCRAMBLE_STORAGE_KEY, state.scramble);
+    resetSession();
+    recomputeReferences();
+    render();
+}
+
+function newScramble(options = {}) {
+    applyScramble(generateScramble());
+    if (options.persist !== false) localStorage.setItem(SCRAMBLE_STORAGE_KEY, state.scramble);
     resetSession();
     recomputeReferences();
     render();
@@ -1780,7 +1830,7 @@ function selfTest(iterations = 120) {
 function guidedSelfTest(iterations = 60) {
     const failures = [];
     for (let i = 0; i < iterations; i += 1) {
-        newScramble();
+        newScramble({ persist: false });
         startGuidedPractice();
         let changedBreaks = 0;
         let guard = 0;
@@ -1810,11 +1860,11 @@ function guidedSelfTest(iterations = 60) {
     return { pass: !failures.length, failures };
 }
 
-window.__BLD_TRAINER__ = { state, generateScramble, generateReferenceCycles, validateExecution, parseInputToSpeffz, selfTest, guidedSelfTest, rawToPairs, dictionaryEntries, scoreMemo, newScramble, startGuidedPractice, stopGuidedPractice, submitGuidedLetter, guidedPrompt };
+window.__BLD_TRAINER__ = { state, generateScramble, generateReferenceCycles, validateExecution, parseInputToSpeffz, selfTest, guidedSelfTest, rawToPairs, dictionaryEntries, scoreMemo, newScramble, loadInitialScramble, isValidScramble, startGuidedPractice, stopGuidedPractice, submitGuidedLetter, guidedPrompt };
 
 setIcons();
 bindEvents();
-newScramble();
+loadInitialScramble();
     </script>
 </body>
 </html>
