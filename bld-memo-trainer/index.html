@@ -30,6 +30,18 @@
     box-sizing: border-box;
 }
 
+.sr-only {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
+}
+
 html {
     min-height: 100%;
     background: var(--bg);
@@ -334,7 +346,12 @@ select:focus {
 }
 
 .layout.guided-active .twisty-box {
-    height: 300px;
+    height: 270px;
+}
+
+.layout.guided-active .twisty-box::after {
+    height: 27%;
+    background: linear-gradient(180deg, rgba(3, 4, 3, 0.82), #030403 30%);
 }
 
 .blind-box {
@@ -496,7 +513,8 @@ select:focus {
     min-width: 0;
 }
 
-.guided-title strong {
+.guided-title h2 {
+    margin: 0;
     font: 800 13px/1 "IBM Plex Mono", monospace;
     text-transform: uppercase;
     letter-spacing: 0.08em;
@@ -544,7 +562,7 @@ select:focus {
 }
 
 .guided-card-label {
-    color: var(--quiet);
+    color: var(--muted);
     font: 800 11px/1 "IBM Plex Mono", monospace;
     text-transform: uppercase;
     letter-spacing: 0.08em;
@@ -577,9 +595,12 @@ select:focus {
     min-width: 0;
 }
 
-.layout.guided-active .guided-cue,
-.layout.guided-active .guided-copy {
+.layout.guided-active .guided-cue {
     display: none;
+}
+
+.layout.guided-active .guided-copy {
+    color: var(--muted);
 }
 
 .guided-cue strong {
@@ -966,7 +987,38 @@ select:focus {
     }
 
     .layout.guided-active .twisty-box {
-        height: 220px;
+        height: 190px;
+    }
+
+    .layout.guided-active .scramble,
+    .layout.guided-active .viewer-head {
+        display: none;
+    }
+
+    .layout.guided-active .viewer {
+        margin-top: 0;
+    }
+
+    .layout.guided-active .guided-panel.open {
+        margin-top: 8px;
+        gap: 8px;
+    }
+
+    .layout.guided-active .guided-buffer {
+        min-height: 58px;
+    }
+
+    .layout.guided-active .guided-card-value {
+        font-size: 32px;
+    }
+
+    .layout.guided-active .guided-input-row {
+        padding: 8px;
+    }
+
+    .layout.guided-active .guided-input {
+        height: 54px;
+        font-size: 30px;
     }
 
     .buffer-chip {
@@ -1080,10 +1132,10 @@ select:focus {
                     </div>
                 </div>
 
-                <section class="guided-panel" id="guidedPanel">
+                <section class="guided-panel" id="guidedPanel" aria-labelledby="guidedTitle">
                     <div class="guided-top">
                         <div class="guided-title">
-                            <strong>Guided sticker practice</strong>
+                            <h2 id="guidedTitle">Guided sticker practice</h2>
                             <span class="phase-pill" id="guidedPhase"></span>
                         </div>
                         <button class="btn danger" type="button" id="guidedStopBtn">Stop</button>
@@ -1103,11 +1155,12 @@ select:focus {
                             </div>
                             <div class="guided-copy" id="guidedPrompt"></div>
                             <div class="guided-input-row">
-                                <input class="guided-input" id="guidedInput" autocomplete="off" spellcheck="false" inputmode="text" maxlength="2">
+                                <label class="sr-only" for="guidedInput">Destination sticker</label>
+                                <input class="guided-input" id="guidedInput" name="guidedSticker" autocomplete="off" autocapitalize="characters" enterkeyhint="go" spellcheck="false" inputmode="text" maxlength="1" aria-describedby="guidedPrompt guidedFeedback">
                                 <button class="btn primary" type="button" id="guidedSubmitBtn">Check</button>
                             </div>
-                            <div class="guided-feedback" id="guidedFeedback"></div>
-                            <div class="guided-log" id="guidedLog"></div>
+                            <div class="guided-feedback" id="guidedFeedback" role="status" aria-live="polite" aria-atomic="true"></div>
+                            <div class="guided-log" id="guidedLog" aria-label="Accepted stickers"></div>
                         </div>
                     </div>
                 </section>
@@ -1438,7 +1491,7 @@ function validGuidedTargets(cube, isCorner) {
         const nonBuffer = unsolved.filter((piece) => piece.id !== bPiece.id);
         const targetPiece = nonBuffer[0] || bPiece;
         const validTargets = nonBuffer.length ? nonBuffer.flatMap((piece) => piece.letters) : bPiece.letters.filter((letter) => letter !== bufferLetter);
-        return { mode: nonBuffer.length ? 'break' : 'twist', bPiece, targetPiece, targetPieces: nonBuffer.length ? nonBuffer : [bPiece], validTargets, unsolved };
+        return { mode: nonBuffer.length ? 'break' : 'twist', bPiece, targetPiece, targetPieces: [targetPiece], validTargets, unsolved };
     }
     const letterIndex = pieceAtBuffer.colors.indexOf(colorsAtBuffer[0]);
     return { mode: 'forced', bPiece, targetPiece: pieceAtBuffer, targetPieces: [pieceAtBuffer], validTargets: [pieceAtBuffer.letters[letterIndex]], unsolved };
@@ -1536,6 +1589,7 @@ function submitGuidedLetter(value = els.guidedInput.value) {
     const nextPrompt = guidedPrompt();
     if (nextPrompt?.complete) state.guided.feedback = 'Guided practice complete.';
     render();
+    focusTwistyCamera();
     els.guidedInput.focus();
     return { accepted: true, letter, next: nextPrompt };
 }
@@ -1626,9 +1680,12 @@ function renderLetterStream(rawLetters, validation, isCorner) {
 }
 
 function renderAnswerPanel(target, label, ref, validation, isCorner) {
-    const rawLetters = ref.rawLetters;
+    const checkedRaw = validation?.length ? validation.map((item) => item.char) : null;
+    const rawLetters = checkedRaw || ref.rawLetters;
     const pairs = rawToPairs(rawLetters);
-    target.innerHTML = '<div class="answer-head"><h2>' + label + '</h2><span class="empty-line">' + rawLetters.length + ' targets</span></div><div class="input-stream">' + renderLetterStream(rawLetters, validation, isCorner) + '</div><div class="dict-grid">' + renderDictionary(pairs) + '</div>';
+    const checkedLabel = validation ? label.replace('answer', 'input') : label;
+    const canonical = validation && rawLetters.join('') !== ref.rawLetters.join('') ? '<div class="answer-head"><h2>Canonical ' + label.toLowerCase() + '</h2><span class="empty-line">' + ref.rawLetters.length + ' targets</span></div><div class="pair-stream">' + renderLetterStream(ref.rawLetters, null, isCorner) + '</div>' : '';
+    target.innerHTML = '<div class="answer-head"><h2>' + checkedLabel + '</h2><span class="empty-line">' + rawLetters.length + ' targets</span></div><div class="input-stream">' + renderLetterStream(rawLetters, validation, isCorner) + '</div>' + canonical + '<div class="dict-grid">' + renderDictionary(pairs) + '</div>';
 }
 
 function renderCycles(target, ref, bufferLetter, isCorner) {
@@ -1671,7 +1728,7 @@ function renderCubeNet() {
             const dim = state.highlighted !== null && !hot;
             const buffer = letter === state.edgeBuffer || letter === state.cornerBuffer;
             const guideClass = (guideBuffer.has(stateIndex) ? 'guide-buffer ' : '') + (guideTarget.has(stateIndex) ? 'guide-target ' : '');
-            return '<button type="button" class="sticker ' + (DARK_FACE.has(color) ? 'dark ' : '') + (buffer ? 'buffer ' : '') + guideClass + (hot ? 'hot ' : '') + (dim ? 'dim ' : '') + '" style="background:' + FACE_COLORS[color] + '" data-sticker="' + stateIndex + '"><span>' + escapeHtml(getCharDisplay(letter)) + '</span></button>';
+            return '<button type="button" tabindex="-1" aria-hidden="true" class="sticker ' + (DARK_FACE.has(color) ? 'dark ' : '') + (buffer ? 'buffer ' : '') + guideClass + (hot ? 'hot ' : '') + (dim ? 'dim ' : '') + '" style="background:' + FACE_COLORS[color] + '" data-sticker="' + stateIndex + '"><span>' + escapeHtml(getCharDisplay(letter)) + '</span></button>';
         }).join('');
         return '<div class="face">' + stickers + '</div>';
     }).join('');
@@ -1687,7 +1744,7 @@ function renderTwisty() {
     player.setAttribute('control-panel', 'bottom-row');
     player.setAttribute('background', 'none');
     player.setAttribute('hint-facelets', 'none');
-    player.setAttribute('back-view', 'top-right');
+    player.setAttribute('back-view', 'none');
     player.setAttribute('camera-latitude', '22');
     player.setAttribute('camera-longitude', '45');
     player.setAttribute('tempo-scale', '1.5');
@@ -1704,17 +1761,25 @@ function facelets(mask, length = 5) {
     return { facelets: Array.from({ length }, () => mask) };
 }
 
+function faceletMask(piece, activeLetter, visibleMask, hiddenMask) {
+    return { facelets: piece.letters.map((letter) => letter === activeLetter ? visibleMask : hiddenMask) };
+}
+
 function guidedTwistyMask() {
     const prompt = guidedPrompt();
     if (!state.viewerFocus || !prompt || prompt.complete) return null;
-    const edges = Array.from({ length: 12 }, () => facelets('dim', 2));
-    const corners = Array.from({ length: 8 }, () => facelets('dim', 3));
-    const centers = Array.from({ length: 6 }, () => facelets('dim', 1));
+    const edges = Array.from({ length: 12 }, () => facelets('invisible', 2));
+    const corners = Array.from({ length: 8 }, () => facelets('invisible', 3));
+    const centers = Array.from({ length: 6 }, () => facelets('invisible', 1));
     const nativePieces = prompt.isCorner ? corners : edges;
     const nativeIndex = prompt.isCorner ? NATIVE_CORNER_INDEX : NATIVE_EDGE_INDEX;
     nativePieces[nativeIndex[prompt.bPiece.id]] = facelets('regular', prompt.isCorner ? 3 : 2);
-    for (const piece of prompt.targetPieces || []) {
-        nativePieces[nativeIndex[piece.id]] = facelets('regular', prompt.isCorner ? 3 : 2);
+    if (prompt.mode === 'forced') {
+        nativePieces[nativeIndex[prompt.targetPiece.id]] = faceletMask(prompt.targetPiece, prompt.validTargets[0], 'regular', 'invisible');
+    } else {
+        for (const piece of prompt.targetPieces || []) {
+            nativePieces[nativeIndex[piece.id]] = facelets('regular', prompt.isCorner ? 3 : 2);
+        }
     }
     return {
         name: 'guided-focus',
@@ -1744,7 +1809,6 @@ function applyTwistyFocusMask() {
         twistyPlayer.experimentalStickeringMaskOrbits = mask;
     } else {
         twistyPlayer.experimentalStickeringMaskOrbits = fullTwistyMask();
-        twistyPlayer.experimentalModel?.twistySceneModel?.stickeringMaskRequest?.set(null);
         twistyPlayer.experimentalStickering = 'full';
     }
     els.viewerFocusBtn.classList.toggle('active', Boolean(mask));
@@ -1833,6 +1897,7 @@ function renderGuided() {
     els.guidedLog.innerHTML = guidedAcceptedRaw().length ? guidedAcceptedRaw().map((letter) => '<span class="letter-chip ok">' + escapeHtml(getCharDisplay(letter)) + '</span>').join('') : '';
     els.guidedFeedback.className = 'guided-feedback ' + (state.guided.lastCorrect === false ? 'bad' : state.guided.lastCorrect === true ? 'ok' : '');
     els.guidedFeedback.textContent = state.guided.feedback;
+    els.guidedInput.setAttribute('aria-invalid', state.guided.lastCorrect === false ? 'true' : 'false');
     if (prompt?.complete) {
         els.guidedPhase.textContent = 'Complete';
         els.guidedBuffer.textContent = 'Done';
@@ -1857,7 +1922,7 @@ function renderGuided() {
     els.guidedTargetMeta.textContent = 'Only buffer and current piece are visible.';
     els.guidedChoices.textContent = '';
     els.guidedInput.placeholder = 'Letter';
-    els.guidedPrompt.textContent = 'Enter sticker.';
+    els.guidedPrompt.textContent = prompt.mode === 'forced' ? 'Enter the visible destination sticker.' : 'Choose a sticker on the isolated unsolved piece.';
     if (joinedPairs.length) els.guidedLog.innerHTML += '<div class="dict-grid">' + renderDictionary(joinedPairs.slice(-4)) + '</div>';
 }
 
@@ -1869,6 +1934,10 @@ function render() {
     els.scrambleText.textContent = state.scramble || 'Loading...';
     els.blindText.textContent = state.blind ? 'Show cube' : 'Hide cube';
     els.blindBtn.classList.toggle('active', state.blind);
+    els.blindBtn.setAttribute('aria-pressed', String(state.blind));
+    els.guidedBtn.setAttribute('aria-expanded', String(Boolean(state.guided?.active)));
+    els.guidedBtn.setAttribute('aria-controls', 'guidedPanel');
+    els.viewerFocusBtn.setAttribute('aria-pressed', String(state.viewerFocus));
     els.viewerPanel.classList.toggle('blind', state.blind);
     els.trainerRoot.classList.toggle('guided-active', Boolean(state.guided?.active));
     els.analysisPanel.classList.toggle('open', state.analysisOpen);
