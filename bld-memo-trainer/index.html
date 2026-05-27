@@ -433,19 +433,69 @@ select:focus {
 
 .guided-buffer {
     display: grid;
-    place-items: center;
+    align-content: center;
+    gap: 8px;
     border-radius: 8px;
     border: 1px solid rgba(122, 182, 255, 0.38);
     background: rgba(122, 182, 255, 0.09);
     min-height: 104px;
+    padding: 12px;
     color: var(--blue);
+}
+
+.guided-card-label {
+    color: var(--quiet);
+    font: 800 11px/1 "IBM Plex Mono", monospace;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+}
+
+.guided-card-value {
     font: 800 40px/1 "IBM Plex Mono", monospace;
+}
+
+.guided-card-meta {
+    color: var(--muted);
+    font: 700 11px/1.3 "IBM Plex Mono", monospace;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
 }
 
 .guided-main {
     display: grid;
     gap: 10px;
     min-width: 0;
+}
+
+.guided-step-grid {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(180px, 0.8fr);
+    gap: 10px;
+}
+
+.guided-card {
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    background: #0d100c;
+    padding: 10px;
+    display: grid;
+    gap: 8px;
+    align-content: start;
+    min-width: 0;
+}
+
+.guided-target-value {
+    color: var(--gold);
+    font: 800 24px/1 "IBM Plex Mono", monospace;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.guided-choice-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
 }
 
 .guided-copy {
@@ -780,6 +830,7 @@ select:focus {
 
     .guided-top,
     .guided-body,
+    .guided-step-grid,
     .guided-input-row {
         grid-template-columns: 1fr;
     }
@@ -894,8 +945,23 @@ select:focus {
                         <button class="btn danger" type="button" id="guidedStopBtn">Stop</button>
                     </div>
                     <div class="guided-body">
-                        <div class="guided-buffer" id="guidedBuffer"></div>
+                        <div class="guided-buffer">
+                            <span class="guided-card-label">Buffer</span>
+                            <strong class="guided-card-value" id="guidedBuffer"></strong>
+                            <span class="guided-card-meta" id="guidedBufferMeta"></span>
+                        </div>
                         <div class="guided-main">
+                            <div class="guided-step-grid">
+                                <div class="guided-card">
+                                    <span class="guided-card-label">Highlighted target</span>
+                                    <strong class="guided-target-value" id="guidedTarget"></strong>
+                                    <span class="guided-card-meta" id="guidedTargetMeta"></span>
+                                </div>
+                                <div class="guided-card">
+                                    <span class="guided-card-label">Accepted input</span>
+                                    <div class="guided-choice-list" id="guidedChoices"></div>
+                                </div>
+                            </div>
                             <div class="guided-copy" id="guidedPrompt"></div>
                             <div class="guided-input-row">
                                 <input class="guided-input" id="guidedInput" autocomplete="off" spellcheck="false" inputmode="text" maxlength="2">
@@ -1001,6 +1067,10 @@ const els = {
     guidedStopBtn: document.getElementById('guidedStopBtn'),
     guidedPhase: document.getElementById('guidedPhase'),
     guidedBuffer: document.getElementById('guidedBuffer'),
+    guidedBufferMeta: document.getElementById('guidedBufferMeta'),
+    guidedTarget: document.getElementById('guidedTarget'),
+    guidedTargetMeta: document.getElementById('guidedTargetMeta'),
+    guidedChoices: document.getElementById('guidedChoices'),
     guidedPrompt: document.getElementById('guidedPrompt'),
     guidedInput: document.getElementById('guidedInput'),
     guidedSubmitBtn: document.getElementById('guidedSubmitBtn'),
@@ -1017,11 +1087,18 @@ const els = {
     edgeCycles: document.getElementById('edgeCycles'),
     cornerCycles: document.getElementById('cornerCycles')
 };
+function storedEdgeBuffer() {
+    const saved = localStorage.getItem('bld_trainer_edge_buffer');
+    const userSet = localStorage.getItem('bld_trainer_edge_buffer_user_set') === '1';
+    if (!saved || saved === 'U' && !userSet) return 'B';
+    return saved;
+}
+
 const state = {
     scramble: '',
     cube: [...SOLVED_STATE],
     scheme: localStorage.getItem('bld_trainer_scheme') || SPEFFZ,
-    edgeBuffer: localStorage.getItem('bld_trainer_edge_buffer') || 'U',
+    edgeBuffer: storedEdgeBuffer(),
     cornerBuffer: localStorage.getItem('bld_trainer_corner_buffer') || 'A',
     blind: false,
     highlighted: null,
@@ -1279,7 +1356,7 @@ function submitGuidedLetter(value = els.guidedInput.value) {
     const prompt = guidedPrompt();
     if (!prompt || prompt.complete) return { accepted: false, reason: 'complete' };
     if (!prompt.validTargets.includes(letter)) {
-        state.guided.feedback = getCharDisplay(letter) + ' is not valid from this buffer state.';
+        state.guided.feedback = getCharDisplay(letter) + ' is not valid. Accepted now: ' + expectedText(prompt.validTargets) + '.';
         state.guided.lastCorrect = false;
         render();
         els.guidedInput.focus();
@@ -1344,6 +1421,28 @@ function getCharDisplay(letter) {
 
 function displayPair(pair) {
     return pair.split('').map(getCharDisplay).join('');
+}
+
+function pieceLabel(piece) {
+    return piece ? piece.letters.map(getCharDisplay).join(' / ') : 'Solved';
+}
+
+function targetPiecesLabel(prompt) {
+    if (!prompt?.targetPieces?.length) return 'Solved';
+    if (prompt.targetPieces.length === 1) return pieceLabel(prompt.targetPieces[0]);
+    return prompt.targetPieces.length + ' pieces';
+}
+
+function guidedChoicesHtml(prompt) {
+    if (!prompt || prompt.complete) return '<span class="empty-line">Complete</span>';
+    if (prompt.mode === 'forced') return '<span class="empty-line">1 destination sticker</span>';
+    return prompt.validTargets.map((letter) => '<span class="letter-chip">' + escapeHtml(getCharDisplay(letter)) + '</span>').join('');
+}
+
+function expectedText(letters) {
+    if (!letters?.length) return '';
+    const shown = letters.slice(0, 8).map(getCharDisplay).join(' ');
+    return letters.length > 8 ? shown + ' +' + (letters.length - 8) : shown;
 }
 
 function rawToPairs(rawLetters) {
@@ -1488,19 +1587,28 @@ function renderGuided() {
     if (prompt?.complete) {
         els.guidedPhase.textContent = 'Complete';
         els.guidedBuffer.textContent = '✓';
-        els.guidedPrompt.textContent = 'All guided targets are solved. Score memo to verify the same execution path.';
+        els.guidedBufferMeta.textContent = 'Done';
+        els.guidedTarget.textContent = 'Solved';
+        els.guidedTargetMeta.textContent = 'Edges and corners complete';
+        els.guidedChoices.innerHTML = '<span class="empty-line">Score memo</span>';
+        els.guidedPrompt.textContent = 'All guided targets are solved. Score memo to verify.';
         els.guidedSubmitBtn.disabled = true;
         els.guidedInput.disabled = true;
+        els.guidedInput.placeholder = '';
         if (joinedPairs.length) els.guidedLog.innerHTML += '<div class="dict-grid">' + renderDictionary(joinedPairs.slice(-4)) + '</div>';
         return;
     }
     els.guidedSubmitBtn.disabled = false;
     els.guidedInput.disabled = false;
-    els.guidedPhase.textContent = prompt.phase + ' · ' + prompt.mode;
+    const phaseLabel = prompt.phase === 'edges' ? 'Edges' : 'Corners';
+    els.guidedPhase.textContent = phaseLabel + ' · ' + prompt.mode;
     els.guidedBuffer.textContent = getCharDisplay(guidedBufferLetter(prompt.isCorner));
-    const targetCount = prompt.validTargets.length;
-    const targetText = prompt.mode === 'forced' ? 'Trace the piece in the buffer and type the sticker it must go to.' : prompt.mode === 'break' ? 'Buffer is solved. Choose any sticker on any unsolved highlighted/break piece.' : 'Buffer piece is twisted. Type a non-buffer sticker on it.';
-    els.guidedPrompt.textContent = targetText + ' Valid choices now: ' + targetCount + '.';
+    els.guidedBufferMeta.textContent = phaseLabel + ' buffer';
+    els.guidedTarget.textContent = targetPiecesLabel(prompt);
+    els.guidedTargetMeta.textContent = prompt.mode === 'forced' ? 'One highlighted piece' : prompt.mode === 'break' ? 'Pick a break-in' : 'Twist in buffer';
+    els.guidedChoices.innerHTML = guidedChoicesHtml(prompt);
+    els.guidedInput.placeholder = prompt.mode === 'break' ? 'Any highlighted sticker' : 'Destination sticker';
+    els.guidedPrompt.textContent = prompt.mode === 'forced' ? 'Read the highlighted piece from the buffer and type its destination sticker.' : prompt.mode === 'break' ? 'Cycle ended. Choose one accepted break sticker.' : 'Type a non-buffer sticker on the twisted buffer piece.';
     if (joinedPairs.length) els.guidedLog.innerHTML += '<div class="dict-grid">' + renderDictionary(joinedPairs.slice(-4)) + '</div>';
 }
 
@@ -1621,6 +1729,7 @@ function bindEvents() {
     els.edgeBuffer.addEventListener('change', () => {
         state.edgeBuffer = els.edgeBuffer.value;
         localStorage.setItem('bld_trainer_edge_buffer', state.edgeBuffer);
+        localStorage.setItem('bld_trainer_edge_buffer_user_set', '1');
         state.guided = null;
         recomputeReferences();
         render();
