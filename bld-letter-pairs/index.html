@@ -1,0 +1,61 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BLD Letter Pair Lookup</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@500;600;700&family=Newsreader:opsz,wght@6..72,600;6..72,700&family=Public+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="shell">
+        <header class="masthead">
+            <div>
+                <p class="eyebrow">Blindfolded cubing image index</p>
+                <h1>BLD Letter Pairs</h1>
+            </div>
+            <div class="stats" id="stats"></div>
+        </header>
+
+        <section class="search-panel">
+            <label for="searchInput">Search pair or image</label>
+            <div class="search-row">
+                <input id="searchInput" type="search" autocomplete="off" spellcheck="false" autofocus placeholder="AA, ch, ACh, Batman, arrow">
+                <button id="clearButton" type="button">Clear</button>
+            </div>
+            <div class="filters" id="filters"></div>
+        </section>
+
+        <main class="workspace">
+            <aside class="pair-rail">
+                <div class="rail-head">
+                    <span>Pair picker</span>
+                    <output id="shownCount"></output>
+                </div>
+                <div class="selector-block">
+                    <div class="selector-label">First letter</div>
+                    <div class="letter-grid" id="firstGrid"></div>
+                </div>
+                <div class="selector-block">
+                    <div class="selector-label">Second letter</div>
+                    <div class="letter-grid" id="secondGrid"></div>
+                </div>
+                <div class="selector-block">
+                    <div class="selector-label">Matching pairs</div>
+                    <div class="pair-grid" id="pairGrid"></div>
+                </div>
+            </aside>
+            <section class="results" id="results"></section>
+        </main>
+    </div>
+
+    <template id="pairButtonTemplate">
+        <button type="button" class="pair-button"></button>
+    </template>
+
+    <script src="data.js"></script>
+    <script src="app.js"></script>
+</body>
+</html>
