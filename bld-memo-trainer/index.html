@@ -340,6 +340,20 @@ select:focus {
     box-shadow: 0 0 0 2px #050605, 0 0 0 4px var(--acid), 0 12px 24px rgba(0, 0, 0, 0.28);
 }
 
+.sticker.guide-buffer {
+    box-shadow: inset 0 0 0 3px var(--blue);
+}
+
+.sticker.guide-target {
+    z-index: 2;
+    transform: scale(1.08);
+    box-shadow: 0 0 0 2px #050605, 0 0 0 4px var(--gold), 0 0 24px rgba(255, 214, 110, 0.28);
+}
+
+.sticker.guide-buffer.guide-target {
+    box-shadow: 0 0 0 2px #050605, 0 0 0 4px var(--blue), inset 0 0 0 3px var(--gold);
+}
+
 .memo-grid {
     display: grid;
     gap: 12px;
@@ -362,6 +376,124 @@ select:focus {
     font: 700 20px/1 "IBM Plex Mono", monospace;
     letter-spacing: 0.08em;
     text-transform: uppercase;
+}
+
+.guided-panel {
+    display: none;
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    background: #090b08;
+    margin-top: 14px;
+    padding: 12px;
+}
+
+.guided-panel.open {
+    display: grid;
+    gap: 12px;
+}
+
+.guided-top {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 12px;
+    align-items: center;
+}
+
+.guided-title {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px;
+    min-width: 0;
+}
+
+.guided-title strong {
+    font: 800 13px/1 "IBM Plex Mono", monospace;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+}
+
+.phase-pill {
+    border: 1px solid var(--line-2);
+    border-radius: 999px;
+    background: #151a14;
+    padding: 5px 8px;
+    color: var(--blue);
+    font: 800 11px/1 "IBM Plex Mono", monospace;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+.guided-body {
+    display: grid;
+    grid-template-columns: 134px minmax(0, 1fr);
+    gap: 12px;
+    align-items: start;
+}
+
+.guided-buffer {
+    display: grid;
+    place-items: center;
+    border-radius: 8px;
+    border: 1px solid rgba(122, 182, 255, 0.38);
+    background: rgba(122, 182, 255, 0.09);
+    min-height: 104px;
+    color: var(--blue);
+    font: 800 40px/1 "IBM Plex Mono", monospace;
+}
+
+.guided-main {
+    display: grid;
+    gap: 10px;
+    min-width: 0;
+}
+
+.guided-copy {
+    color: var(--muted);
+    font: 700 12px/1.4 "IBM Plex Mono", monospace;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+}
+
+.guided-input-row {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 8px;
+}
+
+.guided-input {
+    height: 52px;
+    font: 800 24px/1 "IBM Plex Mono", monospace;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+}
+
+.guided-log {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    min-height: 32px;
+    align-items: center;
+}
+
+.guided-log .dict-grid {
+    flex: 1 0 100%;
+}
+
+.guided-feedback {
+    min-height: 18px;
+    color: var(--quiet);
+    font: 700 12px/1.3 "IBM Plex Mono", monospace;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+}
+
+.guided-feedback.bad {
+    color: var(--red);
+}
+
+.guided-feedback.ok {
+    color: var(--acid);
 }
 
 .score-box {
@@ -646,6 +778,17 @@ select:focus {
         grid-template-columns: 1fr;
     }
 
+    .guided-top,
+    .guided-body,
+    .guided-input-row {
+        grid-template-columns: 1fr;
+    }
+
+    .guided-buffer {
+        min-height: 72px;
+        font-size: 30px;
+    }
+
     .buffer-chip {
         justify-self: start;
     }
@@ -737,9 +880,32 @@ select:focus {
                     </div>
                     <div class="toolbar">
                         <button class="btn primary" type="button" id="scoreBtn"><span data-icon="check"></span>Score memo</button>
+                        <button class="btn" type="button" id="guidedBtn"><span data-icon="target"></span>Guided sticker</button>
                         <button class="btn danger" type="button" id="answerBtn"><span data-icon="eye"></span>Show answer</button>
                     </div>
                 </div>
+
+                <section class="guided-panel" id="guidedPanel">
+                    <div class="guided-top">
+                        <div class="guided-title">
+                            <strong>Guided sticker practice</strong>
+                            <span class="phase-pill" id="guidedPhase"></span>
+                        </div>
+                        <button class="btn danger" type="button" id="guidedStopBtn">Stop</button>
+                    </div>
+                    <div class="guided-body">
+                        <div class="guided-buffer" id="guidedBuffer"></div>
+                        <div class="guided-main">
+                            <div class="guided-copy" id="guidedPrompt"></div>
+                            <div class="guided-input-row">
+                                <input class="guided-input" id="guidedInput" autocomplete="off" spellcheck="false" inputmode="text" maxlength="2">
+                                <button class="btn primary" type="button" id="guidedSubmitBtn">Submit</button>
+                            </div>
+                            <div class="guided-feedback" id="guidedFeedback"></div>
+                            <div class="guided-log" id="guidedLog"></div>
+                        </div>
+                    </div>
+                </section>
 
                 <div class="score-box" id="scoreBox">
                     <div class="status" id="statusLine"></div>
@@ -780,6 +946,7 @@ const ICONS = {
     eye: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></svg>',
     'eye-off': '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.7 5.1A10.8 10.8 0 0 1 12 5c6.5 0 10 7 10 7a18 18 0 0 1-2.1 3.1"/><path d="M6.6 6.6C3.7 8.5 2 12 2 12s3.5 7 10 7a9.8 9.8 0 0 0 5.4-1.6"/><path d="m2 2 20 20"/><path d="M9.9 9.9a3 3 0 0 0 4.2 4.2"/></svg>',
     check: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 6 9 17l-5-5"/></svg>',
+    target: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="3"/><path d="M12 2v3"/><path d="M12 19v3"/><path d="M2 12h3"/><path d="M19 12h3"/></svg>',
     'chevron-down': '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m6 9 6 6 6-6"/></svg>',
     'chevron-up': '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m18 15-6-6-6 6"/></svg>'
 };
@@ -829,6 +996,16 @@ const els = {
     edgeBufferLabel: document.getElementById('edgeBufferLabel'),
     cornerBufferLabel: document.getElementById('cornerBufferLabel'),
     scoreBtn: document.getElementById('scoreBtn'),
+    guidedBtn: document.getElementById('guidedBtn'),
+    guidedPanel: document.getElementById('guidedPanel'),
+    guidedStopBtn: document.getElementById('guidedStopBtn'),
+    guidedPhase: document.getElementById('guidedPhase'),
+    guidedBuffer: document.getElementById('guidedBuffer'),
+    guidedPrompt: document.getElementById('guidedPrompt'),
+    guidedInput: document.getElementById('guidedInput'),
+    guidedSubmitBtn: document.getElementById('guidedSubmitBtn'),
+    guidedFeedback: document.getElementById('guidedFeedback'),
+    guidedLog: document.getElementById('guidedLog'),
     answerBtn: document.getElementById('answerBtn'),
     scoreBox: document.getElementById('scoreBox'),
     statusLine: document.getElementById('statusLine'),
@@ -854,7 +1031,8 @@ const state = {
     cornerValidation: null,
     result: null,
     answerOpen: false,
-    analysisOpen: false
+    analysisOpen: false,
+    guided: null
 };
 let renderedTwistyScramble = '';
 
@@ -1006,6 +1184,126 @@ function validateExecution(parsedInput, isCorner, initialCube, bufferLetter) {
     return { results, unsolved, testCube };
 }
 
+function guidedStickers(isCorner) {
+    return isCorner ? cornerStickers : edgeStickers;
+}
+
+function guidedBufferLetter(isCorner) {
+    return isCorner ? state.cornerBuffer : state.edgeBuffer;
+}
+
+function guidedCube(isCorner) {
+    return isCorner ? state.guided.cornerCube : state.guided.edgeCube;
+}
+
+function validGuidedTargets(cube, isCorner) {
+    const stickers = guidedStickers(isCorner);
+    const bufferLetter = guidedBufferLetter(isCorner);
+    const bPiece = stickers.find((piece) => piece.letters.includes(bufferLetter));
+    const unsolved = stickers.filter((piece) => !isPieceOriented(piece, cube));
+    if (!unsolved.length) return null;
+    const colorsAtBuffer = bPiece.indices.map((idx) => cube[idx]);
+    const pieceAtBuffer = stickers.find((piece) => hasSameColors(piece.colors, colorsAtBuffer));
+    if (!pieceAtBuffer) return null;
+    if (pieceAtBuffer.id === bPiece.id) {
+        const nonBuffer = unsolved.filter((piece) => piece.id !== bPiece.id);
+        const targetPiece = nonBuffer[0] || bPiece;
+        const validTargets = nonBuffer.length ? nonBuffer.flatMap((piece) => piece.letters) : bPiece.letters.filter((letter) => letter !== bufferLetter);
+        return { mode: nonBuffer.length ? 'break' : 'twist', bPiece, targetPiece, targetPieces: nonBuffer.length ? nonBuffer : [bPiece], validTargets, unsolved };
+    }
+    const letterIndex = pieceAtBuffer.colors.indexOf(colorsAtBuffer[0]);
+    return { mode: 'forced', bPiece, targetPiece: pieceAtBuffer, targetPieces: [pieceAtBuffer], validTargets: [pieceAtBuffer.letters[letterIndex]], unsolved };
+}
+
+function guidedPrompt() {
+    if (!state.guided?.active) return null;
+    const isCorner = state.guided.phase === 'corners';
+    const prompt = validGuidedTargets(guidedCube(isCorner), isCorner);
+    if (prompt) return { ...prompt, isCorner, phase: state.guided.phase };
+    if (state.guided.phase === 'edges') {
+        state.guided.phase = 'corners';
+        return guidedPrompt();
+    }
+    state.guided.complete = true;
+    return { complete: true, isCorner: true, phase: 'complete' };
+}
+
+function guidedAcceptedRaw() {
+    if (!state.guided) return [];
+    return [...state.guided.edgeRaw, ...state.guided.cornerRaw];
+}
+
+function guidedAcceptedDisplay() {
+    return guidedAcceptedRaw().map((letter) => getCharDisplay(letter)).join('');
+}
+
+function startGuidedPractice() {
+    state.guided = {
+        active: true,
+        complete: false,
+        phase: 'edges',
+        edgeCube: [...state.cube],
+        cornerCube: [...state.cube],
+        edgeRaw: [],
+        cornerRaw: [],
+        feedback: 'Type the target sticker shown by the highlighted piece.',
+        lastCorrect: null
+    };
+    state.answerOpen = false;
+    state.result = null;
+    state.edgeValidation = null;
+    state.cornerValidation = null;
+    state.highlighted = null;
+    els.guidedInput.value = '';
+    render();
+    els.guidedInput.focus();
+}
+
+function stopGuidedPractice() {
+    state.guided = null;
+    render();
+}
+
+function submitGuidedLetter(value = els.guidedInput.value) {
+    if (!state.guided?.active || state.guided.complete) return { accepted: false, reason: 'inactive' };
+    const parsed = parseInputToSpeffz(Array.from(value.trim())[0] || '');
+    els.guidedInput.value = '';
+    if (parsed.error || !parsed.parsed) {
+        state.guided.feedback = parsed.error || 'Type one sticker letter.';
+        state.guided.lastCorrect = false;
+        render();
+        els.guidedInput.focus();
+        return { accepted: false, reason: 'invalid' };
+    }
+    const letter = parsed.parsed[0];
+    const prompt = guidedPrompt();
+    if (!prompt || prompt.complete) return { accepted: false, reason: 'complete' };
+    if (!prompt.validTargets.includes(letter)) {
+        state.guided.feedback = getCharDisplay(letter) + ' is not valid from this buffer state.';
+        state.guided.lastCorrect = false;
+        render();
+        els.guidedInput.focus();
+        return { accepted: false, reason: 'wrong', expected: prompt.validTargets };
+    }
+    const stickers = guidedStickers(prompt.isCorner);
+    const tPiece = stickers.find((piece) => piece.letters.includes(letter));
+    performSwap(guidedCube(prompt.isCorner), prompt.bPiece, tPiece, letter, guidedBufferLetter(prompt.isCorner));
+    const raw = prompt.isCorner ? state.guided.cornerRaw : state.guided.edgeRaw;
+    raw.push(letter);
+    if (prompt.isCorner) {
+        els.cornersMemo.value = state.guided.cornerRaw.map((item) => getCharDisplay(item)).join('');
+    } else {
+        els.edgesMemo.value = state.guided.edgeRaw.map((item) => getCharDisplay(item)).join('');
+    }
+    state.guided.feedback = 'Accepted ' + getCharDisplay(letter) + '.';
+    state.guided.lastCorrect = true;
+    const nextPrompt = guidedPrompt();
+    if (nextPrompt?.complete) state.guided.feedback = 'Guided practice complete.';
+    render();
+    els.guidedInput.focus();
+    return { accepted: true, letter, next: nextPrompt };
+}
+
 function generateReferenceCycles(cube, isCorner, bufferLetter) {
     const testCube = [...cube];
     const stickers = isCorner ? cornerStickers : edgeStickers;
@@ -1118,6 +1416,9 @@ function populateBuffers() {
 
 function renderCubeNet() {
     const cells = [null, 0, null, null, 4, 2, 1, 5, null, 3, null, null];
+    const prompt = guidedPrompt();
+    const guideBuffer = new Set(prompt?.bPiece?.indices || []);
+    const guideTarget = new Set((prompt?.targetPieces || prompt?.targetPiece ? prompt.targetPieces || [prompt.targetPiece] : []).flatMap((piece) => piece.indices));
     els.cubeNet.innerHTML = cells.map((faceIndex) => {
         if (faceIndex === null) return '<div></div>';
         const stickers = Array.from({ length: 9 }, (_, index) => {
@@ -1127,7 +1428,8 @@ function renderCubeNet() {
             const hot = state.highlighted === stateIndex;
             const dim = state.highlighted !== null && !hot;
             const buffer = letter === state.edgeBuffer || letter === state.cornerBuffer;
-            return '<button type="button" class="sticker ' + (DARK_FACE.has(color) ? 'dark ' : '') + (buffer ? 'buffer ' : '') + (hot ? 'hot ' : '') + (dim ? 'dim ' : '') + '" style="background:' + FACE_COLORS[color] + '" data-sticker="' + stateIndex + '"><span>' + escapeHtml(getCharDisplay(letter)) + '</span></button>';
+            const guideClass = (guideBuffer.has(stateIndex) ? 'guide-buffer ' : '') + (guideTarget.has(stateIndex) ? 'guide-target ' : '');
+            return '<button type="button" class="sticker ' + (DARK_FACE.has(color) ? 'dark ' : '') + (buffer ? 'buffer ' : '') + guideClass + (hot ? 'hot ' : '') + (dim ? 'dim ' : '') + '" style="background:' + FACE_COLORS[color] + '" data-sticker="' + stateIndex + '"><span>' + escapeHtml(getCharDisplay(letter)) + '</span></button>';
         }).join('');
         return '<div class="face">' + stickers + '</div>';
     }).join('');
@@ -1171,6 +1473,37 @@ function renderResult() {
     renderCycles(els.cornerCycles, state.cornerRef, state.cornerBuffer, true);
 }
 
+function renderGuided() {
+    const active = Boolean(state.guided?.active);
+    els.guidedPanel.classList.toggle('open', active);
+    els.guidedBtn.classList.toggle('active', active);
+    if (!active) return;
+    const prompt = guidedPrompt();
+    const edgePairs = rawToPairs(state.guided.edgeRaw);
+    const cornerPairs = rawToPairs(state.guided.cornerRaw);
+    const joinedPairs = [...edgePairs, ...cornerPairs];
+    els.guidedLog.innerHTML = guidedAcceptedRaw().length ? guidedAcceptedRaw().map((letter) => '<span class="letter-chip ok">' + escapeHtml(getCharDisplay(letter)) + '</span>').join('') : '<span class="empty-line">No stickers entered</span>';
+    els.guidedFeedback.className = 'guided-feedback ' + (state.guided.lastCorrect === false ? 'bad' : state.guided.lastCorrect === true ? 'ok' : '');
+    els.guidedFeedback.textContent = state.guided.feedback;
+    if (prompt?.complete) {
+        els.guidedPhase.textContent = 'Complete';
+        els.guidedBuffer.textContent = '✓';
+        els.guidedPrompt.textContent = 'All guided targets are solved. Score memo to verify the same execution path.';
+        els.guidedSubmitBtn.disabled = true;
+        els.guidedInput.disabled = true;
+        if (joinedPairs.length) els.guidedLog.innerHTML += '<div class="dict-grid">' + renderDictionary(joinedPairs.slice(-4)) + '</div>';
+        return;
+    }
+    els.guidedSubmitBtn.disabled = false;
+    els.guidedInput.disabled = false;
+    els.guidedPhase.textContent = prompt.phase + ' · ' + prompt.mode;
+    els.guidedBuffer.textContent = getCharDisplay(guidedBufferLetter(prompt.isCorner));
+    const targetCount = prompt.validTargets.length;
+    const targetText = prompt.mode === 'forced' ? 'Trace the piece in the buffer and type the sticker it must go to.' : prompt.mode === 'break' ? 'Buffer is solved. Choose any sticker on any unsolved highlighted/break piece.' : 'Buffer piece is twisted. Type a non-buffer sticker on it.';
+    els.guidedPrompt.textContent = targetText + ' Valid choices now: ' + targetCount + '.';
+    if (joinedPairs.length) els.guidedLog.innerHTML += '<div class="dict-grid">' + renderDictionary(joinedPairs.slice(-4)) + '</div>';
+}
+
 function render() {
     els.dbStats.textContent = db.pairCount + ' pairs / ' + db.entryCount + ' images';
     els.schemeInput.value = state.scheme;
@@ -1185,6 +1518,7 @@ function render() {
     els.analysisBtn.querySelector('[data-icon]').dataset.icon = state.analysisOpen ? 'chevron-up' : 'chevron-down';
     setIcons();
     populateBuffers();
+    renderGuided();
     renderCubeNet();
     renderTwisty();
     renderResult();
@@ -1193,6 +1527,7 @@ function render() {
 function resetSession() {
     els.edgesMemo.value = '';
     els.cornersMemo.value = '';
+    els.guidedInput.value = '';
     state.result = null;
     state.edgeValidation = null;
     state.cornerValidation = null;
@@ -1200,6 +1535,7 @@ function resetSession() {
     state.analysisOpen = false;
     state.blind = false;
     state.highlighted = null;
+    state.guided = null;
 }
 
 function newScramble() {
@@ -1255,6 +1591,19 @@ function bindEvents() {
         render();
     });
     els.scoreBtn.addEventListener('click', scoreMemo);
+    els.guidedBtn.addEventListener('click', () => {
+        if (state.guided?.active) stopGuidedPractice();
+        else startGuidedPractice();
+    });
+    els.guidedStopBtn.addEventListener('click', stopGuidedPractice);
+    els.guidedSubmitBtn.addEventListener('click', () => submitGuidedLetter());
+    els.guidedInput.addEventListener('input', () => {
+        const chars = Array.from(els.guidedInput.value.trim());
+        if (chars.length) submitGuidedLetter(chars[0]);
+    });
+    els.guidedInput.addEventListener('keydown', (event) => {
+        if (event.key === 'Enter') submitGuidedLetter();
+    });
     els.answerBtn.addEventListener('click', () => {
         state.answerOpen = true;
         state.result = null;
@@ -1272,12 +1621,14 @@ function bindEvents() {
     els.edgeBuffer.addEventListener('change', () => {
         state.edgeBuffer = els.edgeBuffer.value;
         localStorage.setItem('bld_trainer_edge_buffer', state.edgeBuffer);
+        state.guided = null;
         recomputeReferences();
         render();
     });
     els.cornerBuffer.addEventListener('change', () => {
         state.cornerBuffer = els.cornerBuffer.value;
         localStorage.setItem('bld_trainer_corner_buffer', state.cornerBuffer);
+        state.guided = null;
         recomputeReferences();
         render();
     });
@@ -1310,7 +1661,40 @@ function selfTest(iterations = 120) {
     return { pass: !failures.length, failures };
 }
 
-window.__BLD_TRAINER__ = { state, generateScramble, generateReferenceCycles, validateExecution, parseInputToSpeffz, selfTest, rawToPairs, dictionaryEntries, scoreMemo };
+function guidedSelfTest(iterations = 60) {
+    const failures = [];
+    for (let i = 0; i < iterations; i += 1) {
+        newScramble();
+        startGuidedPractice();
+        let changedBreaks = 0;
+        let guard = 0;
+        while (state.guided?.active && !state.guided.complete && guard < 80) {
+            guard += 1;
+            const prompt = guidedPrompt();
+            if (!prompt || prompt.complete) break;
+            const canonical = prompt.isCorner ? state.cornerRef.rawLetters[state.guided.cornerRaw.length] : state.edgeRef.rawLetters[state.guided.edgeRaw.length];
+            let pick = canonical && prompt.validTargets.includes(canonical) ? canonical : prompt.validTargets[0];
+            if (prompt.validTargets.length > 1) {
+                const alternate = prompt.validTargets.find((letter) => letter !== canonical);
+                if (alternate) {
+                    pick = alternate;
+                    changedBreaks += 1;
+                }
+            }
+            const result = submitGuidedLetter(pick);
+            if (!result.accepted) {
+                failures.push({ i, stage: 'submit', prompt, result });
+                break;
+            }
+        }
+        scoreMemo();
+        const ok = state.result.edges && state.result.corners && state.guided?.complete;
+        if (!ok) failures.push({ i, stage: 'score', result: state.result, guided: state.guided, changedBreaks, guard });
+    }
+    return { pass: !failures.length, failures };
+}
+
+window.__BLD_TRAINER__ = { state, generateScramble, generateReferenceCycles, validateExecution, parseInputToSpeffz, selfTest, guidedSelfTest, rawToPairs, dictionaryEntries, scoreMemo, newScramble, startGuidedPractice, stopGuidedPractice, submitGuidedLetter, guidedPrompt };
 
 setIcons();
 bindEvents();
