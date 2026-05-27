@@ -346,12 +346,12 @@ select:focus {
 }
 
 .layout.guided-active .twisty-box {
-    height: 270px;
+    height: 220px;
 }
 
 .layout.guided-active .twisty-box::after {
-    height: 27%;
-    background: linear-gradient(180deg, rgba(3, 4, 3, 0.82), #030403 30%);
+    height: 20%;
+    background: linear-gradient(180deg, rgba(3, 4, 3, 0.78), #030403 34%);
 }
 
 .blind-box {
@@ -1811,8 +1811,8 @@ function applyTwistyFocusMask() {
         twistyPlayer.experimentalStickeringMaskOrbits = fullTwistyMask();
         twistyPlayer.experimentalStickering = 'full';
     }
-    els.viewerFocusBtn.classList.toggle('active', Boolean(mask));
-    els.viewerFocusText.textContent = mask ? 'Focus on' : 'Focus off';
+    els.viewerFocusBtn.classList.toggle('active', state.viewerFocus);
+    els.viewerFocusText.textContent = state.viewerFocus ? 'Focus on' : 'Focus off';
 }
 
 function setViewerStatus(text) {
@@ -1922,7 +1922,7 @@ function renderGuided() {
     els.guidedTargetMeta.textContent = 'Only buffer and current piece are visible.';
     els.guidedChoices.textContent = '';
     els.guidedInput.placeholder = 'Letter';
-    els.guidedPrompt.textContent = prompt.mode === 'forced' ? 'Enter the visible destination sticker.' : 'Choose a sticker on the isolated unsolved piece.';
+    els.guidedPrompt.textContent = state.viewerFocus ? prompt.mode === 'forced' ? 'Enter the visible destination sticker.' : 'Choose a sticker on the isolated unsolved piece.' : 'Focus is off. Use the full cube or turn focus on to isolate the target.';
     if (joinedPairs.length) els.guidedLog.innerHTML += '<div class="dict-grid">' + renderDictionary(joinedPairs.slice(-4)) + '</div>';
 }
 
@@ -2041,7 +2041,8 @@ function bindEvents() {
     els.viewerViewBtn.addEventListener('click', focusTwistyCamera);
     els.viewerFocusBtn.addEventListener('click', () => {
         state.viewerFocus = !state.viewerFocus;
-        applyTwistyFocusMask();
+        render();
+        focusTwistyCamera();
     });
     els.viewerResetBtn.addEventListener('click', resetTwistyView);
     els.scoreBtn.addEventListener('click', scoreMemo);
