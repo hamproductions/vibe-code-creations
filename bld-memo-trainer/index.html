@@ -1345,7 +1345,7 @@ function getStickerIndex(letter, isCorner) {
 
 function parseInputToSpeffz(input) {
     const schemeChars = Array.from(state.scheme);
-    const inputChars = Array.from(input.replace(/s+/g, ''));
+    const inputChars = Array.from(input.replace(/\s+/g, ''));
     let parsed = '';
     for (const char of inputChars) {
         const idx = schemeChars.findIndex((candidate) => candidate === char || candidate.toUpperCase() === char.toUpperCase());
