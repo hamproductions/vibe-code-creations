@@ -2122,15 +2122,21 @@ function bindEvents() {
         localStorage.setItem('bld_trainer_edge_buffer', state.edgeBuffer);
         localStorage.setItem('bld_trainer_edge_buffer_user_set', '1');
         state.guided = null;
+        state.focusedSticker = null;
+        state.highlighted = null;
         recomputeReferences();
         render();
+        focusTwistyCamera();
     });
     els.cornerBuffer.addEventListener('change', () => {
         state.cornerBuffer = els.cornerBuffer.value;
         localStorage.setItem('bld_trainer_corner_buffer', state.cornerBuffer);
         state.guided = null;
+        state.focusedSticker = null;
+        state.highlighted = null;
         recomputeReferences();
         render();
+        focusTwistyCamera();
     });
     document.addEventListener('mouseover', (event) => {
         const sticker = event.target.closest('[data-sticker]');
