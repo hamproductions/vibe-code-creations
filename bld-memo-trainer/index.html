@@ -2091,6 +2091,7 @@ function scoreMemo() {
 function setScheme(value) {
     state.scheme = Array.from(value).slice(0, 24).join('');
     localStorage.setItem('bld_trainer_scheme', state.scheme);
+    resetSession();
     render();
 }
 
