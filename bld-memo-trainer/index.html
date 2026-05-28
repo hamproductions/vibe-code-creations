@@ -1642,6 +1642,11 @@ function getCharDisplay(letter) {
     return Array.from(state.scheme)[idx] || letter;
 }
 
+function stickerLabel(letter) {
+    const display = getCharDisplay(letter);
+    return display === letter ? letter : display + ' / ' + letter;
+}
+
 function displayPair(pair) {
     return pair.split('').map(getCharDisplay).join('');
 }
@@ -1969,7 +1974,7 @@ function renderGuided() {
     els.guidedInput.disabled = false;
     const phaseLabel = prompt.phase === 'edges' ? 'Edges' : 'Corners';
     els.guidedPhase.textContent = phaseLabel + ' · ' + prompt.mode;
-    els.guidedBuffer.textContent = getCharDisplay(guidedBufferLetter(prompt.isCorner));
+    els.guidedBuffer.textContent = stickerLabel(guidedBufferLetter(prompt.isCorner));
     els.guidedBufferMeta.textContent = phaseLabel + ' buffer';
     els.guidedTarget.textContent = 'Look at cube';
     els.guidedTargetMeta.textContent = 'Only buffer and current piece are visible.';
@@ -1983,8 +1988,8 @@ function render() {
     const guidedActive = Boolean(state.guided?.active);
     els.dbStats.textContent = db.pairCount + ' pairs / ' + db.entryCount + ' images';
     els.schemeInput.value = state.scheme;
-    els.edgeBufferLabel.textContent = 'Buffer [' + getCharDisplay(state.edgeBuffer) + ']';
-    els.cornerBufferLabel.textContent = 'Buffer [' + getCharDisplay(state.cornerBuffer) + ']';
+    els.edgeBufferLabel.textContent = 'Buffer [' + stickerLabel(state.edgeBuffer) + ']';
+    els.cornerBufferLabel.textContent = 'Buffer [' + stickerLabel(state.cornerBuffer) + ']';
     els.scrambleText.textContent = state.scramble || 'Loading...';
     els.blindText.textContent = guidedActive ? 'Cube visible' : state.blind ? 'Show cube' : 'Hide cube';
     els.blindBtn.disabled = guidedActive;
