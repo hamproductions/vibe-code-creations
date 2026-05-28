@@ -1785,11 +1785,12 @@ function renderLetterStream(rawLetters, validation, isCorner) {
 }
 
 function renderAnswerPanel(target, label, ref, validation, isCorner) {
-    const checkedRaw = validation?.length ? validation.map((item) => item.char) : null;
-    const rawLetters = checkedRaw || ref.rawLetters;
+    const checked = Boolean(validation);
+    const checkedRaw = checked ? validation.map((item) => item.char) : null;
+    const rawLetters = checked ? checkedRaw : ref.rawLetters;
     const pairs = rawToPairs(rawLetters);
-    const checkedLabel = validation ? label.replace('answer', 'input') : label;
-    const canonical = validation && rawLetters.join('') !== ref.rawLetters.join('') ? '<div class="answer-head"><h2>Canonical ' + label.toLowerCase() + '</h2><span class="empty-line">' + ref.rawLetters.length + ' targets</span></div><div class="pair-stream">' + renderLetterStream(ref.rawLetters, null, isCorner) + '</div>' : '';
+    const checkedLabel = checked ? label.replace('answer', 'input') : label;
+    const canonical = checked && rawLetters.join('') !== ref.rawLetters.join('') ? '<div class="answer-head"><h2>Canonical ' + label.toLowerCase() + '</h2><span class="empty-line">' + ref.rawLetters.length + ' targets</span></div><div class="pair-stream">' + renderLetterStream(ref.rawLetters, null, isCorner) + '</div>' : '';
     target.innerHTML = '<div class="answer-head"><h2>' + checkedLabel + '</h2><span class="empty-line">' + rawLetters.length + ' targets</span></div><div class="input-stream">' + renderLetterStream(rawLetters, validation, isCorner) + '</div>' + canonical + '<div class="dict-grid">' + renderDictionary(pairs) + '</div>';
 }
 
