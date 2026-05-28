@@ -358,6 +358,86 @@ input.invalid {
     filter: saturate(1.08) contrast(1.08);
 }
 
+.live-piece-preview {
+    position: absolute;
+    top: 14px;
+    right: 14px;
+    width: min(230px, 42%);
+    padding: 12px;
+    border: 1px solid rgba(194, 255, 77, 0.32);
+    border-radius: 8px;
+    background: rgba(5, 7, 5, 0.78);
+    box-shadow: var(--shadow);
+    display: none;
+    gap: 10px;
+    z-index: 4;
+}
+
+.layout.guided-active .live-piece-preview {
+    display: grid;
+}
+
+.live-piece-title {
+    color: var(--acid);
+    font: 800 11px/1.2 "IBM Plex Mono", monospace;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+}
+
+.live-piece-meta {
+    color: var(--muted);
+    font: 700 10px/1.3 "IBM Plex Mono", monospace;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+.live-cubie {
+    position: relative;
+    width: 172px;
+    height: 112px;
+    justify-self: center;
+}
+
+.live-facet {
+    position: absolute;
+    width: 72px;
+    height: 72px;
+    border: 3px solid #050605;
+    border-radius: 6px;
+    box-shadow: 0 0 0 1px rgba(241, 245, 236, 0.24), 0 12px 30px rgba(0, 0, 0, 0.35);
+}
+
+.live-cubie.edge .live-facet:nth-child(1) {
+    left: 16px;
+    top: 24px;
+}
+
+.live-cubie.edge .live-facet:nth-child(2) {
+    left: 84px;
+    top: 24px;
+    transform: skewY(-16deg);
+    transform-origin: left center;
+}
+
+.live-cubie.corner .live-facet:nth-child(1) {
+    left: 50px;
+    top: 2px;
+    height: 44px;
+    transform: skewX(-24deg);
+}
+
+.live-cubie.corner .live-facet:nth-child(2) {
+    left: 14px;
+    top: 44px;
+    transform: skewY(18deg);
+}
+
+.live-cubie.corner .live-facet:nth-child(3) {
+    left: 82px;
+    top: 44px;
+    transform: skewY(-18deg);
+}
+
 .twisty-box::after {
     display: none;
     content: "";
@@ -1889,9 +1969,14 @@ function renderTwisty() {
     player.setAttribute('experimental-drag-input', 'auto');
     player.setAttribute('experimental-move-press-input', 'none');
     els.twistyBox.appendChild(player);
+    const livePreview = document.createElement('div');
+    livePreview.id = 'livePiecePreview';
+    livePreview.className = 'live-piece-preview';
+    els.twistyBox.appendChild(livePreview);
     twistyPlayer = player;
     applyTwistyFocusMask();
     focusTwistyCamera();
+    renderLivePiecePreview();
 }
 
 function facelets(mask) {
@@ -1949,6 +2034,22 @@ function renderFocusSwatches(prompt) {
     if (!piece) return '';
     const cube = guidedCube(prompt.isCorner);
     return '<span class="focus-swatches" aria-hidden="true">' + piece.indices.map((idx) => '<span class="focus-swatch" style="background:' + FACE_COLORS[cube[idx]] + '"></span>').join('') + '</span>';
+}
+
+function renderLivePiecePreview() {
+    const preview = document.getElementById('livePiecePreview');
+    if (!preview) return;
+    const prompt = guidedPrompt();
+    if (!prompt || prompt.complete) {
+        preview.innerHTML = '';
+        return;
+    }
+    const piece = guidedLocationPiece(prompt);
+    const cube = guidedCube(prompt.isCorner);
+    const colors = piece.indices.map((idx) => cube[idx]);
+    const className = prompt.isCorner ? 'corner' : 'edge';
+    const title = prompt.mode === 'forced' ? 'Live buffer cubie' : prompt.mode === 'break' ? 'Live break slot' : 'Live buffer twist';
+    preview.innerHTML = '<div><div class="live-piece-title">' + title + '</div><div class="live-piece-meta">' + (prompt.phase === 'edges' ? 'Edge' : 'Corner') + ' virtual state after your inputs</div></div><div class="live-cubie ' + className + '">' + colors.map((color) => '<span class="live-facet" style="background:' + FACE_COLORS[color] + '"></span>').join('') + '</div>';
 }
 
 function guidedStepNumber() {
@@ -2210,6 +2311,7 @@ function render() {
     renderGuided();
     renderCubeNet();
     renderTwisty();
+    renderLivePiecePreview();
     applyTwistyFocusMask();
     renderResult();
 }
