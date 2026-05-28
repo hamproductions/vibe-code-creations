@@ -74,7 +74,7 @@ button {
 
 button:disabled {
     cursor: not-allowed;
-    opacity: 0.48;
+    opacity: 1;
 }
 
 .shell {
@@ -167,6 +167,12 @@ h1 {
     border-color: rgba(255, 95, 102, 0.38);
     background: rgba(255, 95, 102, 0.11);
     color: #ffd1d4;
+}
+
+.btn:disabled {
+    border-color: rgba(57, 70, 50, 0.58);
+    background: rgba(21, 26, 20, 0.62);
+    color: var(--quiet);
 }
 
 .settings {
@@ -1608,6 +1614,7 @@ function startGuidedPractice() {
     state.blind = false;
     state.focusedSticker = null;
     state.viewerFocus = true;
+    els.settingsPanel.classList.remove('open');
     state.guided = {
         active: true,
         complete: false,
@@ -1997,6 +2004,15 @@ function focusTwistyCamera() {
 
 function resetTwistyView() {
     if (!twistyPlayer) return;
+    if (state.guided?.active) {
+        state.focusedSticker = null;
+        state.highlighted = null;
+        applyTwistyFocusMask();
+        renderCubeNet();
+        renderResult();
+        focusTwistyCamera();
+        return;
+    }
     state.focusedSticker = null;
     state.highlighted = null;
     twistyPlayer.setAttribute('camera-latitude', '22');
@@ -2088,6 +2104,7 @@ function render() {
     els.blindText.textContent = guidedActive ? 'Cube visible' : state.blind ? 'Show cube' : 'Hide cube';
     els.blindBtn.disabled = guidedActive;
     els.newBtn.disabled = guidedActive;
+    els.settingsBtn.disabled = guidedActive;
     els.blindBtn.classList.toggle('active', state.blind);
     els.blindBtn.setAttribute('aria-pressed', String(state.blind));
     els.guidedBtn.setAttribute('aria-expanded', String(guidedActive));
