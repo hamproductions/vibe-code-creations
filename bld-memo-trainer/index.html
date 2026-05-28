@@ -1529,6 +1529,7 @@ function guidedAcceptedDisplay() {
 function startGuidedPractice() {
     state.blind = false;
     state.focusedSticker = null;
+    state.viewerFocus = true;
     state.guided = {
         active: true,
         complete: false,
@@ -1858,7 +1859,7 @@ function applyTwistyFocusMask() {
         twistyPlayer.experimentalStickering = 'full';
     }
     els.viewerFocusBtn.classList.toggle('active', state.viewerFocus);
-    els.viewerFocusText.textContent = state.viewerFocus ? 'Focus on' : 'Focus off';
+    els.viewerFocusText.textContent = state.guided?.active ? 'Focus locked' : state.viewerFocus ? 'Focus on' : 'Focus off';
 }
 
 function setViewerStatus(text) {
@@ -1991,6 +1992,7 @@ function render() {
     els.blindBtn.setAttribute('aria-pressed', String(state.blind));
     els.guidedBtn.setAttribute('aria-expanded', String(guidedActive));
     els.guidedBtn.setAttribute('aria-controls', 'guidedPanel');
+    els.viewerFocusBtn.disabled = guidedActive;
     els.viewerFocusBtn.setAttribute('aria-pressed', String(state.viewerFocus));
     els.viewerPanel.classList.toggle('blind', state.blind);
     els.trainerRoot.classList.toggle('guided-active', guidedActive);
@@ -2101,6 +2103,7 @@ function bindEvents() {
     });
     els.viewerViewBtn.addEventListener('click', focusTwistyCamera);
     els.viewerFocusBtn.addEventListener('click', () => {
+        if (state.guided?.active) return;
         state.viewerFocus = !state.viewerFocus;
         if (!state.viewerFocus) {
             state.focusedSticker = null;
