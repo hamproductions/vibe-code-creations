@@ -224,6 +224,24 @@ select:focus {
     box-shadow: 0 0 0 3px rgba(194, 255, 77, 0.12);
 }
 
+input.invalid {
+    border-color: rgba(255, 95, 102, 0.68);
+    box-shadow: 0 0 0 3px rgba(255, 95, 102, 0.1);
+}
+
+.field-note {
+    min-height: 15px;
+    margin: 0;
+    color: var(--muted);
+    font: 700 10px/1.4 "IBM Plex Mono", monospace;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+}
+
+.field-note.bad {
+    color: #ff9ba0;
+}
+
 .preset-row {
     display: flex;
     flex-wrap: wrap;
@@ -238,7 +256,7 @@ select:focus {
 }
 
 .layout.guided-active {
-    grid-template-columns: minmax(620px, 1fr) minmax(320px, 380px);
+    grid-template-columns: minmax(520px, 1fr) minmax(420px, 520px);
     gap: 18px;
 }
 
@@ -327,17 +345,6 @@ select:focus {
     overflow: hidden;
 }
 
-.twisty-box::after {
-    content: "";
-    position: absolute;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    height: 36%;
-    background: linear-gradient(180deg, rgba(3, 4, 3, 0.92), #030403 22%);
-    pointer-events: none;
-}
-
 .twisty-box twisty-player {
     display: block;
     width: 100%;
@@ -347,11 +354,6 @@ select:focus {
 
 .layout.guided-active .twisty-box {
     height: 220px;
-}
-
-.layout.guided-active .twisty-box::after {
-    height: 20%;
-    background: linear-gradient(180deg, rgba(3, 4, 3, 0.78), #030403 34%);
 }
 
 .blind-box {
@@ -377,10 +379,6 @@ select:focus {
     background: #090b08;
     padding: 14px;
     overflow-x: auto;
-}
-
-.guided-active .cube-net-wrap {
-    display: none;
 }
 
 .cube-net {
@@ -593,10 +591,6 @@ select:focus {
     display: grid;
     gap: 6px;
     min-width: 0;
-}
-
-.layout.guided-active .guided-cue {
-    display: none;
 }
 
 .layout.guided-active .guided-copy {
@@ -1041,6 +1035,10 @@ select:focus {
         display: none;
     }
 
+    .layout.guided-active .cube-net-wrap {
+        display: block;
+    }
+
     .sticker {
         font-size: 10px;
     }
@@ -1081,6 +1079,7 @@ select:focus {
                 <div class="field wide">
                     <label for="schemeInput">Letter scheme</label>
                     <input id="schemeInput" maxlength="24" autocomplete="off" spellcheck="false">
+                    <p class="field-note" id="schemeStatus"></p>
                 </div>
                 <div class="field wide">
                     <div class="field-title">Presets</div>
@@ -1202,7 +1201,7 @@ window.BLD_PAIR_DATA = {"fetchedAt":"2026-05-27T02:13:36.500Z","sources":[{"name
 const SPEFFZ = 'ABCDEFGHIJKLMNOPQRSTUVWX';
 const HIRAGANA = 'あいうえなにぬねかきくけさしすせたちつてはひふへ';
 const SOLVED_STATE = Array.from({ length: 54 }, (_, index) => Math.floor(index / 9));
-const FACE_COLORS = ['#f8faf3', '#e64848', '#23b05c', '#f4cd3a', '#f18a2d', '#3578e5'];
+const FACE_COLORS = ['#ffffff', '#e64848', '#23b05c', '#f4cd3a', '#f18a2d', '#3578e5'];
 const DARK_FACE = new Set([1, 2, 4, 5]);
 const NATIVE_EDGE_INDEX = [2, 1, 0, 3, 9, 8, 10, 11, 4, 5, 6, 7];
 const NATIVE_CORNER_INDEX = [2, 1, 0, 3, 5, 4, 7, 6];
@@ -1250,6 +1249,7 @@ const els = {
     edgeBuffer: document.getElementById('edgeBuffer'),
     cornerBuffer: document.getElementById('cornerBuffer'),
     schemeInput: document.getElementById('schemeInput'),
+    schemeStatus: document.getElementById('schemeStatus'),
     speffzBtn: document.getElementById('speffzBtn'),
     hiraganaBtn: document.getElementById('hiraganaBtn'),
     blindBtn: document.getElementById('blindBtn'),
@@ -1299,15 +1299,48 @@ function storedEdgeBuffer() {
     const saved = localStorage.getItem('bld_trainer_edge_buffer');
     const userSet = localStorage.getItem('bld_trainer_edge_buffer_user_set') === '1';
     if (!saved || saved === 'U' && !userSet) return 'B';
-    return saved;
+    if (edgeStickers.some((piece) => piece.letters[0] === saved)) return saved;
+    localStorage.setItem('bld_trainer_edge_buffer', 'B');
+    localStorage.setItem('bld_trainer_edge_buffer_user_set', '1');
+    return 'B';
 }
+
+function storedCornerBuffer() {
+    const saved = localStorage.getItem('bld_trainer_corner_buffer');
+    if (cornerStickers.some((piece) => piece.letters[0] === saved)) return saved;
+    localStorage.setItem('bld_trainer_corner_buffer', 'A');
+    return 'A';
+}
+
+function normalizeScheme(value) {
+    return Array.from(value || '').slice(0, 24).join('');
+}
+
+function validateScheme(value) {
+    const chars = Array.from(value);
+    if (chars.length !== 24) return { valid: false, message: chars.length + '/24 characters. Active scheme unchanged.' };
+    const seen = new Set();
+    for (const char of chars) {
+        if (/\s/.test(char)) return { valid: false, message: 'Spaces cannot be sticker letters.' };
+        const key = char.toLocaleUpperCase();
+        if (seen.has(key)) return { valid: false, message: 'Duplicate sticker letter: ' + char };
+        seen.add(key);
+    }
+    return { valid: true, message: 'Active scheme: 24 sticker letters.' };
+}
+
+const storedScheme = normalizeScheme(localStorage.getItem('bld_trainer_scheme') || SPEFFZ);
+const initialScheme = validateScheme(storedScheme).valid ? storedScheme : SPEFFZ;
+if (storedScheme !== initialScheme) localStorage.setItem('bld_trainer_scheme', initialScheme);
 
 const state = {
     scramble: '',
     cube: [...SOLVED_STATE],
-    scheme: localStorage.getItem('bld_trainer_scheme') || SPEFFZ,
+    scheme: initialScheme,
+    schemeDraft: initialScheme,
+    schemeStatus: validateScheme(initialScheme).message,
     edgeBuffer: storedEdgeBuffer(),
-    cornerBuffer: localStorage.getItem('bld_trainer_corner_buffer') || 'A',
+    cornerBuffer: storedCornerBuffer(),
     blind: false,
     highlighted: null,
     focusedSticker: null,
@@ -1435,8 +1468,13 @@ function parseInputToSpeffz(input) {
     let parsed = '';
     for (const char of inputChars) {
         const idx = schemeChars.findIndex((candidate) => candidate === char || candidate.toUpperCase() === char.toUpperCase());
-        if (idx < 0) return { error: 'Unrecognized character: ' + char };
-        parsed += SPEFFZ[idx];
+        if (idx >= 0) {
+            parsed += SPEFFZ[idx];
+            continue;
+        }
+        const speffzIdx = SPEFFZ.indexOf(char.toUpperCase());
+        if (speffzIdx < 0) return { error: 'Unrecognized character: ' + char };
+        parsed += SPEFFZ[speffzIdx];
     }
     return { parsed };
 }
@@ -1504,7 +1542,7 @@ function validGuidedTargets(cube, isCorner) {
     return { mode: 'forced', bPiece, targetPiece: pieceAtBuffer, targetPieces: [pieceAtBuffer], validTargets: [pieceAtBuffer.letters[letterIndex]], unsolved };
 }
 
-function guidedPrompt() {
+const guidedPrompt = function () {
     if (!state.guided?.active) return null;
     const isCorner = state.guided.phase === 'corners';
     const prompt = validGuidedTargets(guidedCube(isCorner), isCorner);
@@ -1515,7 +1553,7 @@ function guidedPrompt() {
     }
     state.guided.complete = true;
     return { complete: true, isCorner: true, phase: 'complete' };
-}
+};
 
 function guidedAcceptedRaw() {
     if (!state.guided) return [];
@@ -1608,6 +1646,7 @@ function generateReferenceCycles(cube, isCorner, bufferLetter) {
     const testCube = [...cube];
     const stickers = isCorner ? cornerStickers : edgeStickers;
     const bPiece = stickers.find((piece) => piece.letters.includes(bufferLetter));
+    if (!bPiece) return { pairs: [], rawLetters: [], testCube, solved: false };
     const rawLetters = [];
     let guard = 0;
     while (guard < 80) {
@@ -1674,8 +1713,9 @@ function sourceClass(source) {
 }
 
 function renderDictionary(pairs) {
-    if (!pairs.length) return '<div class="empty-line">No pairs needed</div>';
-    return pairs.map((pair) => {
+    const completePairs = pairs.filter((pair) => pair.length === 2);
+    if (!completePairs.length) return '<div class="empty-line">No complete pairs yet</div>';
+    return completePairs.map((pair) => {
         const entries = dictionaryEntries(pair, 5);
         const content = entries.length ? entries.map((entry) => {
             const sources = entry.sources.map((source) => '<span class="source-dot ' + sourceClass(source) + '" title="' + escapeHtml(source) + '"></span>').join('');
@@ -1717,7 +1757,7 @@ function renderCycles(target, ref, bufferLetter, isCorner) {
             const selected = state.focusedSticker === stickerIndex ? ' selected' : '';
             return '<button type="button" class="letter-chip cycle-letter' + selected + '" data-sticker="' + stickerIndex + '">' + escapeHtml(getCharDisplay(letter)) + '</button>';
         }).join('<span>→</span>');
-        const label = pair.length === 1 ? 'Parity' : '3-cycle';
+        const label = pair.length === 1 ? 'Odd target' : '3-cycle';
         const tail = pair.length === 1 ? '' : '<span>→</span><span class="cycle-buffer">[' + escapeHtml(getCharDisplay(bufferLetter)) + ']</span>';
         return '<div class="cycle-line"><span>' + label + '</span><span class="cycle-buffer">[' + escapeHtml(getCharDisplay(bufferLetter)) + ']</span><span>→</span>' + middle + tail + '</div>';
     }).join('');
@@ -1739,7 +1779,12 @@ function renderCubeNet() {
     const prompt = guidedPrompt();
     const activeSticker = state.highlighted ?? state.focusedSticker;
     const guideBuffer = new Set(prompt?.bPiece?.indices || []);
-    const guideTarget = new Set((prompt?.targetPieces || prompt?.targetPiece ? prompt.targetPieces || [prompt.targetPiece] : []).flatMap((piece) => piece.indices));
+    const guideTarget = new Set();
+    if (prompt?.targetPieces?.length) {
+        for (const piece of prompt.targetPieces) piece.indices.forEach((idx) => guideTarget.add(idx));
+    } else if (prompt?.targetPiece) {
+        prompt.targetPiece.indices.forEach((idx) => guideTarget.add(idx));
+    }
     els.cubeNet.innerHTML = cells.map((faceIndex) => {
         if (faceIndex === null) return '<div></div>';
         const stickers = Array.from({ length: 9 }, (_, index) => {
@@ -1750,7 +1795,8 @@ function renderCubeNet() {
             const dim = activeSticker !== null && !hot;
             const buffer = letter === state.edgeBuffer || letter === state.cornerBuffer;
             const guideClass = (guideBuffer.has(stateIndex) ? 'guide-buffer ' : '') + (guideTarget.has(stateIndex) ? 'guide-target ' : '');
-            return '<button type="button" tabindex="-1" aria-hidden="true" class="sticker ' + (DARK_FACE.has(color) ? 'dark ' : '') + (buffer ? 'buffer ' : '') + guideClass + (hot ? 'hot ' : '') + (dim ? 'dim ' : '') + '" style="background:' + FACE_COLORS[color] + '" data-sticker="' + stateIndex + '"><span>' + escapeHtml(getCharDisplay(letter)) + '</span></button>';
+            const showLetter = !(prompt && guideTarget.has(stateIndex) && !guideBuffer.has(stateIndex));
+            return '<button type="button" tabindex="-1" aria-hidden="true" class="sticker ' + (DARK_FACE.has(color) ? 'dark ' : '') + (buffer ? 'buffer ' : '') + guideClass + (hot ? 'hot ' : '') + (dim ? 'dim ' : '') + '" style="background:' + FACE_COLORS[color] + '" data-sticker="' + stateIndex + '"><span>' + (showLetter ? escapeHtml(getCharDisplay(letter)) : '') + '</span></button>';
         }).join('');
         return '<div class="face">' + stickers + '</div>';
     }).join('');
@@ -1798,14 +1844,14 @@ function selectedPiece() {
 function guidedTwistyMask() {
     const prompt = guidedPrompt();
     if (!state.viewerFocus || !prompt || prompt.complete) return null;
-    const edges = Array.from({ length: 12 }, () => facelets('invisible', 2));
-    const corners = Array.from({ length: 8 }, () => facelets('invisible', 3));
-    const centers = Array.from({ length: 6 }, () => facelets('invisible', 1));
+    const edges = Array.from({ length: 12 }, () => facelets('dim', 2));
+    const corners = Array.from({ length: 8 }, () => facelets('dim', 3));
+    const centers = Array.from({ length: 6 }, () => facelets('dim', 1));
     const nativePieces = prompt.isCorner ? corners : edges;
     const nativeIndex = prompt.isCorner ? NATIVE_CORNER_INDEX : NATIVE_EDGE_INDEX;
     nativePieces[nativeIndex[prompt.bPiece.id]] = facelets('regular', prompt.isCorner ? 3 : 2);
     if (prompt.mode === 'forced') {
-        nativePieces[nativeIndex[prompt.targetPiece.id]] = faceletMask(prompt.targetPiece, prompt.validTargets[0], 'regular', 'invisible');
+        nativePieces[nativeIndex[prompt.targetPiece.id]] = facelets('regular', prompt.isCorner ? 3 : 2);
     } else {
         for (const piece of prompt.targetPieces || []) {
             nativePieces[nativeIndex[piece.id]] = facelets('regular', prompt.isCorner ? 3 : 2);
@@ -1825,9 +1871,9 @@ function selectedTwistyMask() {
     const piece = selectedPiece();
     if (!state.viewerFocus || !piece) return null;
     const isCorner = piece.indices.length === 3;
-    const edges = Array.from({ length: 12 }, () => facelets('invisible', 2));
-    const corners = Array.from({ length: 8 }, () => facelets('invisible', 3));
-    const centers = Array.from({ length: 6 }, () => facelets('invisible', 1));
+    const edges = Array.from({ length: 12 }, () => facelets('dim', 2));
+    const corners = Array.from({ length: 8 }, () => facelets('dim', 3));
+    const centers = Array.from({ length: 6 }, () => facelets('dim', 1));
     if (isCorner) {
         corners[NATIVE_CORNER_INDEX[piece.id]] = facelets('regular', 3);
     } else {
@@ -1856,13 +1902,8 @@ function fullTwistyMask() {
 
 function applyTwistyFocusMask() {
     if (!twistyPlayer) return;
-    const mask = guidedTwistyMask() || selectedTwistyMask();
-    if (mask) {
-        twistyPlayer.experimentalStickeringMaskOrbits = mask;
-    } else {
-        twistyPlayer.experimentalStickeringMaskOrbits = fullTwistyMask();
-        twistyPlayer.experimentalStickering = 'full';
-    }
+    twistyPlayer.experimentalStickeringMaskOrbits = null;
+    twistyPlayer.experimentalStickering = 'full';
     els.viewerFocusBtn.classList.toggle('active', state.viewerFocus);
     els.viewerFocusText.textContent = state.guided?.active ? 'Focus locked' : state.viewerFocus ? 'Focus on' : 'Focus off';
 }
@@ -1952,6 +1993,7 @@ function renderGuided() {
     const edgePairs = rawToPairs(state.guided.edgeRaw);
     const cornerPairs = rawToPairs(state.guided.cornerRaw);
     const joinedPairs = [...edgePairs, ...cornerPairs];
+    const completePairs = joinedPairs.filter((pair) => pair.length === 2);
     els.guidedLog.innerHTML = guidedAcceptedRaw().length ? guidedAcceptedRaw().map((letter) => '<span class="letter-chip ok">' + escapeHtml(getCharDisplay(letter)) + '</span>').join('') : '';
     els.guidedFeedback.className = 'guided-feedback ' + (state.guided.lastCorrect === false ? 'bad' : state.guided.lastCorrect === true ? 'ok' : '');
     els.guidedFeedback.textContent = state.guided.feedback;
@@ -1967,7 +2009,7 @@ function renderGuided() {
         els.guidedSubmitBtn.disabled = true;
         els.guidedInput.disabled = true;
         els.guidedInput.placeholder = '';
-        if (joinedPairs.length) els.guidedLog.innerHTML += '<div class="dict-grid">' + renderDictionary(joinedPairs.slice(-4)) + '</div>';
+        if (completePairs.length) els.guidedLog.innerHTML += '<div class="dict-grid">' + renderDictionary(completePairs.slice(-4)) + '</div>';
         return;
     }
     els.guidedSubmitBtn.disabled = false;
@@ -1977,17 +2019,22 @@ function renderGuided() {
     els.guidedBuffer.textContent = stickerLabel(guidedBufferLetter(prompt.isCorner));
     els.guidedBufferMeta.textContent = phaseLabel + ' buffer';
     els.guidedTarget.textContent = 'Look at cube';
-    els.guidedTargetMeta.textContent = 'Only buffer and current piece are visible.';
+    els.guidedTargetMeta.textContent = 'Blue outline is buffer. Gold outline is the current piece.';
     els.guidedChoices.textContent = '';
     els.guidedInput.placeholder = 'Letter';
-    els.guidedPrompt.textContent = state.viewerFocus ? prompt.mode === 'forced' ? 'Enter the visible destination sticker.' : 'Choose a sticker on the isolated unsolved piece.' : 'Focus is off. Use the full cube or turn focus on to isolate the target.';
-    if (joinedPairs.length) els.guidedLog.innerHTML += '<div class="dict-grid">' + renderDictionary(joinedPairs.slice(-4)) + '</div>';
+    els.guidedPrompt.textContent = state.viewerFocus ? prompt.mode === 'forced' ? 'Identify the sticker position of the gold piece and type its letter.' : 'Choose a sticker on the gold unsolved piece.' : 'Focus is off. Use the full cube or turn focus on to isolate the target.';
+    if (completePairs.length) els.guidedLog.innerHTML += '<div class="dict-grid">' + renderDictionary(completePairs.slice(-4)) + '</div>';
 }
 
 function render() {
     const guidedActive = Boolean(state.guided?.active);
+    const schemeCheck = validateScheme(state.schemeDraft);
     els.dbStats.textContent = db.pairCount + ' pairs / ' + db.entryCount + ' images';
-    els.schemeInput.value = state.scheme;
+    els.schemeInput.value = state.schemeDraft;
+    els.schemeInput.classList.toggle('invalid', !schemeCheck.valid);
+    els.schemeInput.setAttribute('aria-invalid', String(!schemeCheck.valid));
+    els.schemeStatus.textContent = schemeCheck.valid ? state.schemeStatus : schemeCheck.message;
+    els.schemeStatus.classList.toggle('bad', !schemeCheck.valid);
     els.edgeBufferLabel.textContent = 'Buffer [' + stickerLabel(state.edgeBuffer) + ']';
     els.cornerBufferLabel.textContent = 'Buffer [' + stickerLabel(state.cornerBuffer) + ']';
     els.scrambleText.textContent = state.scramble || 'Loading...';
@@ -1999,6 +2046,7 @@ function render() {
     els.guidedBtn.setAttribute('aria-controls', 'guidedPanel');
     els.viewerFocusBtn.disabled = guidedActive;
     els.viewerFocusBtn.setAttribute('aria-pressed', String(state.viewerFocus));
+    [els.edgeBuffer, els.cornerBuffer, els.schemeInput, els.speffzBtn, els.hiraganaBtn].forEach((control) => { control.disabled = guidedActive; });
     els.viewerPanel.classList.toggle('blind', state.blind);
     els.trainerRoot.classList.toggle('guided-active', guidedActive);
     els.analysisPanel.classList.toggle('open', state.analysisOpen);
@@ -2089,7 +2137,19 @@ function scoreMemo() {
 }
 
 function setScheme(value) {
-    state.scheme = Array.from(value).slice(0, 24).join('');
+    const draft = normalizeScheme(value);
+    const check = validateScheme(draft);
+    state.schemeDraft = draft;
+    state.schemeStatus = check.message;
+    if (!check.valid) {
+        render();
+        return;
+    }
+    if (state.scheme === draft) {
+        render();
+        return;
+    }
+    state.scheme = draft;
     localStorage.setItem('bld_trainer_scheme', state.scheme);
     resetSession();
     render();
@@ -2147,9 +2207,7 @@ function bindEvents() {
         state.edgeBuffer = els.edgeBuffer.value;
         localStorage.setItem('bld_trainer_edge_buffer', state.edgeBuffer);
         localStorage.setItem('bld_trainer_edge_buffer_user_set', '1');
-        state.guided = null;
-        state.focusedSticker = null;
-        state.highlighted = null;
+        resetSession();
         recomputeReferences();
         render();
         focusTwistyCamera();
@@ -2157,9 +2215,7 @@ function bindEvents() {
     els.cornerBuffer.addEventListener('change', () => {
         state.cornerBuffer = els.cornerBuffer.value;
         localStorage.setItem('bld_trainer_corner_buffer', state.cornerBuffer);
-        state.guided = null;
-        state.focusedSticker = null;
-        state.highlighted = null;
+        resetSession();
         recomputeReferences();
         render();
         focusTwistyCamera();
@@ -2187,7 +2243,7 @@ function bindEvents() {
     });
 }
 
-window.__BLD_TRAINER__ = { state, generateScramble, generateReferenceCycles, validateExecution, parseInputToSpeffz, rawToPairs, dictionaryEntries, scoreMemo, newScramble, loadInitialScramble, isValidScramble, startGuidedPractice, stopGuidedPractice, submitGuidedLetter, guidedPrompt };
+window.__BLD_TRAINER__ = { state, generateScramble, generateReferenceCycles, validateExecution, parseInputToSpeffz, rawToPairs, dictionaryEntries, scoreMemo, newScramble, loadInitialScramble, isValidScramble, startGuidedPractice, stopGuidedPractice, submitGuidedLetter };
 
 setIcons();
 bindEvents();
