@@ -772,6 +772,12 @@ select:focus {
     border-color: rgba(194, 255, 77, 0.7);
 }
 
+.letter-chip.selected {
+    border-color: rgba(122, 169, 255, 0.95);
+    box-shadow: 0 0 0 2px rgba(122, 169, 255, 0.35), 0 0 18px rgba(122, 169, 255, 0.28);
+    color: #ffffff;
+}
+
 .empty-line {
     color: var(--quiet);
     font: 700 12px/1.4 "IBM Plex Mono", monospace;
@@ -1677,8 +1683,10 @@ function renderLetterStream(rawLetters, validation, isCorner) {
     if (!rawLetters.length) return '<span class="empty-line">Solved</span>';
     return rawLetters.map((letter, index) => {
         const result = validation?.[index];
-        const cls = result ? result.correct ? 'ok' : 'bad' : '';
-        return '<button type="button" class="letter-chip ' + cls + '" data-sticker="' + getStickerIndex(letter, isCorner) + '">' + escapeHtml(getCharDisplay(letter)) + '</button>';
+        const stickerIndex = getStickerIndex(letter, isCorner);
+        const selected = state.focusedSticker === stickerIndex ? 'selected' : '';
+        const cls = [result ? result.correct ? 'ok' : 'bad' : '', selected].filter(Boolean).join(' ');
+        return '<button type="button" class="letter-chip ' + cls + '" data-sticker="' + stickerIndex + '">' + escapeHtml(getCharDisplay(letter)) + '</button>';
     }).join('');
 }
 
@@ -1698,7 +1706,11 @@ function renderCycles(target, ref, bufferLetter, isCorner) {
     }
     target.innerHTML = ref.pairs.map((pair) => {
         const chars = pair.split('');
-        const middle = chars.map((letter) => '<button type="button" class="letter-chip cycle-letter" data-sticker="' + getStickerIndex(letter, isCorner) + '">' + escapeHtml(getCharDisplay(letter)) + '</button>').join('<span>→</span>');
+        const middle = chars.map((letter) => {
+            const stickerIndex = getStickerIndex(letter, isCorner);
+            const selected = state.focusedSticker === stickerIndex ? ' selected' : '';
+            return '<button type="button" class="letter-chip cycle-letter' + selected + '" data-sticker="' + stickerIndex + '">' + escapeHtml(getCharDisplay(letter)) + '</button>';
+        }).join('<span>→</span>');
         const label = pair.length === 1 ? 'Parity' : '3-cycle';
         const tail = pair.length === 1 ? '' : '<span>→</span><span class="cycle-buffer">[' + escapeHtml(getCharDisplay(bufferLetter)) + ']</span>';
         return '<div class="cycle-line"><span>' + label + '</span><span class="cycle-buffer">[' + escapeHtml(getCharDisplay(bufferLetter)) + ']</span><span>→</span>' + middle + tail + '</div>';
@@ -1897,6 +1909,7 @@ function resetTwistyView() {
     twistyPlayer.setAttribute('camera-longitude', '45');
     applyTwistyFocusMask();
     renderCubeNet();
+    renderResult();
     els.viewerViewBtn.classList.remove('active');
     els.viewerViewText.textContent = 'View piece';
     setViewerStatus('Saved scramble · default view');
@@ -2156,6 +2169,7 @@ function bindEvents() {
         state.highlighted = null;
         applyTwistyFocusMask();
         renderCubeNet();
+        renderResult();
         focusTwistyCamera();
     });
 }
