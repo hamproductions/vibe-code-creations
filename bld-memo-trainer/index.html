@@ -338,7 +338,7 @@ input.invalid {
 .twisty-box,
 .blind-box {
     position: relative;
-    height: 340px;
+    height: 280px;
     border-radius: 8px;
     border: 1px solid var(--line);
     background: radial-gradient(circle at center, #11170f 0, #030403 74%);
@@ -352,8 +352,23 @@ input.invalid {
     filter: saturate(1.08) contrast(1.08);
 }
 
+.twisty-box::after {
+    content: "";
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    height: 96px;
+    background: #050705;
+    pointer-events: none;
+}
+
 .layout.guided-active .twisty-box {
     height: 220px;
+}
+
+.layout.guided-active .twisty-box::after {
+    display: none;
 }
 
 .blind-box {
