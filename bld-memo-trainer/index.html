@@ -439,15 +439,16 @@ input.invalid {
 }
 
 .twisty-box::after {
-    display: none;
+    display: block;
     content: "";
     position: absolute;
     left: 0;
     right: 0;
     bottom: 0;
-    height: 96px;
+    height: 72px;
     background: #050705;
-    pointer-events: auto;
+    pointer-events: none;
+    z-index: 3;
 }
 
 .layout.guided-active .twisty-box {
@@ -455,7 +456,7 @@ input.invalid {
 }
 
 .layout.guided-active .twisty-box::after {
-    display: none;
+    display: block;
 }
 
 .blind-box {
@@ -1719,6 +1720,7 @@ function startGuidedPractice() {
         edgeRaw: [],
         cornerRaw: [],
         feedback: '',
+        misses: 0,
         lastCorrect: null
     };
     state.answerOpen = false;
@@ -1762,7 +1764,8 @@ function submitGuidedLetter(value = els.guidedInput.value) {
     if (!prompt || prompt.complete) return { accepted: false, reason: 'complete' };
     state.guided.phase = prompt.phase;
     if (!prompt.validTargets.includes(letter)) {
-        state.guided.feedback = getCharDisplay(letter) + ' is not valid for this highlighted slot.';
+        state.guided.misses += 1;
+        state.guided.feedback = state.guided.misses > 1 ? getCharDisplay(letter) + ' is still wrong. Match the live preview colors to the outlined slot.' : getCharDisplay(letter) + ' is not valid for this highlighted slot.';
         state.guided.lastCorrect = false;
         render();
         els.guidedInput.focus();
@@ -1778,6 +1781,7 @@ function submitGuidedLetter(value = els.guidedInput.value) {
     } else {
         els.edgesMemo.value = state.guided.edgeRaw.map((item) => getCharDisplay(item)).join('');
     }
+    state.guided.misses = 0;
     state.guided.lastCorrect = true;
     const nextPrompt = advanceGuidedState();
     state.guided.feedback = nextPrompt?.complete ? 'Guided practice complete.' : 'Accepted ' + getCharDisplay(letter) + '. Next slot ready.';
@@ -2241,7 +2245,6 @@ function renderGuided() {
     const edgePairs = rawToPairs(state.guided.edgeRaw);
     const cornerPairs = rawToPairs(state.guided.cornerRaw);
     const joinedPairs = [...edgePairs, ...cornerPairs];
-    const completePairs = joinedPairs.filter((pair) => pair.length === 2);
     els.guidedLog.innerHTML = guidedAcceptedRaw().length ? guidedAcceptedRaw().map((letter) => '<span class="letter-chip ok">' + escapeHtml(getCharDisplay(letter)) + '</span>').join('') : '';
     els.guidedFeedback.className = 'guided-feedback ' + (state.guided.lastCorrect === false ? 'bad' : state.guided.lastCorrect === true ? 'ok' : '');
     els.guidedFeedback.textContent = state.guided.feedback;
@@ -2258,6 +2261,7 @@ function renderGuided() {
         els.guidedSubmitBtn.disabled = true;
         els.guidedInput.disabled = true;
         els.guidedInput.placeholder = '';
+        const completePairs = joinedPairs.filter((pair) => pair.length === 2);
         if (completePairs.length) els.guidedLog.innerHTML += '<div class="dict-grid">' + renderDictionary(completePairs.slice(-4)) + '</div>';
         return;
     }
@@ -2271,9 +2275,8 @@ function renderGuided() {
     els.guidedTargetMeta.textContent = guidedTargetMeta(prompt);
     els.guidedChoices.hidden = false;
     els.guidedChoices.innerHTML = renderFocusSwatches(prompt);
-    els.guidedInput.placeholder = 'Letter';
+    els.guidedInput.placeholder = 'Sticker';
     els.guidedPrompt.textContent = state.viewerFocus ? guidedActionText(prompt) : 'Focus is off. Use the full cube or turn focus on to isolate the target.';
-    if (completePairs.length) els.guidedLog.innerHTML += '<div class="dict-grid">' + renderDictionary(completePairs.slice(-4)) + '</div>';
 }
 
 function render() {
