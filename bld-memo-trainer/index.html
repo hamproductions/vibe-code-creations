@@ -2066,6 +2066,7 @@ function render() {
     els.scrambleText.textContent = state.scramble || 'Loading...';
     els.blindText.textContent = guidedActive ? 'Cube visible' : state.blind ? 'Show cube' : 'Hide cube';
     els.blindBtn.disabled = guidedActive;
+    els.newBtn.disabled = guidedActive;
     els.blindBtn.classList.toggle('active', state.blind);
     els.blindBtn.setAttribute('aria-pressed', String(state.blind));
     els.guidedBtn.setAttribute('aria-expanded', String(guidedActive));
