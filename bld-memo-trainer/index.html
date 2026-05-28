@@ -2102,6 +2102,10 @@ function bindEvents() {
     els.viewerViewBtn.addEventListener('click', focusTwistyCamera);
     els.viewerFocusBtn.addEventListener('click', () => {
         state.viewerFocus = !state.viewerFocus;
+        if (!state.viewerFocus) {
+            state.focusedSticker = null;
+            state.highlighted = null;
+        }
         render();
         focusTwistyCamera();
     });
