@@ -1559,16 +1559,26 @@ function validGuidedTargets(cube, isCorner) {
 
 const guidedPrompt = function () {
     if (!state.guided?.active) return null;
-    const isCorner = state.guided.phase === 'corners';
-    const prompt = validGuidedTargets(guidedCube(isCorner), isCorner);
-    if (prompt) return { ...prompt, isCorner, phase: state.guided.phase };
     if (state.guided.phase === 'edges') {
-        state.guided.phase = 'corners';
-        return guidedPrompt();
+        const edgePrompt = validGuidedTargets(state.guided.edgeCube, false);
+        if (edgePrompt) return { ...edgePrompt, isCorner: false, phase: 'edges' };
     }
-    state.guided.complete = true;
+    const cornerPrompt = validGuidedTargets(state.guided.cornerCube, true);
+    if (cornerPrompt) return { ...cornerPrompt, isCorner: true, phase: 'corners' };
     return { complete: true, isCorner: true, phase: 'complete' };
 };
+
+function advanceGuidedState() {
+    const prompt = guidedPrompt();
+    if (!prompt) return null;
+    if (prompt.complete) {
+        state.guided.complete = true;
+        state.guided.phase = 'complete';
+    } else {
+        state.guided.phase = prompt.phase;
+    }
+    return prompt;
+}
 
 function guidedAcceptedRaw() {
     if (!state.guided) return [];
@@ -1630,6 +1640,7 @@ function submitGuidedLetter(value = els.guidedInput.value) {
     const letter = parsed.parsed[0];
     const prompt = guidedPrompt();
     if (!prompt || prompt.complete) return { accepted: false, reason: 'complete' };
+    state.guided.phase = prompt.phase;
     if (!prompt.validTargets.includes(letter)) {
         state.guided.feedback = getCharDisplay(letter) + ' does not match the focused piece.';
         state.guided.lastCorrect = false;
@@ -1649,7 +1660,7 @@ function submitGuidedLetter(value = els.guidedInput.value) {
     }
     state.guided.feedback = 'Accepted ' + getCharDisplay(letter) + '.';
     state.guided.lastCorrect = true;
-    const nextPrompt = guidedPrompt();
+    const nextPrompt = advanceGuidedState();
     if (nextPrompt?.complete) state.guided.feedback = 'Guided practice complete.';
     render();
     focusTwistyCamera();
