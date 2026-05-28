@@ -2044,11 +2044,11 @@ function renderGuided() {
     els.guidedPhase.textContent = phaseLabel + ' · ' + prompt.mode;
     els.guidedBuffer.textContent = stickerLabel(guidedBufferLetter(prompt.isCorner));
     els.guidedBufferMeta.textContent = phaseLabel + ' buffer';
-    els.guidedTarget.textContent = 'Look at cube';
-    els.guidedTargetMeta.textContent = 'Blue outline is buffer. Gold outline is the current piece.';
+    els.guidedTarget.textContent = prompt.mode === 'forced' ? 'Current piece' : prompt.mode === 'break' ? 'Cycle break' : 'Buffer twist';
+    els.guidedTargetMeta.textContent = prompt.mode === 'forced' ? 'Gold piece is at the buffer. Its letters are hidden.' : prompt.mode === 'break' ? 'Gold piece is an unsolved piece to start from.' : 'Gold buffer piece is twisted; avoid the buffer sticker.';
     els.guidedChoices.textContent = '';
     els.guidedInput.placeholder = 'Letter';
-    els.guidedPrompt.textContent = state.viewerFocus ? prompt.mode === 'forced' ? 'Identify the sticker position of the gold piece and type its letter.' : 'Choose a sticker on the gold unsolved piece.' : 'Focus is off. Use the full cube or turn focus on to isolate the target.';
+    els.guidedPrompt.textContent = state.viewerFocus ? prompt.mode === 'forced' ? 'Use the gold piece colors and net position to type the matching sticker letter.' : 'Type a sticker from the gold highlighted piece.' : 'Focus is off. Use the full cube or turn focus on to isolate the target.';
     if (completePairs.length) els.guidedLog.innerHTML += '<div class="dict-grid">' + renderDictionary(completePairs.slice(-4)) + '</div>';
 }
 
