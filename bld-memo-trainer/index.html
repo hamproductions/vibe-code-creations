@@ -1168,7 +1168,7 @@ input.invalid {
                         </div>
                         <div class="guided-main">
                             <div class="guided-cue">
-                                <span class="guided-card-label">Isolated piece</span>
+                                <span class="guided-card-label">Practice piece</span>
                                 <strong id="guidedTarget"></strong>
                                 <span class="guided-card-meta" id="guidedTargetMeta"></span>
                                 <span id="guidedChoices" hidden></span>
@@ -1459,6 +1459,13 @@ function performSwap(cube, bPiece, tPiece, targetLetter, bufferLetter) {
     const targetIndices = [...tPiece.indices.slice(targetLetterIndex), ...tPiece.indices.slice(0, targetLetterIndex)];
     const bufferLetterIndex = bPiece.letters.indexOf(bufferLetter);
     const bufferIndices = [...bPiece.indices.slice(bufferLetterIndex), ...bPiece.indices.slice(0, bufferLetterIndex)];
+    if (bPiece.id === tPiece.id) {
+        const values = bufferIndices.map((idx) => cube[idx]);
+        for (let i = 0; i < bufferIndices.length; i += 1) {
+            cube[targetIndices[i]] = values[i];
+        }
+        return;
+    }
     for (let i = 0; i < bufferIndices.length; i += 1) {
         const temp = cube[targetIndices[i]];
         cube[targetIndices[i]] = cube[bufferIndices[i]];
@@ -1806,11 +1813,7 @@ function renderCubeNet() {
     const activeSticker = state.highlighted ?? state.focusedSticker;
     const guideBuffer = new Set(prompt?.bPiece?.indices || []);
     const guideTarget = new Set();
-    if (prompt?.targetPieces?.length) {
-        for (const piece of prompt.targetPieces) piece.indices.forEach((idx) => guideTarget.add(idx));
-    } else if (prompt?.targetPiece) {
-        prompt.targetPiece.indices.forEach((idx) => guideTarget.add(idx));
-    }
+    for (const piece of guidedNetPieces(prompt)) piece.indices.forEach((idx) => guideTarget.add(idx));
     els.cubeNet.innerHTML = cells.map((faceIndex) => {
         if (faceIndex === null) return '<div></div>';
         const stickers = Array.from({ length: 9 }, (_, index) => {
@@ -1821,7 +1824,7 @@ function renderCubeNet() {
             const dim = activeSticker !== null && !hot;
             const buffer = letter === state.edgeBuffer || letter === state.cornerBuffer;
             const guideClass = (guideBuffer.has(stateIndex) ? 'guide-buffer ' : '') + (guideTarget.has(stateIndex) ? 'guide-target ' : '');
-            const showLetter = !(prompt && guideTarget.has(stateIndex) && !guideBuffer.has(stateIndex));
+            const showLetter = !(prompt && guideTarget.has(stateIndex));
             return '<button type="button" tabindex="-1" aria-hidden="true" class="sticker ' + (DARK_FACE.has(color) ? 'dark ' : '') + (buffer ? 'buffer ' : '') + guideClass + (hot ? 'hot ' : '') + (dim ? 'dim ' : '') + '" style="background:' + FACE_COLORS[color] + '" data-sticker="' + stateIndex + '"><span>' + (showLetter ? escapeHtml(getCharDisplay(letter)) : '') + '</span></button>';
         }).join('');
         return '<div class="face">' + stickers + '</div>';
@@ -1851,12 +1854,20 @@ function renderTwisty() {
     focusTwistyCamera();
 }
 
-function facelets(mask, length = 5) {
-    return { facelets: Array.from({ length }, () => mask) };
+function facelets(mask) {
+    return { facelets: Array.from({ length: 5 }, () => mask) };
 }
 
-function faceletMask(piece, activeLetter, visibleMask, hiddenMask) {
-    return { facelets: piece.letters.map((letter) => letter === activeLetter ? visibleMask : hiddenMask) };
+function guidedNetPieces(prompt) {
+    if (!prompt || prompt.complete) return [];
+    if (prompt.mode === 'forced') return [prompt.bPiece];
+    return prompt.targetPieces?.length ? prompt.targetPieces : prompt.targetPiece ? [prompt.targetPiece] : [];
+}
+
+function guidedTwistyPieces(prompt) {
+    if (!prompt || prompt.complete) return [];
+    if (prompt.mode === 'forced') return [prompt.targetPiece];
+    return prompt.targetPieces?.length ? prompt.targetPieces : prompt.targetPiece ? [prompt.targetPiece] : [];
 }
 
 function pieceFromSticker(stickerIndex) {
@@ -1870,21 +1881,15 @@ function selectedPiece() {
 function guidedTwistyMask() {
     const prompt = guidedPrompt();
     if (!state.viewerFocus || !prompt || prompt.complete) return null;
-    const edges = Array.from({ length: 12 }, () => facelets('dim', 2));
-    const corners = Array.from({ length: 8 }, () => facelets('dim', 3));
-    const centers = Array.from({ length: 6 }, () => facelets('dim', 1));
+    const edges = Array.from({ length: 12 }, () => facelets('ignored'));
+    const corners = Array.from({ length: 8 }, () => facelets('ignored'));
+    const centers = Array.from({ length: 6 }, () => facelets('ignored'));
     const nativePieces = prompt.isCorner ? corners : edges;
     const nativeIndex = prompt.isCorner ? NATIVE_CORNER_INDEX : NATIVE_EDGE_INDEX;
-    nativePieces[nativeIndex[prompt.bPiece.id]] = facelets('regular', prompt.isCorner ? 3 : 2);
-    if (prompt.mode === 'forced') {
-        nativePieces[nativeIndex[prompt.targetPiece.id]] = facelets('regular', prompt.isCorner ? 3 : 2);
-    } else {
-        for (const piece of prompt.targetPieces || []) {
-            nativePieces[nativeIndex[piece.id]] = facelets('regular', prompt.isCorner ? 3 : 2);
-        }
+    for (const piece of guidedTwistyPieces(prompt)) {
+        nativePieces[nativeIndex[piece.id]] = facelets('regular');
     }
     return {
-        name: 'guided-focus',
         orbits: {
             EDGES: { pieces: edges },
             CORNERS: { pieces: corners },
@@ -1897,16 +1902,15 @@ function selectedTwistyMask() {
     const piece = selectedPiece();
     if (!state.viewerFocus || !piece) return null;
     const isCorner = piece.indices.length === 3;
-    const edges = Array.from({ length: 12 }, () => facelets('dim', 2));
-    const corners = Array.from({ length: 8 }, () => facelets('dim', 3));
-    const centers = Array.from({ length: 6 }, () => facelets('dim', 1));
+    const edges = Array.from({ length: 12 }, () => facelets('ignored'));
+    const corners = Array.from({ length: 8 }, () => facelets('ignored'));
+    const centers = Array.from({ length: 6 }, () => facelets('ignored'));
     if (isCorner) {
-        corners[NATIVE_CORNER_INDEX[piece.id]] = facelets('regular', 3);
+        corners[NATIVE_CORNER_INDEX[piece.id]] = facelets('regular');
     } else {
-        edges[NATIVE_EDGE_INDEX[piece.id]] = facelets('regular', 2);
+        edges[NATIVE_EDGE_INDEX[piece.id]] = facelets('regular');
     }
     return {
-        name: 'selected-focus',
         orbits: {
             EDGES: { pieces: edges },
             CORNERS: { pieces: corners },
@@ -1917,19 +1921,28 @@ function selectedTwistyMask() {
 
 function fullTwistyMask() {
     return {
-        name: 'full-view',
         orbits: {
-            EDGES: { pieces: Array.from({ length: 12 }, () => facelets('regular', 2)) },
-            CORNERS: { pieces: Array.from({ length: 8 }, () => facelets('regular', 3)) },
-            CENTERS: { pieces: Array.from({ length: 6 }, () => facelets('regular', 1)) }
+            EDGES: { pieces: Array.from({ length: 12 }, () => facelets('regular')) },
+            CORNERS: { pieces: Array.from({ length: 8 }, () => facelets('regular')) },
+            CENTERS: { pieces: Array.from({ length: 6 }, () => facelets('regular')) }
         }
     };
 }
 
+function setTwistyMask(mask) {
+    const player = twistyPlayer;
+    if (!player) return;
+    customElements.whenDefined('twisty-player').then(() => {
+        if (twistyPlayer !== player) return;
+        delete player.experimentalStickeringMaskOrbits;
+        player.experimentalStickeringMaskOrbits = mask;
+    });
+}
+
 function applyTwistyFocusMask() {
     if (!twistyPlayer) return;
-    twistyPlayer.experimentalStickeringMaskOrbits = null;
     twistyPlayer.experimentalStickering = 'full';
+    setTwistyMask(guidedTwistyMask() || selectedTwistyMask() || fullTwistyMask());
     els.viewerFocusBtn.classList.toggle('active', state.viewerFocus);
     els.viewerFocusText.textContent = state.guided?.active ? 'Focus locked' : state.viewerFocus ? 'Focus on' : 'Focus off';
 }
@@ -2045,10 +2058,10 @@ function renderGuided() {
     els.guidedBuffer.textContent = stickerLabel(guidedBufferLetter(prompt.isCorner));
     els.guidedBufferMeta.textContent = phaseLabel + ' buffer';
     els.guidedTarget.textContent = prompt.mode === 'forced' ? 'Current piece' : prompt.mode === 'break' ? 'Cycle break' : 'Buffer twist';
-    els.guidedTargetMeta.textContent = prompt.mode === 'forced' ? 'Gold piece is at the buffer. Its letters are hidden.' : prompt.mode === 'break' ? 'Gold piece is an unsolved piece to start from.' : 'Gold buffer piece is twisted; avoid the buffer sticker.';
+    els.guidedTargetMeta.textContent = prompt.mode === 'forced' ? 'Gold net marks the buffer slot. 3D colors show the cubie there.' : prompt.mode === 'break' ? 'Gold piece is an unsolved piece to start from.' : 'Gold buffer piece is twisted; avoid the buffer sticker.';
     els.guidedChoices.textContent = '';
     els.guidedInput.placeholder = 'Letter';
-    els.guidedPrompt.textContent = state.viewerFocus ? prompt.mode === 'forced' ? 'Use the gold piece colors and net position to type the matching sticker letter.' : 'Type a sticker from the gold highlighted piece.' : 'Focus is off. Use the full cube or turn focus on to isolate the target.';
+    els.guidedPrompt.textContent = state.viewerFocus ? prompt.mode === 'forced' ? 'Type the destination sticker for the colored cubie sitting in the gold buffer slot.' : prompt.mode === 'break' ? 'Pick a sticker from the gold unsolved piece to start the next cycle.' : 'Type the non-buffer sticker for the gold twisted buffer piece.' : 'Focus is off. Use the full cube or turn focus on to isolate the target.';
     if (completePairs.length) els.guidedLog.innerHTML += '<div class="dict-grid">' + renderDictionary(completePairs.slice(-4)) + '</div>';
 }
 
