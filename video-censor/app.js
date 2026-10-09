@@ -3,13 +3,8 @@ const { useState, useEffect, useRef } = React;
 const VISION_VERSION = '0.10.3';
 const MODEL_BASE = 'https://storage.googleapis.com/mediapipe-models/image_segmenter';
 const MODELS = {
-  deeplab: {
-    label: 'DeepLab v3 (accurate, best for dark/odd scenes)',
-    url: `${MODEL_BASE}/deeplab_v3/float32/latest/deeplab_v3.tflite`,
-    person: (masks) => masks[15]
-  },
   multiclass: {
-    label: 'Selfie Multiclass (balanced)',
+    label: 'Selfie Multiclass (best accuracy)',
     url: `${MODEL_BASE}/selfie_multiclass_256x256/float32/latest/selfie_multiclass_256x256.tflite`,
     person: (masks) => masks[0] && { inverse: masks[0] }
   },
@@ -157,7 +152,7 @@ function App() {
 
   const [target, setTarget] = useState('full');
   const [style, setStyle] = useState('pixelate');
-  const [model, setModel] = useState('deeplab');
+  const [model, setModel] = useState('multiclass');
   const [pixelSize, setPixelSize] = useState(25);
   const [offset, setOffset] = useState(10);
   const [feather, setFeather] = useState(12);
