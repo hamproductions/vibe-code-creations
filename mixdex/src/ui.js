@@ -2,6 +2,7 @@ import { toRomaji as wkRomaji } from '../vendor/wanakana.mjs';
 import { toRomaji } from './romaji.js';
 import { t, getLang, trTrigger } from './i18n.js';
 import { getVocab } from './state.js';
+import { rowsOf } from './parse.js';
 
 export const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 export const $ = (sel, el = document) => el.querySelector(sel);
@@ -48,18 +49,7 @@ export const tokHtml = (token, ro, settings, cls = 'tok', extra = '') => {
   return `<span class="${cls}" ${extra}><span class="a">${esc(a)}</span>${b ? `<span class="b">${esc(b)}</span>` : ''}</span>`;
 };
 
-/** group tokens into stanza rows from a layout array (0 = stanza break) */
-export function rowsOf(n, layout) {
-  const sum = (layout || []).reduce((a, b) => a + b, 0);
-  const lay = sum === n && layout?.length ? layout : Array.from({ length: Math.ceil(n / 4) }, (_, i) => Math.min(4, n - i * 4));
-  const stanzas = [[]];
-  let idx = 0;
-  for (const c of lay) {
-    if (c === 0) { if (stanzas[stanzas.length - 1].length) stanzas.push([]); continue; }
-    stanzas[stanzas.length - 1].push(Array.from({ length: c }, () => idx++));
-  }
-  return stanzas.filter(s => s.length);
-}
+export { rowsOf };
 
 export const mixName = (m, lang = getLang()) => (lang === 'ja' && m.jp ? m.jp : m.name);
 export const mixSub = (m, lang = getLang()) => (lang === 'ja' ? m.name : m.jp);

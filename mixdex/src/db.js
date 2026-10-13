@@ -15,7 +15,8 @@ export const DEFAULT_SETTINGS = {
   sound: true,
   haptics: true,
   latency: 0,
-  revealLocked: true,
+  onboarded: false,
+  level: '',
 };
 
 let dx = null;
@@ -67,6 +68,13 @@ export async function loadAll() {
 export const loadSettings = async () => ({ ...DEFAULT_SETTINGS, ...((await api.getMeta('settings')) || {}) });
 export const saveSettings = s => api.setMeta('settings', s);
 export const saveProgress = p => api.put('progress', p, 'mixId');
+export const saveProgressBulk = rows => api.bulkPut('progress', rows, 'mixId');
+export async function saveMixes(rows) {
+  await api.bulkPut('mixes', rows.map(r => ({ ...r })), 'id');
+  const have = new Set((await api.all('progress')).map(p => p.mixId));
+  const missing = rows.filter(r => !have.has(r.id)).map(r => newProgress(r.id));
+  if (missing.length) await api.bulkPut('progress', missing, 'mixId');
+}
 export const logReview = r => api.put('reviews', r, 'id');
 export const loadReviews = () => api.all('reviews');
 export const getMeta = api.getMeta, setMeta = api.setMeta;

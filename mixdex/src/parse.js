@@ -130,3 +130,16 @@ export function parseSeedFile(raw) {
     return { name: en.trim(), jp: jp.trim(), category, timing: +timing, trigger, flags, comments, body };
   });
 }
+
+/** group tokens into stanza rows from a layout array (0 = stanza break) */
+export function rowsOf(n, layout) {
+  const sum = (layout || []).reduce((a, b) => a + b, 0);
+  const lay = sum === n && layout?.length ? layout : Array.from({ length: Math.ceil(n / 4) }, (_, i) => Math.min(4, n - i * 4));
+  const stanzas = [[]];
+  let idx = 0;
+  for (const c of lay) {
+    if (c === 0) { if (stanzas[stanzas.length - 1].length) stanzas.push([]); continue; }
+    stanzas[stanzas.length - 1].push(Array.from({ length: c }, () => idx++));
+  }
+  return stanzas.filter(s => s.length);
+}

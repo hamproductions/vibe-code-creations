@@ -1,7 +1,7 @@
 // MIXDEX service worker: precache the shell, then stale-while-revalidate for same-origin GETs.
-const CACHE = 'mixdex-v4';
+const CACHE = 'mixdex-v6';
 const SHELL = ['./', 'index.html', 'style.css', 'manifest.webmanifest', 'icon.svg',
-  'src/app.js', 'src/practice.js', 'src/ui.js', 'src/state.js', 'src/db.js', 'src/store.js', 'src/i18n.js', 'src/audio.js', 'src/engine.js',
+  'src/app.js', 'src/practice.js', 'src/onboarding.js', 'src/ui.js', 'src/state.js', 'src/db.js', 'src/store.js', 'src/i18n.js', 'src/audio.js', 'src/engine.js',
   'src/srs.js', 'src/interference.js', 'src/seed.js', 'src/seedText.js', 'src/parse.js', 'src/romaji.js', 'src/kanjiDict.js',
   'vendor/dexie.mjs', 'vendor/wanakana.mjs'];
 self.addEventListener('install', e => { e.waitUntil(caches.open(CACHE).then(c => c.addAll(SHELL)).then(() => self.skipWaiting())); });

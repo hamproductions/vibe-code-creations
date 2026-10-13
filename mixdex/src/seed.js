@@ -110,18 +110,23 @@ function fromCore(c) {
   };
 }
 
-function fromText(e) {
+export function entryToMix(e, opts = {}) {
+  return fromText(e, opts);
+}
+
+function fromText(e, opts = {}) {
   const p = parseBody(e.body);
   const flags = Object.fromEntries(e.flags.split(/\s+/).filter(Boolean).map(f => f.includes('=') ? f.split('=') : [f, true]));
-  const slug = flags.id || slugify(e.name);
+  let slug = flags.id || slugify(e.name) || 'mix-' + Math.random().toString(36).slice(2, 7);
+  if (opts.source === 'custom') slug = (opts.reserved?.has(slug) ? 'my-' : '') + slug;
   const bais = flags.b4 ? 4 : flags.b2 ? 2 : p.baisoku;
   const rd = (toks, hint) => toks.map((t, i) => (hint[i] ? toRomaji(hint[i]) : toRomaji(t)));
   return {
-    id: uuidFrom('mixdex:' + slug), slug, name: e.name, jp: e.jp, category: e.category, timing: e.timing,
+    id: uuidFrom((opts.source === 'custom' ? 'custom:' : 'mixdex:') + slug), slug, name: e.name, jp: e.jp, category: e.category, timing: e.timing,
     sequence: p.sequence, reading: rd(p.sequence, p.readingsHint), layout: p.layout,
     extension: p.extension, extReading: rd(p.extension, p.extHint), extLayout: p.extLayout, extTiming: 0,
     trigger_context: e.trigger, initiator: p.initiator ? toRomaji(p.initiator) : '', initiatorJp: p.initiator || '',
-    baisoku: bais, notes: [...e.comments, ...p.notes], source: 'seed', core: false,
+    baisoku: bais, notes: [...e.comments, ...p.notes], source: opts.source || 'seed', core: false,
   };
 }
 
@@ -140,4 +145,40 @@ export function buildSeed() {
     if (m.reading.length !== m.sequence.length) throw new Error('reading mismatch ' + m.slug);
   });
   return list;
+}
+
+export const LEVELS = ['beginner', 'regular', 'veteran', 'master'];
+
+/** slugs a fan of each level is assumed to already know (users can edit this in onboarding) */
+export function knownSlugs(level, mixes) {
+  const ordered = mixes.filter(m => m.source === 'seed').sort((a, b) => a.order - b.order);
+  const t1 = ordered.filter(m => m.tier === 1).map(m => m.slug), t2 = ordered.filter(m => m.tier === 2).map(m => m.slug);
+  if (level === 'regular') return ['standard', 'japanese', 'ainu-zenkyou'];
+  if (level === 'veteran') return [...t1, ...t2.slice(0, 8)];
+  if (level === 'master') return [...t1, ...t2];
+  return [];
+}
+export const LEVEL_SETTINGS = {
+  beginner: { newPerDay: 3, mode: 'bank', speed: 'off', bpm: 90, includeExt: false },
+  regular: { newPerDay: 5, mode: 'mixed', speed: 'off', bpm: 100, includeExt: false },
+  veteran: { newPerDay: 8, mode: 'mixed', speed: 'auto', bpm: 120, includeExt: true },
+  master: { newPerDay: 12, mode: 'rhythm', speed: 'auto', bpm: 140, includeExt: true },
+};
+/** what to learn next for a level: first few not-yet-known mixes (masters get the spicy ones) */
+export function nextUp(level, mixes, knownIds, n = 5) {
+  let c = mixes.filter(m => !knownIds.has(m.id));
+  if (level === 'master') c = c.sort((a, b) => (b.trending - a.trending) || ((b.baisoku || 0) - (a.baisoku || 0)) || (b.category === 'Advanced') - (a.category === 'Advanced') || a.order - b.order);
+  return c.slice(0, n);
+}
+
+/** serialise a mix back into the seed text DSL (for bulk editing) */
+export function mixToText(m, rowsOf) {
+  const flags = [`id=${m.slug}`, m.baisoku ? 'b' + m.baisoku : ''].filter(Boolean).join(' | ');
+  const head = `# ${m.name}${m.jp ? ' / ' + m.jp : ''} | ${m.category} | ${m.timing} | ${m.trigger_context || '—'} | ${flags}`;
+  const stanzas = (toks, layout) => rowsOf(toks.length, layout).map(st => st.map(r => r.map(i => toks[i]).join(' ')).join('\n'));
+  const out = [head, ...(m.notes || []).map(n => '> ' + n)];
+  if (m.initiatorJp) out.push('【発動】' + m.initiatorJp);
+  out.push(stanzas(m.sequence, m.layout).join('\n\n'));
+  if (m.extension?.length) out.push(...rowsOf(m.extension.length, m.extLayout).flat().map(r => '[' + r.map(i => m.extension[i]).join(' ') + ']'));
+  return out.join('\n');
 }

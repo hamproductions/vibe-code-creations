@@ -1,10 +1,12 @@
-import { openDb, syncSeed, loadAll, loadSettings, loadReviews, saveMix, deleteMix, exportAll, importAll, resetAll, storageMode } from './db.js';
-import { store, updateSettings } from './state.js';
+import { openDb, saveMixes, syncSeed, loadAll, loadSettings, loadReviews, saveMix, deleteMix, exportAll, importAll, resetAll, storageMode } from './db.js';
+import { store, updateSettings, bulkMark } from './state.js';
 import { STATUS, STATUS_ORDER } from './srs.js';
 import { countQueue } from './engine.js';
 import { parseBody } from './parse.js';
 import { toRomaji } from './romaji.js';
-import { uuidFrom, TIER_LABEL } from './seed.js';
+import { uuidFrom, entryToMix, mixToText, buildSeed } from './seed.js';
+import { parseSeedFile } from './parse.js';
+import { startOnboarding } from './onboarding.js';
 import { setLang, t, getLang } from './i18n.js';
 import { esc, $, $$, ICON, hueFor, tokHtml, rowsOf, mixName, mixSub, trig, openSheet, closeSheet, sheetOpen, toast, oshiSub, pct } from './ui.js';
 import { renderSetup, startSession, endSession, sessionActive, practiceAction, onBpmInput, onBpmChange } from './practice.js';
@@ -14,6 +16,8 @@ const view = () => $('#view');
 const F = { q: '', cat: 'all', status: 'all', tier: 'all', sort: 'learn', trend: false };
 const CATS = ['Basic', 'Language Variant', 'Advanced', 'Koujou', 'Theme'];
 const hayCache = new WeakMap();
+let selMode = false, visibleIds = [];
+const sel = new Set();
 
 // ------------------------------------------------------------------ boot
 async function boot() {
@@ -32,6 +36,7 @@ async function boot() {
   if (storageMode() === 'memory') { const w = $('#storageWarn'); w.hidden = false; w.textContent = t('storageMem'); }
   store.subscribe(() => schedule());
   render();
+  if (!store.get().settings.onboarded) startOnboarding();
   if ('serviceWorker' in navigator && location.protocol.startsWith('http')) navigator.serviceWorker.register('sw.js').catch(() => {});
 }
 
@@ -97,8 +102,9 @@ function renderCodex() {
   view().innerHTML = `<div class="fadein">
     <div class="toolbar"><input id="q" class="input" type="search" placeholder="${esc(t('search'))}" value="${esc(F.q)}" autocomplete="off" autocapitalize="off" aria-label="${esc(t('search'))}">
       <select id="sort" class="input" aria-label="Sort">${[['learn', 'sortLearn'], ['name', 'sortName'], ['due', 'sortDue'], ['status', 'sortStatus']].map(([v, k]) => `<option value="${v}" ${F.sort === v ? 'selected' : ''}>${t(k)}</option>`).join('')}</select>
+      <button class="chip ${selMode ? 'on' : ''}" data-act="sel-toggle" style="min-height:44px">${selMode ? '✓ ' : ''}${t('select')}</button>
     </div>
-    <div id="chips"></div><div id="dexline"></div><div id="grid"></div></div>`;
+    <div id="chips"></div><div id="dexline"></div><div id="grid"></div><div id="selbar"></div></div>`;
   renderGrid();
 }
 
@@ -118,6 +124,8 @@ function renderGrid() {
   const tot = mixes.length;
   $('#dexline').innerHTML = `<div class="dexline"><span><b>${n.l + n.r + n.m}</b> / ${tot}</span><div class="meter" aria-hidden="true"><i class="m-mas" style="width:${pct(n.m, tot)}%"></i><i class="m-rem" style="width:${pct(n.r, tot)}%"></i><i class="m-learn" style="width:${pct(n.l, tot)}%"></i></div><span>✨ ${n.m}</span></div>`;
   const list = sorted(mixes.filter(m => matches(m, progress.get(m.id))), progress);
+  visibleIds = list.map(m => m.id);
+  renderSelBar();
   const no = new Map(mixes.map((m, i) => [m.id, i + 1]));
   const card = m => cardHtml(m, progress.get(m.id), no.get(m.id), settings);
   const grouped = F.sort === 'learn' && F.tier === 'all';
@@ -133,35 +141,32 @@ function renderGrid() {
 }
 
 function cardHtml(m, p, no, settings) {
-  const locked = p.status === STATUS.NOT_LEARNED;
+  const fresh = p.status === STATUS.NOT_LEARNED;
   const n = m.sequence.length;
   const pips = Array.from({ length: Math.min(n, 14) }, (_, i) => `<i class="${(i * 7 + n) % 3 === 0 ? 'w2' : (i * 5 + n) % 4 === 0 ? 'w3' : ''}"></i>`).join('');
-  const name = locked && !settings.revealLocked ? '？？？' : mixName(m);
-  const sub = locked && !settings.revealLocked ? '' : mixSub(m);
-  return `<button class="card st-${p.status} ${locked ? 'locked' : ''}" style="--hue:${hueFor(m.category)}" data-act="open" data-id="${m.id}" aria-label="${esc(locked && !settings.revealLocked ? t('locked') : mixName(m))}">
-    ${locked ? '<span class="silh"></span>' : ''}
+  return `<button class="card st-${p.status} ${selMode && sel.has(m.id) ? 'sel' : ''}" style="--hue:${hueFor(m.category)}" data-act="open" data-id="${m.id}" aria-label="${esc(mixName(m))}">
+    ${selMode ? `<span class="chk" aria-hidden="true">${sel.has(m.id) ? '✓' : ''}</span>` : ''}
     <span class="no"><span>#${String(no).padStart(3, '0')}${m.trending ? ' 🔥' : ''}</span><span class="tier-star">${m.tier === 1 ? '★★' : m.tier === 2 ? '★' : ''}</span></span>
-    <span class="name">${esc(name)}</span><span class="jp">${esc(sub)}</span>
+    <span class="name">${esc(mixName(m))}</span><span class="jp">${esc(mixSub(m))}</span>
     <span class="pips">${pips}</span>
-    <span class="meta"><span>${t('bars', { n: m.timing })}</span><span>${locked ? '🔒' : t(p.status)}</span></span>
-    ${locked ? `<span class="lock">${ICON.lock}</span>` : ''}</button>`;
+    <span class="meta"><span>${t('bars', { n: m.timing })}</span><span>${fresh ? '' : t(p.status)}</span></span></button>`;
 }
 
 // ------------------------------------------------------------------ detail
 function openDetail(id) {
   const st = store.get(), m = st.mixes.find(x => x.id === id);
   if (!m) return;
-  const p = st.progress.get(id), s = st.settings, locked = p.status === STATUS.NOT_LEARNED;
-  const body = (toks, ros, layout, cls) => rowsOf(toks.length, layout).map(stz => `<div class="stanza">${stz.map(r => `<div class="line">${r.map(i => locked ? `<span class="tok sil"><span class="a">${'■'.repeat(Math.min(4, Math.max(2, [...toks[i]].length)))}</span></span>` : tokHtml(toks[i], ros[i], s, cls)).join('')}</div>`).join('')}</div>`).join('');
-  const due = p.status === STATUS.NOT_LEARNED ? '—' : p.due <= Date.now() ? t('due') : new Date(p.due).toLocaleDateString(getLang());
-  openSheet(`<div class="sheet-h"><div><h2>${esc(locked && !s.revealLocked ? mixName(m) : mixName(m))}</h2><div class="muted">${esc(mixSub(m))}</div></div><button class="x" data-act="sheet-close" aria-label="${t('close')}">×</button></div>
+  const p = st.progress.get(id), s = st.settings, fresh = p.status === STATUS.NOT_LEARNED;
+  const body = (toks, ros, layout, cls) => rowsOf(toks.length, layout).map(stz => `<div class="stanza">${stz.map(r => `<div class="line">${r.map(i => tokHtml(toks[i], ros[i], s, cls)).join('')}</div>`).join('')}</div>`).join('');
+  const due = fresh ? '—' : p.due <= Date.now() ? t('due') : new Date(p.due).toLocaleDateString(getLang());
+  openSheet(`<div class="sheet-h"><div><h2>${esc(mixName(m))}</h2><div class="muted">${esc(mixSub(m))}</div></div><button class="x" data-act="sheet-close" aria-label="${t('close')}">×</button></div>
     <div class="tags"><span class="tag t1">${m.tier === 1 ? '★ ' : ''}${t('tier' + m.tier)}</span><span class="tag pink">${t(m.category)}</span><span class="tag">${t('bars', { n: m.timing })}</span><span class="tag">${t('words', { n: m.sequence.length })}</span>${m.baisoku ? `<span class="tag">⚡ ${t('baisokuTag')} ${m.baisoku}×</span>` : ''}${m.trending ? '<span class="tag">🔥</span>' : ''}${m.source === 'custom' ? `<span class="tag">${t('custom')}</span>` : ''}<span class="tag cy">${t(p.status)}</span></div>
     <dl class="kv"><dt>${t('trigger')}</dt><dd>${esc(trig(m))}</dd>${m.initiator || m.initiatorJp ? `<dt>${t('initiator')}</dt><dd>🔔 ${esc(oshiSub(s.script === 'romaji' ? m.initiator : m.initiatorJp || m.initiator, s))}</dd>` : ''}</dl>
     ${body(m.sequence, m.reading, m.layout, 'tok')}
     ${m.extension?.length ? `<div class="small muted">${t('extension')}</div>${body(m.extension, m.extReading, m.extLayout, 'tok ext')}` : ''}
-    ${!locked && m.notes?.length ? `<p class="notes">${m.notes.map(esc).join('<br>')}</p>` : ''}
-    ${locked ? '' : `<div class="panel"><div class="stats4"><div class="stat"><b>${p.streak}</b><span>Streak</span></div><div class="stat"><b>${p.easeFactor.toFixed(1)}</b><span>Ease</span></div><div class="stat"><b>${p.interval}</b><span>${t('days')}</span></div><div class="stat"><b>${due}</b><span>${t('nextReview')}</span></div></div></div>`}
-    <div class="btns"><button class="btn primary" data-act="d-practice" data-id="${id}">${locked ? t('unlockStudy') : t('practiceThis')}</button>
+    ${m.notes?.length ? `<p class="notes">${m.notes.map(esc).join('<br>')}</p>` : ''}
+    ${fresh ? '' : `<div class="panel"><div class="stats4"><div class="stat"><b>${p.streak}</b><span>Streak</span></div><div class="stat"><b>${p.easeFactor.toFixed(1)}</b><span>Ease</span></div><div class="stat"><b>${p.interval}</b><span>${t('days')}</span></div><div class="stat"><b>${due}</b><span>${t('nextReview')}</span></div></div></div>`}
+    <div class="btns"><button class="btn primary" data-act="d-practice" data-id="${id}">${fresh ? t('unlockStudy') : t('practiceThis')}</button>
     ${m.source === 'custom' ? `<button class="btn" data-act="d-edit" data-id="${id}">${t('editMix')}</button>` : ''}</div>`);
 }
 
@@ -238,10 +243,56 @@ function renderSettings() {
     <div class="field"><label for="oshi">${t('oshi')}</label><input id="oshi" class="input" data-set="oshi" value="${esc(s.oshi)}" placeholder="○○" autocomplete="off"><div class="help">${t('oshiHelp')}</div></div>
     <div class="field"><label for="npd">${t('newPerDay')}: <b id="npdv">${s.newPerDay}</b></label><input id="npd" type="range" min="0" max="20" value="${s.newPerDay}" data-set="newPerDay" data-num="1"></div>
     <div class="field"><label for="lat">${t('latency')}: <b id="latv">${s.latency}</b></label><input id="lat" type="range" min="-150" max="250" step="10" value="${s.latency}" data-set="latency" data-num="1"></div>
-    <div class="panel">${sw('includeExt', t('includeExt'))}${sw('sound', t('sound'))}${sw('haptics', t('haptics'))}${sw('revealLocked', t('revealLocked'))}</div>
+    <div class="panel">${sw('includeExt', t('includeExt'))}${sw('sound', t('sound'))}${sw('haptics', t('haptics'))}</div>
     <div class="field"><label>${t('backup')}</label><div class="btns" style="margin-top:0"><button class="btn" data-act="export">${t('exportData')}</button><button class="btn" data-act="import">${t('importData')}</button><input type="file" id="file" accept="application/json" hidden></div></div>
-    <div class="btns"><button class="btn" data-act="add-mix">＋ ${t('addMix')}</button><button class="btn danger" data-act="reset">${t('reset')}</button></div>
+    <div class="btns"><button class="btn" data-act="onboard">${t('runSetup')}</button><button class="btn" data-act="add-mix">＋ ${t('addMix')}</button><button class="btn" data-act="bulk-text">${t('bulkText')}</button><button class="btn danger" data-act="reset">${t('reset')}</button></div>
     <p class="muted small" style="margin-top:20px">MIXDEX · ${store.get().mixes.length} mixes · ${t('offline')} · ${storageMode()}<br>${t('installHint')}</p></div>`;
+}
+
+
+function renderSelBar() {
+  const el = $('#selbar');
+  if (!el) return;
+  if (!selMode) { el.innerHTML = ''; $('#grid') && ($('#grid').style.paddingBottom = ''); return; }
+  $('#grid').style.paddingBottom = '150px';
+  const mk = (k, label) => `<button class="chip" data-act="sel-mark" data-v="${k}" ${sel.size ? '' : 'disabled'}>${label}</button>`;
+  el.innerHTML = `<div class="selbar"><div class="in">
+    <div class="seltop"><b>${t('selected', { n: sel.size })}</b><span class="row" style="gap:6px"><button class="chip" data-act="sel-visible">${t('selVisible')}</button><button class="chip" data-act="sel-none">${t('selNone')}</button><button class="chip on" data-act="sel-toggle">${t('done')}</button></span></div>
+    <div class="chips"><button class="chip" data-act="sel-tier" data-v="1">★ ${t('tier1')}</button><button class="chip" data-act="sel-tier" data-v="2">${t('tier2')}</button><button class="chip" data-act="sel-tier" data-v="3">${t('tier3')}</button></div>
+    <div class="chips">${mk('known', t('markKnown'))}${mk('learning', t('markLearning'))}${mk('mastered', t('markMastered'))}${mk('new', t('markNew'))}
+      <button class="chip" data-act="sel-practice" ${sel.size ? '' : 'disabled'}>▶ ${t('practiceThis')}</button><button class="chip" data-act="sel-copy" ${sel.size ? '' : 'disabled'}>${t('copyText')}</button></div></div></div>`;
+}
+
+const EXAMPLE = `# My Mix / 自作MIX | Theme | 8 | Interlude | id=my-mix
+> notes go here
+【発動】しゃー行くぞ
+虎 火
+人造 繊維
+海女 振動
+化繊
+[飛 除去]`;
+const seedSlugs = () => new Set(buildSeed().map(m => m.slug));
+function parseBulk(text) {
+  const reserved = seedSlugs();
+  return parseSeedFile(text).map((e, i) => {
+    if (!CATS.includes(e.category)) e.category = 'Theme';
+    if (!(e.timing > 0)) e.timing = 8;
+    e.trigger = e.trigger || '—';
+    const m = entryToMix(e, { source: 'custom', reserved });
+    return { ...m, tier: 3, trending: false, order: 1e6 + i };
+  }).filter(m => m.sequence.length);
+}
+function openBulkText() {
+  const sh = openSheet(`<div class="sheet-h"><h2>${t('bulkText')}</h2><button class="x" data-act="sheet-close" aria-label="${t('close')}">×</button></div>
+    <p class="notes">${t('bulkHelp')}</p>
+    <textarea id="e-bulk" class="input" style="min-height:260px;font-family:ui-monospace,monospace;font-size:13px" spellcheck="false"></textarea>
+    <div class="small muted" id="bulk-prev" style="margin:6px 0"></div>
+    <label class="switch"><span>${t('romajiInput')}</span><input type="checkbox" id="e-wk"></label>
+    <div class="btns"><button class="btn primary" data-act="bulk-apply">${t('bulkApply')}</button><button class="btn" data-act="bulk-load">${t('bulkLoad')}</button><button class="btn" data-act="bulk-example">${t('bulkExample')}</button></div>`);
+  const ta = $('#e-bulk', sh), prev = () => { $('#bulk-prev').textContent = t('bulkPreview', { n: parseBulk(ta.value).length }); };
+  ta.addEventListener('input', prev); prev();
+  const wk = $('#e-wk', sh);
+  wk.addEventListener('change', () => { try { wk.checked ? bind(ta, { IMEMode: 'toKana' }) : unbind(ta); } catch {} });
 }
 
 // ------------------------------------------------------------------ events
@@ -254,7 +305,28 @@ document.addEventListener('click', async e => {
   switch (act) {
     case 'tab': if (sessionActive()) endSession(); store.set({ tab: v }); lastTab = null; render(); break;
     case 'lang': updateSettings({ lang: v }); break;
-    case 'open': openDetail(id); break;
+    case 'open': if (selMode) { sel.has(id) ? sel.delete(id) : sel.add(id); renderGrid(); } else openDetail(id); break;
+    case 'sel-toggle': selMode = !selMode; sel.clear(); renderCodex(); break;
+    case 'sel-visible': visibleIds.forEach(x => sel.add(x)); renderGrid(); break;
+    case 'sel-none': sel.clear(); renderGrid(); break;
+    case 'sel-tier': store.get().mixes.filter(m => m.tier === +v).forEach(m => sel.add(m.id)); renderGrid(); break;
+    case 'sel-mark': { const n = await bulkMark([...sel], v); sel.clear(); renderGrid(); toast(t('marked', { n })); break; }
+    case 'sel-practice': { const ids = [...sel]; selMode = false; sel.clear(); store.set({ tab: 'practice' }); await startSession(ids); break; }
+    case 'sel-copy': {
+      const txt = store.get().mixes.filter(m => sel.has(m.id)).map(m => mixToText(m, rowsOf)).join('\n\n');
+      try { await navigator.clipboard.writeText(txt); toast(t('copied')); } catch { openBulkText(); $('#e-bulk').value = txt; $('#e-bulk').dispatchEvent(new Event('input')); }
+      break;
+    }
+    case 'onboard': startOnboarding(); break;
+    case 'bulk-text': openBulkText(); break;
+    case 'bulk-example': $('#e-bulk').value = EXAMPLE; $('#e-bulk').dispatchEvent(new Event('input')); break;
+    case 'bulk-load': $('#e-bulk').value = store.get().mixes.filter(m => m.source === 'custom').map(m => mixToText(m, rowsOf)).join('\n\n'); $('#e-bulk').dispatchEvent(new Event('input')); break;
+    case 'bulk-apply': {
+      const rows = parseBulk($('#e-bulk').value);
+      if (!rows.length) { toast(t('bulkBad')); break; }
+      await saveMixes(rows);
+      const d = await loadAll(); store.set(d); closeSheet(); toast(t('bulkSaved', { n: rows.length })); break;
+    }
     case 'sheet-close': closeSheet(); break;
     case 'f-tier': F.tier = v; renderGrid(); break;
     case 'f-cat': F.cat = v; renderGrid(); break;
@@ -306,3 +378,4 @@ document.addEventListener('pointermove', e => {
 });
 
 boot();
+

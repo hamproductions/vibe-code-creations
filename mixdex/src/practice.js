@@ -1,4 +1,5 @@
 // Practice: setup screen + quiz sessions (Tap Bank / Rhythm), SRS grading, results.
+import { nextUp } from './seed.js';
 import { store, getVocab, getSiblings, updateSettings } from './state.js';
 import { saveProgress, logReview, getMeta, setMeta } from './db.js';
 import { STATUS, applyGrade, gradeRecall, gradeRhythm, judgeTap, rhythmWindows, describeInterval } from './srs.js';
@@ -27,6 +28,9 @@ export async function renderSetup() {
   if (store.get().session || store.get().tab !== 'practice') return;
   const c = countQueue(st.mixes, st.progress, { newLimit: s.newPerDay, newUsed });
   const mastered = [...st.progress.values()].filter(p => p.status === STATUS.MASTERED).length;
+  const known = new Set([...st.progress.values()].filter(p => p.status !== STATUS.NOT_LEARNED).map(p => p.mixId));
+  const picks = nextUp(s.level || 'beginner', st.mixes.filter(m => m.source === 'seed'), known, 4);
+  const suggest = picks.length ? `<div class="panel"><div class="small muted" style="margin-bottom:8px">${t('suggested')}</div><div class="chips" style="flex-wrap:wrap">${picks.map(m => `<button class="chip" data-act="d-practice" data-id="${m.id}">▶ ${esc(mixName(m))}</button>`).join('')}</div></div>` : '';
   const seg = (name, opts, cur) => `<div class="seg big" role="group">${opts.map(([v, l]) => `<button data-act="set" data-k="${name}" data-v="${v}" class="${String(cur) === String(v) ? 'on' : ''}">${l}</button>`).join('')}</div>`;
   view().innerHTML = `<div class="fadein">
     <div class="panel hero"><div class="stats4">
@@ -37,6 +41,7 @@ export async function renderSetup() {
     </div>
     <div style="margin-top:16px">${c.due + c.fresh ? '' : `<p class="muted small">${t('nothingDue')}</p>`}
     <button class="btn primary block" data-act="s-start" ${c.due + c.fresh ? '' : 'disabled'}>${t('startSession')}</button></div></div>
+    ${suggest}
     <div class="field"><label>${t('mode')}</label>${seg('mode', [['bank', t('tapBank')], ['rhythm', t('rhythm')], ['mixed', t('mixed')]], s.mode)}<div class="help">${t('modeHelp')}</div></div>
     <div class="field"><label>${t('speed')}</label>${seg('speed', [['off', t('off')], ['2', '2×'], ['4', '4×'], ['auto', t('auto')]], s.speed)}<div class="help">${t('speedHelp')}</div></div>
     <div class="field"><label>${t('tempo')}: <b id="bpmv">${s.bpm}</b></label><input type="range" min="50" max="180" step="5" value="${s.bpm}" data-act="bpm" aria-label="${t('tempo')}"></div>
@@ -110,7 +115,7 @@ function renderStudy() {
       ${withExt ? `<div class="small muted">${t('extension')}</div>${stanzaHtml(m, m.extension, m.extReading, m.extLayout, 'tok ext', s)}` : ''}
     </div>
     ${m.notes?.length ? `<p class="notes">${m.notes.map(esc).join('<br>')}</p>` : ''}
-    <div class="btns"><button class="btn primary block" data-act="s-ready">${t('ready')}</button></div></div>`;
+    <div class="btns"><button class="btn primary block" data-act="s-ready">${t('ready')}</button><button class="btn block" data-act="s-skip">${t('skip')}</button></div></div>`;
 }
 
 function beginRecall() {
@@ -196,7 +201,7 @@ function renderRhythmIntro() {
   const c = S.cur, s = store.get().settings;
   view().innerHTML = `<div class="sess fadein">${head()}${cue(c.item, c.mult > 1 ? `<span class="tag" style="color:var(--gold)">⚡ ${c.mult}×</span>` : '')}
     <div class="panel"><p style="margin:0 0 6px"><b>${t('rhythm')}</b> · ${c.bpm} BPM${c.mult > 1 ? ` · ${c.mult}×` : ''}</p><p class="muted small" style="margin:0">${t('pickRight')}</p></div>
-    <div class="btns"><button class="btn primary block" data-act="s-rstart">${t('go')}</button></div></div>`;
+    <div class="btns"><button class="btn primary block" data-act="s-rstart">${t('go')}</button><button class="btn block" data-act="s-skip">${t('skip')}</button></div></div>`;
 }
 function startRhythm() {
   const c = S.cur, s = store.get().settings, m = c.item.mix;
@@ -350,6 +355,7 @@ export function practiceAction(act, el) {
     case 's-ready': S.cur.item.studied = true; beginRecall(); return true;
     case 's-hint': hint(); return true;
     case 's-rstart': startRhythm(); return true;
+    case 's-skip': S.idx++; nextCard(); return true;
     case 's-next': S.idx++; nextCard(); return true;
     case 'tile': case 'opt': return true; // handled on pointerdown
     case 'set': { const k = el.dataset.k; updateSettings({ [k]: el.dataset.v === 'off' || isNaN(+el.dataset.v) ? el.dataset.v : +el.dataset.v }).then(renderSetup); return true; }
