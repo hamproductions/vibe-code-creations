@@ -1,0 +1,33 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>MIXDEX — idol call &amp; MIX trainer</title>
+<meta name="description" content="Offline-first Pokédex and spaced-repetition trainer for idol live MIX and koujou chants.">
+<meta name="theme-color" content="#0b0a16">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="icon.svg">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div id="app">
+  <header class="top">
+    <div class="logo" aria-label="MIXDEX"><span class="logo-mark" aria-hidden="true">◆</span>MIX<b>DEX</b></div>
+    <div class="top-right">
+      <span id="storageWarn" class="warn" hidden></span>
+      <div class="seg lang" role="group" aria-label="Language">
+        <button data-act="lang" data-v="en">EN</button><button data-act="lang" data-v="ja">日本語</button>
+      </div>
+    </div>
+  </header>
+  <main id="view" tabindex="-1"></main>
+  <nav class="tabbar" id="tabbar" aria-label="Main"></nav>
+</div>
+<div id="sheetRoot"></div>
+<div id="toast" role="status" aria-live="polite"></div>
+<noscript>MIXDEX needs JavaScript.</noscript>
+<script type="module" src="src/app.js"></script>
+</body>
+</html>
