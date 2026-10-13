@@ -58,6 +58,103 @@ export const SEED_TEXT = String.raw`
 ○○で沸けるの誰ですか？
 俺！×4 ore！×2
 
+# Ginga Koujou (Galaxy Koujou) / 銀河口上 | Koujou | 12 | Long interlude — Standard-Enchou length (12 bars incl. start) | id=ginga
+> Exactly 12 bars with the start call. Often entered with the "Uryao-i" Hayashi start, so it can also be felt as Kahen 3-ren length. Origin: the intro of Idol College's "Seifuku Koi Monogatari" (early 2010s), later popularised via Nijicon's "Paradoxical Complex".
+銀河に轟く歌声と
+地球に花咲くその笑顔
+お前が好きだと輝き叫ぶ
+行くぜ全力どこまでも
+光のごとく駆け巡る
+好きじゃねぇ 愛してる
+
+# Ginga Koujou — Cancel Italian / 銀河口上キャンセルイタリア | Advanced | 16 | Long interlude / outro | id=ginga-italian
+> The final 愛してる is swapped for the Italian MIX start call (アンディアモ), the usual way Ginga is cancelled into another MIX.
+銀河に轟く歌声と
+地球に花咲くその笑顔
+お前が好きだと輝き叫ぶ
+行くぜ全力どこまでも
+光のごとく駆け巡る
+好きじゃねぇ アンディアモ
+
+ティーグレ フォーコ
+レプリカンテ フィーブラ
+バロンバーロ ヴィヴラメント
+テクノボラーレ
+アスティラッツィオーネ
+
+# Rascal MIX / ラスカルmix | Theme | 8 | Interlude (2025 MIX of the year) | id=rascal
+> By Takeutin. "三生オタク" = a fan reborn with every oshi change. 丸の内 is the creator's old Nagoya address. Many derivatives exist (see the Yoji-con list).
+ラスカル×4
+あー 👏 👏 丸の内
+清川 みれぴ に ゆーほ
+ガチ恋加速が止まらない
+結婚は ごめんなさい
+三生オタクラスカルズ
+たけうてぃん たけうてぃん
+たけうちまさやって知ってる？
+[すーえーなーがーかーのーちゃーん！]
+
+# Gachikoi Rascal Kahen / ガチ恋ラスカル可変 | Theme | 8 | Interlude | id=rascal-gachikoi
+言いたいラスカルあるんだよ
+やっぱり君は丸の内
+好き好き大好き後藤まつり
+やっと見つけた 止まらない
+俺が産まれてごめんなさい
+それはオタクラスカルズ
+俺と一緒にたけうていん
+たけうちまさや愛してる
+
+# Ultimate Rascal / アルティメットラスカル | Theme | 16 | Long interlude | id=rascal-ultimate
+> Identical text is circulated as "Captain Rascals" (キャプテンラスカルズ).
+言いたいことがファイボラスカル
+やっぱりまさやはグリフィンタイガー
+アクシオチャペアペ丸の内
+ガチ恋まさやとお姫様
+ファイヤー俺と結婚カラキナ
+それはファーマーごめんなさい
+俺とタイガーラスカルズ
+たけうちまさやでイェッタイガー
+
+# Yoruba MIX / ヨルバ語mix | Language Variant | 8 | Outro / cancel from koujou | id=yoruba
+> Yoruba is spoken in south-west Nigeria. Its "除去" slot is ヨ, which makes the reverse form (Gachikoi Yoruba) slot neatly into a Gachi Koi cancel.
+【発動】エジェカロ
+アモテクン イナ イシェオウォエニヤン
+オウ オビンリンオルウェオミ イジヤ
+[オウケミカリ フォ ヨ]
+
+# Ura Yoruba (Yoruba 2-ren) / 裏ヨルバ（ヨルバ語2連） | Language Variant | 16 | Long outro | id=yoruba-2
+【発動】エジェカロ
+アモテクン イナ イシェオウォエニヤン
+オウ オビンリンオルウェオミ イジヤ
+
+エジャエニヤン オリシャオビンリン
+ケレシメシ エランオデクン
+アンジェリ シンデレラ
+アアイェ イレアライェアジェサラ
+
+# Yoruba 3-Ren / ヨルバ語3連 | Advanced | 24 | Longest outro | id=yoruba-3
+【発動】エジェカロ
+アモテクン イナ イシェオウォエニヤン
+オウ オビンリンオルウェオミ イジヤ
+
+エジャエニヤン オリシャオビンリン
+ケレシメシ エランオデクン
+アンジェリ シンデレラ
+アアイェ イレアライェアジェサラ
+
+エフォイナ イナティンジョ
+イラウォアリワジュロ
+イラウォプレイアデス オルンイラウォ
+
+# Gachikoi Yoruba (Gyaku-uchi) / ガチ恋ヨルバ（逆打ち） | Advanced | 16 | Gachi Koi cancel | id=yoruba-gachikoi
+> Cancel at 「やっぱり○○は可愛いヨ」: the Yoruba reverse starts on that ヨ, which is considered the cleanest Gachi Koi cancel of any language.
+言いたいことがあるんだよ
+やっぱり○○は可愛いヨ
+フォ オウケミカリ イジヤ
+オビンリン オルウェオミ オウ
+イシェオウォエニヤン
+イナ アモテクン エジェカロ
+
 # Standard MIX (Short Ending) / スタンダード（短縮） | Basic | 8 | Song start | id=std-short
 タイガー ファイヤー
 サイバー ファイバー

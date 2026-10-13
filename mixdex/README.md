@@ -2,7 +2,7 @@
 
 Offline-first PWA: a Pokédex-style codex of idol-live MIX / koujou chants plus a spaced-repetition trainer.
 
-- **Codex** – 115 seeded mixes in 3 priority tiers (Essential / Common / Deep Cuts), locked silhouettes → foil cards when mastered.
+- **Codex** – 124 seeded mixes in 3 priority tiers (Essential / Common / Deep Cuts), locked silhouettes → foil cards when mastered.
 - **Practice** – Tap Bank and Rhythm (metronome) modes, baisoku 2×/4× speed, interference decoys built from linguistically similar words.
 - **SRS** – SM-2 style (`status`, `interval`, `easeFactor`, `streak`), grades 0–5 from accuracy + speed/timing.
 - **Storage** – IndexedDB via Dexie (vendored), in-memory fallback. No build step: serve the folder statically.

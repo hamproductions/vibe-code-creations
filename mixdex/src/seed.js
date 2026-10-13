@@ -2,15 +2,15 @@ import { parseBody, parseSeedFile } from './parse.js';
 import { SEED_TEXT } from './seedText.js';
 import { toRomaji } from './romaji.js';
 
-export const SEED_VERSION = 5;
+export const SEED_VERSION = 6;
 
 // Priority tiers: 1 = Essential (learn first), 2 = Common (you'll hear these weekly), 3 = Deep cuts (gags, themes, group originals, rare languages)
 // Order here is the recommended learning order and drives the codex + new-card queue.
 const TIER1 = ['standard', 'japanese', 'ainu-zenkyou', 'kahen-starter', 'ainu', 'world-chaos', 'kahen-3ren'];
-const TIER2 = ['hayashi', 'pan', 'ainu-nichi', 'hogwarts', 'chikipa', 'bismarck', 'gachikoi', 'spanish-1', 'spanish-3', 'myohon-square', 'tata-3', 'accele',
+const TIER2 = ['hayashi', 'pan', 'ainu-nichi', 'hogwarts', 'chikipa', 'bismarck', 'ginga', 'gachikoi', 'rascal', 'yoruba', 'spanish-1', 'spanish-3', 'myohon-square', 'tata-3', 'accele',
   'chape-tora', 'jp-torahi', 'konton-gyaku', 'jp-gyaku', 'std-short', 'jp-short', 'pan-short', 'encore', 'itsuikuno', 'enchou', 'gachikoi-short', 'kahen-4ren', 'gachikoi-mix', 'german'];
 // Community popularity (blog access ranking, 24h → 1y): these are the mixes people actually look up
-const TRENDING = ['accele', 'konton-short', 'world-chaos', 'kahen-3ren', 'spanish-1', 'spanish-3', 'bismarck', 'myohon-square', 'hogwarts', 'ainu-nichi', 'tata-3', 'pan', 'gachikoi', 'hindi-accele', 'thomas', 'suirenka'];
+const TRENDING = ['accele', 'konton-short', 'world-chaos', 'kahen-3ren', 'spanish-1', 'spanish-3', 'bismarck', 'myohon-square', 'hogwarts', 'ainu-nichi', 'tata-3', 'pan', 'gachikoi', 'hindi-accele', 'thomas', 'suirenka', 'ginga', 'rascal', 'yoruba', 'yoruba-gachikoi', 'ginga-italian', 'rascal-gachikoi', 'rascal-ultimate'];
 export const TIER_LABEL = { 1: 'Essential', 2: 'Common', 3: 'Deep Cuts' };
 
 // deterministic UUID (v4-shaped) from a slug so ids stay stable across reseeds

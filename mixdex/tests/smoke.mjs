@@ -14,7 +14,7 @@ page.on('console', m => { if (m.type() === 'error') errors.push('console ' + m.t
 const ok = (c, msg) => { console.log((c ? 'PASS ' : 'FAIL ') + msg); if (!c) process.exitCode = 1; };
 await page.goto('http://localhost:8765/');
 await page.waitForSelector('.card');
-ok((await page.locator('.card').count()) === 115, '115 cards in codex');
+ok((await page.locator('.card').count()) === 124, '124 cards in codex');
 ok((await page.locator('.tier-h').count()) === 3, '3 tier sections');
 ok((await page.locator('.tier-h h2').first().innerText()).includes('Essential'), 'Essential first');
 await page.waitForTimeout(450); await page.screenshot({ path: out + '/01-codex.png' });
