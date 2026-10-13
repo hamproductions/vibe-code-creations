@@ -17,7 +17,7 @@ await page.waitForSelector('.card');
 ok((await page.locator('.card').count()) === 115, '115 cards in codex');
 ok((await page.locator('.tier-h').count()) === 3, '3 tier sections');
 ok((await page.locator('.tier-h h2').first().innerText()).includes('Essential'), 'Essential first');
-await page.screenshot({ path: out + '/01-codex.png' });
+await page.waitForTimeout(450); await page.screenshot({ path: out + '/01-codex.png' });
 // search with romaji → kana
 await page.fill('#q', 'tora');
 ok((await page.locator('.card').count()) > 3, 'search "tora" finds mixes');
@@ -29,7 +29,7 @@ await page.fill('#q', '');
 // lang switch
 await page.click('.lang [data-v="ja"]');
 ok((await page.locator('.tabbar').innerText()).includes('図鑑'), 'JA UI');
-await page.screenshot({ path: out + '/02-codex-ja.png' });
+await page.waitForTimeout(450); await page.screenshot({ path: out + '/02-codex-ja.png' });
 await page.click('.lang [data-v="en"]');
 // session on Standard MIX: bank mode
 await page.evaluate(async () => {
@@ -39,13 +39,13 @@ await page.evaluate(async () => {
 });
 await page.locator('.card').first().click();
 await page.waitForSelector('.sheet');
-await page.screenshot({ path: out + '/03-detail-locked.png' });
+await page.waitForTimeout(450); await page.screenshot({ path: out + '/03-detail-locked.png' });
 await page.click('[data-act="d-practice"]');
 await page.waitForSelector('[data-act="s-ready"]');
-await page.screenshot({ path: out + '/04-study.png' });
+await page.waitForTimeout(450); await page.screenshot({ path: out + '/04-study.png' });
 await page.click('[data-act="s-ready"]');
 await page.waitForSelector('#bank');
-await page.screenshot({ path: out + '/05-bank.png' });
+await page.waitForTimeout(450); await page.screenshot({ path: out + '/05-bank.png' });
 const seq = await page.evaluate(() => { const s = window.__st.get(); return s.mixes.find(m => m.slug === 'standard').sequence; });
 // one wrong tap first
 const tiles = await page.$$('.tile');
@@ -57,7 +57,7 @@ for (const w of seq) {
 await page.waitForSelector('.gradebig');
 const grade = await page.locator('.gradebig').innerText();
 ok(+grade >= 3 && +grade <= 5, 'grade after 1 error = ' + grade);
-await page.screenshot({ path: out + '/06-result.png' });
+await page.waitForTimeout(450); await page.screenshot({ path: out + '/06-result.png' });
 const pr = await page.evaluate(() => { const s = window.__st.get(); const m = s.mixes.find(x => x.slug === 'standard'); return s.progress.get(m.id); });
 ok(pr.status === 'LEARNING' && pr.reviews === 1, 'progress persisted → LEARNING');
 // rhythm mode on Japanese
@@ -78,12 +78,12 @@ for (let i = 0; i < jseq.length; i++) {
 }
 await page.waitForSelector('.gradebig', { timeout: 6000 });
 ok(true, 'rhythm finished, grade ' + (await page.locator('.gradebig').innerText()));
-await page.screenshot({ path: out + '/08-rhythm-result.png' });
+await page.waitForTimeout(450); await page.screenshot({ path: out + '/08-rhythm-result.png' });
 await page.click('[data-act="s-quit"]');
 // stats, settings
-await page.click('.tabbar [data-v="stats"]'); await page.waitForSelector('.bars'); await page.screenshot({ path: out + '/09-stats.png' });
+await page.click('.tabbar [data-v="stats"]'); await page.waitForSelector('.bars'); await page.waitForTimeout(450); await page.screenshot({ path: out + '/09-stats.png' });
 await page.click('.tabbar [data-v="settings"]'); await page.fill('#oshi', 'みお'); ok((await page.inputValue('#oshi')) === 'みお', 'oshi input keeps focus value');
-await page.screenshot({ path: out + '/10-settings.png' });
+await page.waitForTimeout(450); await page.screenshot({ path: out + '/10-settings.png' });
 // mastered foil card
 await page.evaluate(async () => {
   const { store } = await import('/src/state.js');
@@ -91,6 +91,6 @@ await page.evaluate(async () => {
   p.set(m.id, { ...p.get(m.id), status: 'MASTERED', interval: 30, streak: 6 }); store.set({ progress: p });
 });
 await page.click('.tabbar [data-v="codex"]'); await page.waitForSelector('.card.st-MASTERED');
-await page.screenshot({ path: out + '/11-foil.png' });
+await page.waitForTimeout(450); await page.screenshot({ path: out + '/11-foil.png' });
 ok(errors.length === 0, 'no console errors ' + errors.join(' | '));
 await browser.close(); srv.kill();
