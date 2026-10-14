@@ -1,5 +1,6 @@
 import { toRomaji as wkRomaji } from '../vendor/wanakana.mjs';
 import { toRomaji } from './romaji.js';
+import { KANJI } from './kanjiDict.js';
 import { t, getLang, trTrigger } from './i18n.js';
 import { getVocab } from './state.js';
 import { rowsOf } from './parse.js';
@@ -39,15 +40,25 @@ const roShow = (token, ro, settings) => {
 export function tokText(token, ro, settings) {
   const jp = oshiSub(token, settings);
   const rom = roShow(token, ro, settings);
-  const mode = getLang() === 'ja' ? 'jp' : settings.script;
+  const mode = getLang() === 'ja' ? 'jp' : 'romaji';
   if (token === '👏') return { a: '👏', b: '' };
   if (mode === 'romaji') return { a: rom, b: '' };
   if (mode === 'both') return { a: jp, b: jp === rom ? '' : rom };
   return { a: jp, b: '' };
 }
+const rubyKeys = Object.keys(KANJI).sort((a, b) => b.length - a.length);
+const rubyText = text => {
+  let html = '';
+  for (let i = 0; i < text.length;) {
+    const key = /[一-鿿々]/.test(text[i]) && rubyKeys.find(key => text.startsWith(key, i));
+    if (key) { html += `<ruby>${esc(key)}<rt>${esc(KANJI[key])}</rt></ruby>`; i += key.length; }
+    else { html += esc(text[i]).replace(/\n/g, '<br>'); i++; }
+  }
+  return html;
+};
 export const tokHtml = (token, ro, settings, cls = 'tok', extra = '') => {
   const { a, b } = tokText(token, ro, settings);
-  return `<span class="${cls}" ${extra}><span class="a">${esc(a).replace(/\n/g, '<br>')}</span>${b ? `<span class="b">${esc(b).replace(/\n/g, '<br>')}</span>` : ''}</span>`;
+  return `<span class="${cls}" ${extra}><span class="a">${getLang() === 'ja' ? rubyText(a) : esc(a).replace(/\n/g, '<br>')}</span>${b ? `<span class="b">${esc(b).replace(/\n/g, '<br>')}</span>` : ''}</span>`;
 };
 
 export { rowsOf };

@@ -1,4 +1,4 @@
-const CACHE = 'mixdex-v83';
+const CACHE = 'mixdex-v84';
 const SHELL = ['./', 'index.html', 'style.css', 'manifest.webmanifest', 'icon.svg',
   'src/app.js', 'src/practice.js', 'src/onboarding.js', 'src/ui.js', 'src/state.js', 'src/db.js', 'src/store.js', 'src/i18n.js', 'src/catalogJa.js', 'src/audio.js', 'src/engine.js',
   'src/srs.js', 'src/interference.js', 'src/seed.js', 'src/seedText.js', 'src/parse.js', 'src/romaji.js', 'src/kanjiDict.js',

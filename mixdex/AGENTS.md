@@ -1,7 +1,7 @@
 # MIXDEX product rules
 
 - Keep learning guidance concise and about performing or recalling the chant. Put source transcription comparisons in a labeled disclosure in Browse, never in the learning card.
-- Japanese interface shows Japanese chant text without pronunciation subtitles. English script preferences remain independent.
+- Japanese chant text retains source characters and adds furigana in ruby for known kanji readings. English chant text and start calls use romaji regardless of legacy script settings. Japanese shows no romaji subtitles.
 - Chant tokenization controls phrase boundaries, not visual styling. Browse and Learn both show bordered tokens and preserve source rows.
 - Backup imports validate before writing, merge matching records atomically, and do not duplicate review history.
 - Sharing links identify the exact MIX slug and language; generate QR codes locally.

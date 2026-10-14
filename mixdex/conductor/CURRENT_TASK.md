@@ -15,7 +15,7 @@ Local code/data edits, isolated browser QA, and project-local server are authori
 - Multiple choice defaults to 3 questions per selected MIX, configurable to 1/3/5. Ask for actual source lines using preceding-line context. Choices are unique real chant lines, not invented distractors; provide immediate correct/incorrect feedback and an explicit next/finish button.
 - Line flashcards follow every source row in order, conceal the current line, reveal it, then accept remembered/forgotten before advancing.
 - Full-chant recall retains study/hide/reveal/ordered self-assessment. Partial line practice does not automatically change existing full-chant status. New practiced MIX become Learning. Completed exercises update the review schedule and save progress/reviews atomically.
-- Japanese chant views have no pronunciation or Romanized title subtitles. UI, notes and source labels are localized. 跳 reads Chou in English reading mode.
+- Japanese chant views use furigana ruby for known kanji readings and no romaji subtitles. English chant views use romaji. UI, notes and source labels are localized. 跳 reads Chou in English reading mode.
 - Concise performance guidance belongs in Learn; transcription comparisons belong in a labeled Browse disclosure.
 - Backup import/export covers settings, progress, reviews and custom MIX. Validate before writing, merge atomically, avoid duplicate review restores. Exact-MIX deep links include language; QR generation is local.
 
@@ -25,6 +25,7 @@ All 135 catalog records were reconciled. Source differences/uncertainty: conduct
 Product rules are in AGENTS.md. Seed v49; SW v83. QR library: vendor/qrcodegen.mjs (Nayuki v1.8.0, license retained). Catalog translations: src/catalogJa.js.
 
 ## Current implementation and remaining action
+Chant language correction: Japanese source text with dictionary-backed furigana ruby; English romaji regardless of legacy script setting. Removed conflicting script selector. Browse and live multiple-choice practice inspected in both languages; language switching updates choices immediately. Start calls and reload checked. Browser errors empty; existing engine, roundtrip, syntax and diff checks pass. Local main integration remains authorized; no push authorized this turn.
 New modes implemented in src/practice.js and src/engine.js. Atomic result save in src/db.js. Labels in src/i18n.js, rendering in src/ui.js and style.css. Online SW fetch bypasses HTTP cache with offline fallback to avoid mismatched cached module exports.
 Local changes restored onto latest main; README, app routing and SW conflicts resolved. Existing engine, seed and roundtrip checks pass. Current modes were previously verified on SW v83. Final finish button reads クイズを終了; fresh mode selector and Learning default inspected. Live headed app is left on Learn with selectable modes. All local work incorporated on main, including source audit, evidence and sibling trainer edit. Existing engine, seed, roundtrip and app syntax checks pass. Integrated Standard hash route rendered and screenshot inspected; full browser regression was not repeated. No push or release authorized.
 

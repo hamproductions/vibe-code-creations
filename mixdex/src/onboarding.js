@@ -7,7 +7,7 @@ const root = () => $('#onboard');
 
 export function startOnboarding() {
   const s = store.get().settings;
-  O = { lang: s.lang, script: s.onboarded ? s.script : 'both', returnTab: store.get().tab, saving: false };
+  O = { lang: s.lang, script: s.script, returnTab: store.get().tab, saving: false };
   previousFocus = document.activeElement;
   let el = root();
   if (!el) { el = document.createElement('div'); el.id = 'onboard'; document.body.appendChild(el); }

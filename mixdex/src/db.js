@@ -5,7 +5,7 @@ import { newProgress, STATUS_ORDER } from './srs.js';
 
 export const DEFAULT_SETTINGS = {
   lang: (typeof navigator !== 'undefined' && /^ja/i.test(navigator.language || '')) ? 'ja' : 'en',
-  script: 'jp', // jp | romaji | both
+  script: 'romaji',
   oshi: '',
   bpm: 100,
   newPerDay: 5,

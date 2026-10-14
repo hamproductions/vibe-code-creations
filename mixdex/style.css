@@ -455,3 +455,6 @@ input[type=range] { width: 100%; accent-color: var(--pink); min-height: 32px; }
 .mode-field select.input { width: 100%; }
 .practice-mode p { grid-column: 1 / -1; }
 @media (max-width: 640px) { .practice-mode { grid-template-columns: minmax(0, 1fr) 100px; } .mode-field select.input { font-size: 13px; padding: 10px; } }
+
+.tok ruby { ruby-position: over; }
+.tok rt { font-size: .55em; font-weight: 400; color: var(--muted); }
