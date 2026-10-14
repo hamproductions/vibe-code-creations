@@ -1,15 +1,24 @@
 # MIXDEX
 
-Offline-first PWA: a Pokédex-style codex of idol-live MIX / koujou chants plus a spaced-repetition trainer.
+ライブで聞いたMIXや口上を探し、全文・出典・派生を確かめ、覚えたいものをコール全体の想起と自己評価で学ぶオフライン対応PWA。
 
-- **Onboarding** – language/script → Beginner / Regular / Veteran / Master → tick what you already know; suggests settings + next-up mixes. Re-run from Settings.
-- **Codex** – 124 seeded mixes in 3 priority tiers (Essential / Common / Deep Cuts). Nothing is locked; mastered cards get a foil effect. **Select** mode bulk-marks Known / Learning / Mastered / New, practises the selection, or copies it as text.
-- **Deep links** – hash routes: `#/codex`, `#/practice`, `#/stats`, `#/settings`, `#/mix/<slug>` (e.g. `#/mix/standard`). Back/forward work; the manifest has Practice and Stats shortcuts.
-- **Bulk text editor** (Settings) – paste/export many mixes in the seed DSL (same `id=` updates).
-- **Practice** – Tap Bank and Rhythm (metronome) modes, baisoku 2×/4× speed, interference decoys built from linguistically similar words.
-- **SRS** – SM-2 style (`status`, `interval`, `easeFactor`, `streak`), grades 0–5 from accuracy + speed/timing.
-- **Storage** – IndexedDB via Dexie (vendored), in-memory fallback. No build step: serve the folder statically.
-- **UI** – EN / 日本語, chant script kana / romaji / both, WanaKana (vendored) for romaji search + custom-mix input.
+- **調べる**：ローマ字・かな・英語検索、系列別／全バージョン表示、出典リンク、関連形式。学習状態は未学習・学習中・習得・熟達から手動で設定できる。
+- **学ぶ**：Standard・日本語・アイヌ語から始める導線。全文を確認し、隠して思い出し、答えを表示して自己評価する。再挑戦は学習中へ戻して同じセッションに再投入する。
+- **初回案内**：具体例、使用場面、学習手順をモーダルで案内する。経験レベルから習得済みと決めつけない。
+- **データ編集**：設定の一括テキスト編集。同じ `id=` は更新対象。独立したバージョンは別ID・別進捗を保持する。ひとつのコールから切り出したパートは全文への参照として扱う。
+- **保存**：DexieによるIndexedDB。ビルド不要で、このフォルダーを静的配信する。
+- **表示**：英語／日本語、かな／ローマ字／両方。デスクトップはサイドナビ、モバイルは下部ナビ。
 
-Tests: `node tests/engine.test.mjs`, `node tests/check-seed.mjs`, `node tests/roundtrip.test.mjs`, `node tests/smoke.mjs` (needs Playwright + Chromium).
-Seed data lives in `src/seed.js` (core 8) and `src/seedText.js` (chant DSL, see `src/parse.js`). Bump `SEED_VERSION` after editing.
+- **ディープリンク**：`#/home`、`#/codex`、`#/practice`、`#/stats`、`#/settings`、`#/mix/<slug>`。共有リンクはMIXと表示言語を保持する。
+
+## Chantの区切り
+
+通常のMIXは出典の行構造と語句間の空白に従う。口上は出典の各発声行を一行として保ち、行内の明示空白は呼び掛け単位として分ける。可変MIXは通常の語分割へ寄せず、意図的な融合・交錯と順序を保持する。単語や句の途中にある表示上の折返しだけを結合する。繰り返し、始動や切替の合図も保持する。`pending` が付いた資料未確認の項目は図鑑で閲覧でき、通常の復習キューや学習候補からは除外される。
+
+空行は節の区切り、`[括弧]` は任意の末尾、`虎×4` は繰り返し、`(クラップ)` は拍手。資料にない尺・使用位置は行数から推定しない。
+
+コアデータは `src/seed.js`、追加データは `src/seedText.js`、構文は `src/parse.js`。データ変更後は `SEED_VERSION` とサービスワーカーのキャッシュ版を更新する。
+
+## 検証
+
+`UV_THREADPOOL_SIZE=1 node tests/engine.test.mjs`、`UV_THREADPOOL_SIZE=1 node tests/check-seed.mjs`、`UV_THREADPOOL_SIZE=1 node tests/roundtrip.test.mjs`。構造チェックは歌詞・出典・画面の正しさを証明しない。`tests/smoke.mjs` は旧練習画面用で、現行フローの検証には使用していない。

@@ -86,7 +86,7 @@ const isKana = c => /[぀-ヿー]/.test(c);
 const KEYS_MAX = Math.max(1, ...Object.keys(KANJI).map(k => k.length));
 export function toRomaji(token) {
   if (!token) return token;
-  const chars = [...token];
+  const chars = [...token.replace(/―/g, 'ー')];
   const parts = []; // {t, kj}
   let buf = '';
   const flush = () => { if (buf) { parts.push({ t: kanaWord(kataToHira(buf)), kata: /[ァ-ヿ]/.test(buf) }); buf = ''; } };

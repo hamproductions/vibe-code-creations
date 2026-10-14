@@ -3,22 +3,30 @@
 // flags: b2 / b4 = baisoku (2x / 4x) passages, id=slug
 // Body: see parse.js for the chant DSL.
 export const SEED_TEXT = String.raw`
-# Kahen MIX (Starter Cue) / 可変MIX（発動の合図） | Basic | 4 | Right before the Standard MIX kicks in | id=kahen-starter
-> Often triggered by a shouted 「はい、せーの！」. Played just before the Standard MIX.
-ミョーホン トゥスケ 化繊 飛 除去
-ジャージャー
-ファイボ
+# Myohontusuke Square (Starter Call) / ミョーホントゥスケ広場（発動付き） | Language Variant | 4 | Pre-intro | id=kahen-starter
+> The chant follows the MCH memo's rows. Sho documents 「はい、せーの！」 as an optional pre-intro starter and groups the chant into fewer rows.
+【発動】はい、せーの！
+ミョーホントゥスケ
+化繊飛除去
+ジャージャー ファイボ
 ワイパー
 
-# Konton MIX (Gyaku / Reverse) / 混沌（逆順） | Advanced | 8 | Ochisabi — after the forward Konton | id=konton-gyaku
-> Either chained right after the forward version or used alone depending on the song length.
-しょ×6 翔襲叉
-金剛山
-神楽 時雨 木暮 諸行
-ワールドカオス
+# Konton MIX (Foldback ending) / 混沌MIX（折り返しの後半） | Advanced | 0 | After the forward Konton MIX | id=konton-gyaku
+> This is the returning half of the forward-to-reverse foldback: six しょ calls, then 翔襲叉 back through the phrases to ワールドカオス. The standalone reverse form instead starts with 世界混沌 無常 黒雲.
+しょ×4
+しょ×2 翔襲叉
+金剛山 神楽 時雨
+木暮 諸行 ワールドカオス
 
-# Hayashi-sensei MIX / 林先生MIX | Basic | 8 | Right before the Standard MIX (Hatsudou) | id=hayashi
-> Leads straight into the Standard MIX. Some venues replace the claps with "あー".
+# Konton MIX (Standalone reverse) / 混沌MIX（単独逆打ち） | Advanced | 10 |  | id=konton-reverse
+> The source documents this reverse as a separate 10-bar option: 「世界混沌」 is the initiator, followed by the reverse sequence.
+【発動】世界混沌
+無常 黒雲 翔襲叉
+金剛山 神楽 時雨
+木暮 諸行 ワールドカオス
+
+# Hayashi-sensei MIX / 林先生MIX | Basic | 0 |  | pending | id=hayashi
+> No provided source documents this full named chant or call-and-response. The Ginga article separately documents a repeated うりゃおい lead-in, but does not attribute this stanza to Hayashi or verify its placement.
 ウリャ オイ ウリャ オイ
 ウリャ オイ ウリャ オイ
 👏 👏 👏 👏
@@ -31,14 +39,15 @@ export const SEED_TEXT = String.raw`
 今でしょー！
 あー！ しゃー！ いくぞ！
 
-# Pan MIX (Short) / パンMIX（短縮） | Theme | 8 | Interlude after verse 2 | id=pan-short
-パン パン パン パン ポケモン パン
-フレッシュ ブレッド 伊藤パン
-松たか子 松たか子
-ヤマザキ 春の パン祭り
+# Pan MIX (Short) / パンMIX（短縮） | Theme | 8 |  | id=pan-short
+> Follows the Wiki's four-Pan form. The MCH longer forms start with three Pan calls; Sho also adds 「俺の！」 responses.
+パン パン パン パン ポケモンパン
+フレッシュブレッド 伊藤パン
+松たか子！ 松たか子
+ヤマザキ春のパンまつり!
 
-# Hindi Accele / ヒンディー（ヒンドゥー）アッチェレ | Advanced | 16 | Accele (rapid-fire) section | b4 | id=hindi-accele
-> Speed marks in the source: lines 2 and 5 are 2x, the bracketed line is 4x, the angle-bracket line is 2x or 1x depending on the song.
+# Hindi Accele / ヒンディー（ヒンドゥー）アッチェレ | Advanced | 0 |  | id=hindi-accele
+> Source speed markings by displayed row: row 2 is 2×; row 4 starts at 2× and switches to 4× at バーグ; row 5 is 4×; row 6 is 2× or normal depending on the song.
 ケート ニルティヤ パクシー クードナー
 ハターナ ウダーン クリトリマタントゥー カンパン ゴタコー タントゥ サイバラ
 バー アグ バー アグ
@@ -48,18 +57,29 @@ export const SEED_TEXT = String.raw`
 ウダーン ハターナ クードナー
 パクシー ニルティヤ ケート
 
-# Thomas MIX / トーマスmix | Theme | 8 | Interlude | id=thomas
+# Thomas MIX / トーマスmix | Theme | 0 |  | id=thomas
 【発動】出発進行
 トーマス ゴードン ヘンリー パーシー
 トビー エドワード ポッポー
 
-# Suirenka Kashou / 睡蓮花歌唱 | Theme | 4 | Short gap | id=suirenka
-> Only the call is documented in the ranking post.
+# Thomas MIX (James variant) / トーマスMIX（ジェームス版） | Theme | 0 |  | id=thomas-james
+> The Idol Sengoku Jidai wiki documents ジェームス in the third slot, while the 2025 Onshitsuha roundup uses ヘンリー. These are retained as distinct source versions. Timing is not established here.
+【発動】出発進行
+トーマス
+ゴードン
+ジェームス
+パーシー
+トビー
+エドワード
+ポッポー
+
+# Suirenka Kashou / 睡蓮花歌唱 | Theme | 0 |  | id=suirenka
+> The ranking post gives the prompt and response only; it does not establish timing or placement.
 ○○で沸けるの誰ですか？
 俺！×4 ore！×2
 
-# Ginga Koujou (Galaxy Koujou) / 銀河口上 | Koujou | 12 | Long interlude — Standard-Enchou length (12 bars incl. start) | id=ginga
-> Exactly 12 bars with the start call. Often entered with the "Uryao-i" Hayashi start, so it can also be felt as Kahen 3-ren length. Origin: the intro of Idol College's "Seifuku Koi Monogatari" (early 2010s), later popularised via Nijicon's "Paradoxical Complex".
+# Ginga Koujou (Galaxy Koujou) / 銀河口上 | Koujou | 12 |  | phrases | id=ginga
+> The article describes a 12-bar form and a longer form after the separate うりゃおい/clap starter. Its tentative history links early-2010s use to Idol College's "Seifuku Koi Monogatari" and later use to Nijicon's "Paradoxical Complex"; the author explicitly warns that this history may be inaccurate.
 銀河に轟く歌声と
 地球に花咲くその笑顔
 お前が好きだと輝き叫ぶ
@@ -67,7 +87,7 @@ export const SEED_TEXT = String.raw`
 光のごとく駆け巡る
 好きじゃねぇ 愛してる
 
-# Ginga Koujou — Cancel Italian / 銀河口上キャンセルイタリア | Advanced | 16 | Long interlude / outro | id=ginga-italian
+# Ginga Koujou — Cancel Italian / 銀河口上キャンセルイタリア | Advanced | 0 |  | phrases | id=ginga-italian
 > The final 愛してる is swapped for the Italian MIX start call (アンディアモ), the usual way Ginga is cancelled into another MIX.
 銀河に轟く歌声と
 地球に花咲くその笑顔
@@ -76,17 +96,15 @@ export const SEED_TEXT = String.raw`
 光のごとく駆け巡る
 好きじゃねぇ アンディアモ
 
-ティーグレ フォーコ
-レプリカンテ フィーブラ
-バロンバーロ ヴィヴラメント
-テクノボラーレ
+ティーグレ フオーコ レプリカンテ フィーブラ
+バロンバーロ ヴィヴラメント テクノボラーレ
 アスティラッツィオーネ
 
-# Rascal MIX / ラスカルmix | Theme | 8 | Interlude (2025 MIX of the year) | id=rascal
+# Rascal MIX / ラスカルmix | Theme | 0 |  | id=rascal
 > By Takeutin. "三生オタク" = a fan reborn with every oshi change. 丸の内 is the creator's old Nagoya address. Many derivatives exist (see the Yoji-con list).
-ラスカル×4
-あー 👏 👏 丸の内
-清川 みれぴ に ゆーほ
+ラスカルラスカルラスカルラスカル
+あ～👏👏丸の内
+清川みれぴに ゆーほ
 ガチ恋加速が止まらない
 結婚は ごめんなさい
 三生オタクラスカルズ
@@ -94,7 +112,7 @@ export const SEED_TEXT = String.raw`
 たけうちまさやって知ってる？
 [すーえーなーがーかーのーちゃーん！]
 
-# Gachikoi Rascal Kahen / ガチ恋ラスカル可変 | Theme | 8 | Interlude | id=rascal-gachikoi
+# Gachikoi Rascal Kahen / ガチ恋ラスカル可変 | Theme | 0 |  | id=rascal-gachikoi
 言いたいラスカルあるんだよ
 やっぱり君は丸の内
 好き好き大好き後藤まつり
@@ -104,7 +122,7 @@ export const SEED_TEXT = String.raw`
 俺と一緒にたけうていん
 たけうちまさや愛してる
 
-# Ultimate Rascal / アルティメットラスカル | Theme | 16 | Long interlude | id=rascal-ultimate
+# Ultimate Rascal / アルティメットラスカル | Theme | 0 |  | id=rascal-ultimate
 > Identical text is circulated as "Captain Rascals" (キャプテンラスカルズ).
 言いたいことがファイボラスカル
 やっぱりまさやはグリフィンタイガー
@@ -115,39 +133,36 @@ export const SEED_TEXT = String.raw`
 俺とタイガーラスカルズ
 たけうちまさやでイェッタイガー
 
-# Yoruba MIX / ヨルバ語mix | Language Variant | 8 | Outro / cancel from koujou | id=yoruba
+# Yoruba MIX / ヨルバ語mix | Language Variant | 0 |  | id=yoruba
 > Yoruba is spoken in south-west Nigeria. Its "除去" slot is ヨ, which makes the reverse form (Gachikoi Yoruba) slot neatly into a Gachi Koi cancel.
 【発動】エジェカロ
 アモテクン イナ イシェオウォエニヤン
 オウ オビンリンオルウェオミ イジヤ
 [オウケミカリ フォ ヨ]
 
-# Ura Yoruba (Yoruba 2-ren) / 裏ヨルバ（ヨルバ語2連） | Language Variant | 16 | Long outro | id=yoruba-2
+# Ura Yoruba (Yoruba 2-ren) / 裏ヨルバ（ヨルバ語2連） | Language Variant | 0 |  | id=yoruba-2
 【発動】エジェカロ
 アモテクン イナ イシェオウォエニヤン
 オウ オビンリンオルウェオミ イジヤ
-
 エジャエニヤン オリシャオビンリン
 ケレシメシ エランオデクン
 アンジェリ シンデレラ
 アアイェ イレアライェアジェサラ
 
-# Yoruba 3-Ren / ヨルバ語3連 | Advanced | 24 | Longest outro | id=yoruba-3
+# Yoruba 3-Ren / ヨルバ語3連 | Advanced | 0 |  | id=yoruba-3
 【発動】エジェカロ
 アモテクン イナ イシェオウォエニヤン
 オウ オビンリンオルウェオミ イジヤ
-
 エジャエニヤン オリシャオビンリン
 ケレシメシ エランオデクン
 アンジェリ シンデレラ
 アアイェ イレアライェアジェサラ
-
 エフォイナ イナティンジョ
 イラウォアリワジュロ
 イラウォプレイアデス オルンイラウォ
 
-# Gachikoi Yoruba (Gyaku-uchi) / ガチ恋ヨルバ（逆打ち） | Advanced | 16 | Gachi Koi cancel | id=yoruba-gachikoi
-> Cancel at 「やっぱり○○は可愛いヨ」: the Yoruba reverse starts on that ヨ, which is considered the cleanest Gachi Koi cancel of any language.
+# Gachikoi Yoruba (Gyaku-uchi) / ガチ恋ヨルバ（逆打ち） | Advanced | 0 |  | id=yoruba-gachikoi
+> Cancel at 「やっぱり○○は可愛いヨ」: the Yoruba reverse starts on that ヨ. The article describes this transition as particularly smooth; its comparison with other language cancels is subjective.
 言いたいことがあるんだよ
 やっぱり○○は可愛いヨ
 フォ オウケミカリ イジヤ
@@ -155,53 +170,47 @@ export const SEED_TEXT = String.raw`
 イシェオウォエニヤン
 イナ アモテクン エジェカロ
 
-# Standard MIX (Short Ending) / スタンダード（短縮） | Basic | 8 | Song start | id=std-short
-タイガー ファイヤー
-サイバー ファイバー
-ダイバー バイバー
-ジャージャー
-
-# Japanese MIX (Short Ending) / ジャパニーズ（最後を短縮） | Basic | 8 | Second interlude | id=jp-short
+# Japanese MIX (Short Ending) / ジャパニーズ（最後を短縮） | Basic | 0 |  | id=jp-short
 虎 火
 人造 繊維
 海女 振動
 化繊飛除去(かっせんとびじょーきょー)
 
-# Japanese MIX (Tora-Hi Hatsudou) / 日本語MIX（虎火発動） | Language Variant | 8 | Long interlude between verse 1 and 2 | id=jp-torahi
+# Japanese MIX (Tora-Hi Hatsudou) / 日本語MIX（虎火発動） | Language Variant | 0 |  | id=jp-torahi
 虎×12 虎 火 人造 繊維 海女 振動 化繊 飛 除去
 
-# Japanese MIX (Gyaku-uchi) / 日本語MIX（逆打ち） | Advanced | 8 | Second interlude | b2 | id=jp-gyaku
+# Japanese MIX (Gyaku-uchi) / 日本語MIX（逆打ち） | Advanced | 0 |  | b2 | id=jp-gyaku
 虎 火 人造 繊維 海女 振動 化繊 飛 除去 飛 化繊 振動 海女 繊維 人造 火 [倍速]
 虎 虎 火 火 人造 人造 繊維 繊維 海女 振動 化繊 飛 除去
 
-# Ainu MIX (Sunny) / アイヌ（晴） | Language Variant | 4 | Short gap | id=ainu-sun
+# Ainu MIX (Sunny) / アイヌ（晴） | Language Variant | 0 |  | id=ainu-sun
 カムイ ホロカプ
 アーホイヨ
 
-# Ainu MIX (Rain) / アイヌ（雨） | Language Variant | 4 | Short gap | id=ainu-rain
+# Ainu MIX (Rain) / アイヌ（雨） | Language Variant | 0 |  | id=ainu-rain
 カムイ ポプニカ
 アーホイヨ
 
-# Enchou MIX / 園長 | Language Variant | 8 | Interlude | id=enchou
+# Enchou MIX / 園長 | Language Variant | 0 |  | id=enchou
 ファイボ ワイパー
 ファーマー ジャスパー
 ホワイパー クーパー
 イエスクレイパー
 
-# Miyamoto Musashi (Enchou Japa) / 宮本武蔵（園長ジャパ） | Language Variant | 8 | Interlude | id=musashi
+# Miyamoto Musashi (Enchou Japa) / 宮本武蔵（園長ジャパ） | Language Variant | 0 |  | id=musashi
 飛 除去
 農 正
 拭 樽
 宮本武蔵
 
-# Kurofuku MIX / 黒服 | Language Variant | 8 | Interlude | id=kurofuku
+# Kurofuku MIX / 黒服 | Language Variant | 0 |  | id=kurofuku
 ファイボ ワイパー
 ジャンパー ピンガー
 ダンス ファーマー
 [サブリ フィンガー]
 [セイブ バイザー]
 
-# Spanish MIX (1-ren) / スペイン（1連で終わるやつ） | Language Variant | 8 | Outro | id=spanish-1
+# Spanish MIX (1-ren) / スペイン（1連で終わるやつ） | Language Variant | 0 |  | id=spanish-1
 【発動】バーモス
 ティグレ フェゴ
 シベル フィブラ
@@ -210,7 +219,7 @@ export const SEED_TEXT = String.raw`
 [ボラーレ リンピラ
 パラブリサス]
 
-# Spanish MIX (2-3 ren) / スペイン（2連～3連） | Language Variant | 16 | Outro | id=spanish-3
+# Spanish MIX (2-3 ren) / スペイン（2連～3連） | Language Variant | 0 |  | id=spanish-3
 【発動】バーモス
 ティグレ フェゴ
 シベル フィブラ
@@ -226,16 +235,15 @@ export const SEED_TEXT = String.raw`
 ポラール プレイアディ
 シエロエストレジャード]
 
-# German MIX / ドイツ | Language Variant | 8 | Outro | id=german
+# German MIX / ドイツ | Language Variant | 0 |  | id=german
 【発動】ゲーエンヴィアー
 ティーガァ フォイエル
 クゥンスト フィーバー
 タゥツァー シュビングング
 ヒェーミーファーザー
-[フィリーゲン カールハインツ-
--シュナイダー]
+[フィリーゲン カールハインツシュナイダー]
 
-# German MIX (Ura) / 裏ドイツ | Language Variant | 16 | Outro | id=german-ura
+# German MIX (Ura) / 裏ドイツ | Language Variant | 0 |  | id=german-ura
 【発動】ゲーエンヴィアー
 ティーガァ フォイエル
 クゥンスト フィーバー
@@ -245,10 +253,9 @@ export const SEED_TEXT = String.raw`
 フィリーゲン バザィティガン
 ゼーユングファー ゲッティン
 ヴァイナハテン レン
-ヘルマンカルツ カールハインツ-
--シュナイダー
+ヘルマンカルツ カールハインツシュナイダー
 
-# German MIX (3-ren) / ドイツ3連 | Advanced | 16 | Long outro | id=german-3
+# German MIX (3-ren) / ドイツ3連 | Advanced | 0 |  | id=german-3
 【発動】ゲーエンヴィアー
 ティーガァ フォイエル
 クゥンスト フィーバー
@@ -266,7 +273,7 @@ export const SEED_TEXT = String.raw`
 シュテルンツェルト
 カールハインツシュナイダー
 
-# Italian MIX / イタリア | Language Variant | 8 | Outro | id=italian
+# Italian MIX / イタリア | Language Variant | 0 |  | id=italian
 【発動】アンデャーモ
 ティーグレ フォーコ
 レプリカンテ フィーブラ
@@ -274,7 +281,7 @@ export const SEED_TEXT = String.raw`
 テクノボラーレ
 [アストラッツィオーネ]
 
-# Italian MIX (Ura) / 裏イタリア | Language Variant | 16 | Outro | id=italian-ura
+# Italian MIX (Ura) / 裏イタリア | Language Variant | 0 |  | id=italian-ura
 【発動】アンデャーモ
 ティーグレ フォーコ
 レプリカンテ フィーブラ
@@ -284,10 +291,9 @@ export const SEED_TEXT = String.raw`
 ナターレ レンナ
 アンジェロ チェネレントラ
 スパツィオ パェゼデレ
-メラヴィリェ アストラッ-
--チィオーネ
+メラヴィリェ アストラッチィオーネ
 
-# Italian MIX (3-ren) / イタリア3連 | Advanced | 16 | Long outro | id=italian-3
+# Italian MIX (3-ren) / イタリア3連 | Advanced | 0 |  | id=italian-3
 【発動】アンデャーモ
 ティーグレ フォーコ
 レプリカンテ フィーブラ
@@ -300,10 +306,9 @@ export const SEED_TEXT = String.raw`
 メラヴィリェ シンティッラ
 
 フィアンマ ポラーレ
-プレイアディ チェーロ-
--スッテラート
+プレイアディ チェーロスッテラート
 
-# Korean MIX / ハングル | Language Variant | 8 | Outro | id=korean
+# Korean MIX / ハングル | Language Variant | 0 |  | id=korean
 【発動】チャカダー
 ホランイ ブル
 インジョ ソミュ
@@ -311,21 +316,21 @@ export const SEED_TEXT = String.raw`
 ファハクソミュ
 [ネウダ ジェゴ]
 
-# Thai MIX / タイ | Language Variant | 8 | Outro | id=thai
+# Thai MIX / タイ | Language Variant | 0 |  | id=thai
 シーアー ファイマイ
 トローン ファイブー
 ブラダーナー スターン
 サンコラー ビン
 カーカムチャー
 
-# Arabic MIX / アラビア | Language Variant | 8 | Outro | id=arabic
+# Arabic MIX / アラビア | Language Variant | 0 |  | id=arabic
 【発動】スフィリアスィール
 ナミル ナール
 スィナーイ ナスィージュ
 ガタサ ハッザ
 ハイトゥンシナーイ
 
-# Russian MIX / ロシア | Language Variant | 8 | Outro | id=russian
+# Russian MIX / ロシア | Language Variant | 0 |  | id=russian
 > The rhythm is uncertain in the source memo.
 チーグル アゴーニ
 キビェル ヴァラクノ
@@ -333,28 +338,28 @@ export const SEED_TEXT = String.raw`
 ヴィバラツィヤ ヒーミャ
 [リターチ ウダリェニエ]
 
-# Vietnamese MIX / ベトナム | Language Variant | 8 | Outro | id=vietnamese
+# Vietnamese MIX / ベトナム | Language Variant | 0 |  | id=vietnamese
 【発動】ジュントイセー
 ティーガル チャイ
 キーバル ソイ
 トゥーラン ロン
 ソイトンホップ
 
-# Chinese MIX / 中国 | Language Variant | 8 | Outro | id=chinese
+# Chinese MIX / 中国 | Language Variant | 0 |  | id=chinese
 ラオフー フオ
 レンジャオ シェンウェイ
 ハイニィ ジェンドン
 ホァシェン
 [フェイ チュウチィ]
 
-# Favoria Star MIX / ファボリアスター | Language Variant | 8 | Interlude | id=favoria
+# Favoria Star MIX / ファボリアスター | Language Variant | 0 |  | id=favoria
 ジャージャー ファイボ
 インジョ ジャスパー
 ビブラル 化繊
 イエスクレイパー
 [ナルダ ファボリアスター]
 
-# Takemin Original Perfect / タケミンオリジナルパーフェクト | Advanced | 16 | Long outro | id=takemin
+# Takemin Original Perfect / タケミンオリジナルパーフェクト | Advanced | 0 |  | id=takemin
 > Timing unconfirmed in the source memo.
 【発動】ジャージャー
 ファイボ ワイパー
@@ -367,7 +372,7 @@ export const SEED_TEXT = String.raw`
 ホァシェン ラオフー
 ジュントイセー
 
-# Shikou / 至高 | Language Variant | 8 | Interlude | id=shikou
+# Shikou / 至高 | Language Variant | 0 |  | id=shikou
 ファスタスチーパ
 アステステロン
 パストマーブ
@@ -376,13 +381,13 @@ export const SEED_TEXT = String.raw`
 スプンタアールマティ
 パストビレイジョン
 
-# Myohontusuke Square / ミューホントゥスケ広場 | Language Variant | 8 | Interlude | id=myohon-square
+# Myohontusuke Square / ミョーホントゥスケ広場 | Language Variant | 4 | Often the pre-intro | id=myohon-square
 ミョーホントゥスケ
 化繊飛除去
 ジャージャー ファイボ
 ワイパー
 
-# Myohon Driver Square / ミョーホンドライバー広場 | Language Variant | 8 | Interlude | id=myohon-driver
+# Myohon Driver Square / ミョーホンドライバー広場 | Language Variant | 0 |  | id=myohon-driver
 ミョーホン ドライバー
 化繊 飛 ライガー
 ジャッジャー ジャッジャー
@@ -390,7 +395,7 @@ export const SEED_TEXT = String.raw`
 ストストストスト
 ストライパー
 
-# Kahen 3-Ren (Original Triple) / 可変3連（本来の可変3連） | Advanced | 16 | Long interlude | id=kahen-orig
+# Kahen 3-Ren (Original Triple) / 可変3連（本来の可変3連） | Advanced | 0 |  | id=kahen-orig
 タイガー ファイヤー
 サイバー ファイバー
 ダイバー バイバー
@@ -406,9 +411,8 @@ export const SEED_TEXT = String.raw`
 ティーガァ ジャス
 パーナ
 
-# Kahen 3-Ren (4-ren length) / 可変3連（4連の尺があるやつ） | Advanced | 16 | Long interlude (4-ren length) | id=kahen-4ren
-人造ファイヤファ
-イボワイパー
+# Kahen 3-Ren (4-ren length) / 可変3連（4連の尺があるやつ） | Advanced | 0 |  | id=kahen-4ren
+人造ファイヤファイボワイパー
 タイガータイガー
 タタタタタイガー
 
@@ -427,9 +431,8 @@ export const SEED_TEXT = String.raw`
 人造繊維
 イエッタイガー
 
-# Kahen 3-Ren 2 / 可変3連2 | Advanced | 16 | Long interlude (4-ren length) | id=kahen-2
-人造ファーマ繊
-維ジャスパー
+# Kahen 3-Ren 2 / 可変3連2 | Advanced | 0 |  | id=kahen-2
+人造ファーマ繊維ジャスパー
 ダイバーダイバー
 ダダダダダイバー
 
@@ -448,7 +451,7 @@ export const SEED_TEXT = String.raw`
 ワールドカオス
 イエッダイバー
 
-# Ainu-Nichi Kahen / アイ日可変 | Advanced | 8 | Ochisabi lead-in interlude | id=ainu-nichi
+# Ainu-Nichi Kahen / アイ日可変 | Advanced | 8 |  | id=ainu-nichi
 ウィースぺ ケスィ
 チャペ チャペ チャペ
 チャペ アぺ カラ キナ
@@ -460,7 +463,7 @@ export const SEED_TEXT = String.raw`
 海女 振動 化繊
 [飛 除去]
 
-# Captain Tsubasa Kahen 3-Ren / キャプテン翼可変3連 | Advanced | 16 | Long interlude | id=tsubasa
+# Captain Tsubasa Kahen 3-Ren / キャプテン翼可変3連 | Advanced | 16 |  | id=tsubasa
 キタキタ キタキタ
 ワイテキタ
 タイガー タイガー
@@ -481,7 +484,8 @@ export const SEED_TEXT = String.raw`
 スカイ ラブ
 ハリケーン
 
-# Hogwarts MIX / ホグワーツ | Theme | 8 | Interlude | id=hogwarts
+# Hogwarts MIX / ホグワーツ | Theme | 16 |  | id=hogwarts
+> Uses the MCH memo's line breaks. The article and Sho group some calls into fewer rows; Sho uses two claps before Gryffindor, while MCH and the article use one.
 マルフォイ マルフォイ
 マルフォイ マルフォイ
 あーーー 👏
@@ -504,9 +508,8 @@ export const SEED_TEXT = String.raw`
 [ハーマイオニー
 グレンジャー]
 
-# Ultimate MIX / アルティメットMIX | Advanced | 16 | Long interlude | id=ultimate
-言いたいことがファ
-イボマルフォイ
+# Ultimate MIX / アルティメットMIX | Advanced | 0 |  | id=ultimate
+言いたいことがファイボマルフォイ
 やっぱり○○
 グリフィンタイガー
 
@@ -525,7 +528,7 @@ export const SEED_TEXT = String.raw`
 ヴォルデモートって
 イェッタイガー
 
-# Japanese 3x-speed Kahen / ジャパニーズ3倍速可変 | Advanced | 8 | Interlude | b2 | id=jp-3x
+# Japanese 3x-speed Kahen / ジャパニーズ3倍速可変 | Advanced | 0 |  | b2 | id=jp-3x
 > Called "3x" but only reaches roughly 1.5–2.0x in practice.
 海女虎人造(あまとらじんぞう)
 海女虎化繊(あまとらかせん)
@@ -537,7 +540,7 @@ export const SEED_TEXT = String.raw`
 除去虎振動(じょきょとらしんどう)
 海女虎火(あまとらひ)
 
-# Kahen (Unnamed) / 可変（そのうち名前つける） | Advanced | 8 | Interlude | id=kahen-unnamed
+# Kahen (Unnamed) / 可変（そのうち名前つける） | Advanced | 0 |  | id=kahen-unnamed
 チスパ ジャーマ
 舞農場
 チャペ虎タイガー
@@ -548,29 +551,28 @@ export const SEED_TEXT = String.raw`
 振繊除去飛
 海女虎火
 
-# Kahen (Mange) / 可変（まんげ） | Advanced | 4 | Short gap | id=kahen-mange
+# Kahen (Mange) / 可変（まんげ） | Advanced | 0 |  | id=kahen-mange
 チャペ虎タイガー
 ファーマージャスパー
 イエッ まんげ
 エターナル
 
-# Kahen (Favoria Star) / 可変（ファボリアスター） | Advanced | 4 | Short gap | id=kahen-favoria
-イエッ ナルダ ファ
-ボリアスター
+# Kahen (Favoria Star) / 可変（ファボリアスター） | Advanced | 0 |  | id=kahen-favoria
+イエッ ナルダ ファボリアスター
 
-# Japanese Baisoku Omote-Ura / ジャパニーズ（倍速表裏） | Advanced | 8 | Interlude | b2 | id=jp-baisoku
+# Japanese Baisoku Omote-Ura / ジャパニーズ（倍速表裏） | Advanced | 0 |  | b2 | id=jp-baisoku
 虎火人造繊維
 海女振動化繊飛
 除去飛化繊振動
 海女繊維人造火
 
-# Ainu Baisoku Kahen / アイヌ（倍速可変） | Advanced | 8 | Interlude | b2 | id=ainu-baisoku
+# Ainu Baisoku Kahen / アイヌ（倍速可変） | Advanced | 0 |  | b2 | id=ainu-baisoku
 チャペアペカラキナ
 チャペアペカラキナ
 チャペアペカラキナ
 ミョーホントゥスケ
 
-# Standard-Japa-Ainu Blend / スタジャパアイヌ混合 | Advanced | 16 | Long interlude | id=blend
+# Standard-Japa-Ainu Blend / スタジャパアイヌ混合 | Advanced | 0 |  | id=blend
 チャペ虎タイガー
 アぺ火ファイヤー
 カラ人造サイバー
@@ -581,13 +583,13 @@ export const SEED_TEXT = String.raw`
 イエッ ウィスペ
 化繊ジャージャー
 
-# Karan Ichishiki -Rei- / 華嵐 一式-麗- | Theme | 8 | Interlude | id=karan
+# Karan Ichishiki -Rei- / 華嵐 一式-麗- | Theme | 0 |  | id=karan
 桜(サクラ) 椿(ツバキ)
 菖蒲(アヤメ) 黒百合(クロユリ)
 楓(カエデ) 睡蓮(スイレン)
 杜若(カキツバタ)
 
-# Hanabi MIX / 花火 | Theme | 8 | Interlude | id=hanabi
+# Hanabi MIX / 花火 | Theme | 0 |  | id=hanabi
 【発動】5 4
 【発動】321
 菊(キク) 牡丹(ボタン)
@@ -595,21 +597,21 @@ export const SEED_TEXT = String.raw`
 千輪(センリン) 葉落(ヨウラク)
 冠菊(カムロギク)
 
-# Seven Lucky Gods / 七福神 | Theme | 8 | Interlude | id=shichifuku
+# Seven Lucky Gods / 七福神 | Theme | 0 |  | id=shichifuku
 【発動】七福即生
 恵比寿 福禄
 弁財 寿老
 布袋 大黒
 毘沙門天
 
-# Tales MIX / テイルズ | Theme | 8 | Interlude | id=tales
+# Tales MIX / テイルズ | Theme | 0 |  | id=tales
 【発動】よっしゃ秘奥義
 震天 裂空
 斬光 旋風
 滅砕 神罰
 割殺撃
 
-# Gokui / 極意 | Advanced | 16 | Long interlude | id=gokui
+# Gokui / 極意 | Advanced | 0 |  | id=gokui
 虎 火
 人造 繊維
 海女 振動
@@ -621,7 +623,7 @@ export const SEED_TEXT = String.raw`
 極意 魂
 伝承
 
-# Konton MIX (Chaos, Ochisabi) / 混沌 | Advanced | 8 | Ochisabi or interlude | id=konton-short
+# Konton MIX (Chaos, Ochisabi) / 混沌 | Advanced | 8 | Often Ochisabi; placement depends on the song | id=konton-short
 【発動】ワールドカオス
 諸行 木暮
 時雨 神楽
@@ -630,7 +632,7 @@ export const SEED_TEXT = String.raw`
 [黒雲 無常
 世界混沌]
 
-# Ashura Konton / 阿修羅混沌 | Advanced | 16 | Heavy drop or long interlude | id=ashura-konton
+# Ashura Konton / 阿修羅混沌 | Advanced | 0 |  | id=ashura-konton
 【発動】ワールドカオス
 諸行 木暮
 時雨 神楽
@@ -642,25 +644,25 @@ export const SEED_TEXT = String.raw`
 ナウダ マモリア
 スター
 
-# Tanbo no Yousu / 田んぼの様子 | Theme | 8 | Interlude gag | id=tanbo
+# Tanbo no Yousu / 田んぼの様子 | Theme | 0 |  | id=tanbo
 農林業
 水産業
 魚の様子も
 👏 おかしい
 
-# Koshihikari / コシヒカリ | Theme | 4 | Short gap gag | id=koshihikari
+# Koshihikari / コシヒカリ | Theme | 0 |  | id=koshihikari
 コシヒカリ
 ササニシキ
 イヤイヤイヤイヤ
 マテマテマテマテ
 
-# Yousuiro / 用水路 | Theme | 4 | Short gap gag | id=yousuiro
+# Yousuiro / 用水路 | Theme | 0 |  | id=yousuiro
 用水路
 コンバイン
 田んぼの様子が
 👏 おかしい
 
-# Tatatata Taiga 3-Ren / タタタタタイガー3連 | Advanced | 16 | Long interlude (6-ren length) | id=tata-3
+# Tatatata Taiga 3-Ren / タタタタタイガー3連 | Advanced | 0 |  | id=tata-3
 タイガファイヤ
 タタタタタイガ
 サイバファイバ
@@ -691,7 +693,7 @@ export const SEED_TEXT = String.raw`
 ジャッジャバリボ
 ストライパ
 
-# Tatatata Taiga 3-Ren (Full) / タタタタタイガー3連 フル | Advanced | 16 | Longest interlude | id=tata-3-full
+# Tatatata Taiga 3-Ren (Full) / タタタタタイガー3連 フル | Advanced | 0 |  | id=tata-3-full
 タイガファイヤ
 タタタタタイガ
 サイバファイバ
@@ -724,37 +726,97 @@ export const SEED_TEXT = String.raw`
 ストストストスト
 ストライパー
 
-# Chikipa MIX / チキパ | Theme | 8 | Interlude | id=chikipa
-> Length is cut to fit the gap; some venues drop everything from 栄養 onward. Chains well after Ainu-Nichi Kahen.
+# Chikipa MIX / チキパ | Theme | 0 |  | id=chikipa
+> The MCH form combines Latolata and Sagozo sections and includes eight 栄養 calls. The Wiki lists separate Latolata-full, Sagozo, 3-ren, Perfect, and variable forms. Timing is not established for this transcription.
 ライオン トラ
 チーター
-ラタラタ ラト
-ラーター
+ラタラタ ラトラーター
 
 サイ ゴリラ
 ゾウ
 サゴーゾー
 サゴーゾー
 
-栄養×8
+栄養×4
+栄養×4
 カプサイシンって
 知ってるー？
 [栄養過多で
 脂肪肝]
 
-# Deara-Stage / ディアステ | Theme | 8 | Interlude | id=deastage
+# Chikipa MIX (Latolata Full) / チキパMIX（ラトラータフルMIX） | Theme | 0 |  | id=chikipa-latolata
+ライオン
+トラ
+チーター
+ラタラタ
+ラトラーター
+栄養
+栄養
+栄養
+栄養
+カプサイシンって知ってるー？
+
+# Chikipa MIX (Sagozo) / チキパMIX（サゴーゾMIX） | Theme | 0 |  | id=chikipa-sagozo
+サイ
+ゴリラ
+ゾウ
+サゴーゾ
+サゴーゾー
+
+# Chikipa MIX (3-ren) / チキパMIX（3連） | Theme | 0 |  | id=chikipa-3ren
+ライオン
+トラ チーター
+ラタラタ
+ラトラーター
+サイ
+ゴリラ
+ゾウ
+サゴーゾ
+サゴーゾー
+栄養
+栄養
+栄養
+栄養
+カプサイシンって知ってるー？
+
+# Perfect Chikipa MIX / パーフェクトチキパMIX | Theme | 0 |  | id=chikipa-perfect
+ライオン
+トラ
+チーター
+ラタラタ
+ラトラーター
+栄養
+栄養
+栄養
+栄養
+カプサイシンって知ってるー？
+栄養過多で脂肪肝～♪
+
+# Variable Chikipa MIX / 可変チキパMIX | Advanced | 0 |  | id=chikipa-kahen
+ラトラーター！
+イェイェイェ！
+ラ！
+ラト！
+ラトラ！
+ラトラッ！
+ラトラッ！
+ラトッ！
+ラトッ！
+ラトラァタァ～！
+
+# Deara-Stage / ディアステ | Theme | 0 |  | id=deastage
 桃 栗
 芋 乳
 妹(もうと) 油
 段ボール
 
-# Deara-Stage (English) / ディアステ（英語） | Theme | 8 | Interlude | id=deastage-en
+# Deara-Stage (English) / ディアステ（英語） | Theme | 0 |  | id=deastage-en
 ピンク マロン
 ポテツ バスト
 シスター オイリー
 ダンボックス
 
-# Sakuma (Drop) / サクマー（drop） | Theme | 16 | Drop | id=sakuma
+# Sakuma (Drop) / サクマー（drop） | Theme | 0 |  | id=sakuma
 シャイニー ファイヤー
 サンダー ウォーター
 ネイチャー ポイズン
@@ -770,7 +832,7 @@ export const SEED_TEXT = String.raw`
 カムイ スルク
 サクマホプンパ
 
-# Nanaland / ナナランド | Theme | 16 | Drop | id=nanaland
+# Nanaland / ナナランド | Theme | 0 |  | id=nanaland
 シャイニー ファイヤー
 スター ウォーター
 ネイチャー ウインド
@@ -786,7 +848,7 @@ export const SEED_TEXT = String.raw`
 カムイ レラ
 カタイロッケ
 
-# Mou-Carry / 妄キャリ | Theme | 8 | Interlude | id=moucarry
+# Mou-Carry / 妄キャリ | Theme | 0 |  | id=moucarry
 ディスティネーション
 スローモーション
 コンビネーション
@@ -795,25 +857,26 @@ export const SEED_TEXT = String.raw`
 インビテーション
 テンプテーション
 レボリューション
-悲しみキャリブ
-レーション
+悲しみキャリブレーション
 
-# Kishoutenketsu Jo-Ha-Kyu / 起承転結序破急 | Theme | 8 | Interlude | id=kishoten
+# Kishoutenketsu Jo-Ha-Kyu / 起承転結序破急 | Theme | 0 |  | id=kishoten
 水 金 地 火 木
 土 天 海 冥
 起 承 転 結
 序 破 急
 
-# G.O.D / G.O.D（神激） | Theme | 8 | Interlude | id=god
+# G.O.D / G.O.D（神激） | Theme | 0 |  | id=god
 【発動】よっしゃ降臨
 アテナ ゼウス
 アレス ガイア
 セレス カオス
 ヘリオス
+
+# Kuji Chant / 九字 | Koujou | 0 |  | phrases | id=kuji
 臨 兵 闘 者
 皆 陣 列在前
 
-# Itsu Ikuno? / いつ行くの？ | Theme | 8 | Pre-MIX gag | id=itsuikuno
+# Itsu Ikuno? / いつ行くの？ | Theme | 0 |  | id=itsuikuno
 ウーハイウーハイ
 ウーハイウーハイ
 あー 👏 👏
@@ -828,17 +891,18 @@ export const SEED_TEXT = String.raw`
 今でしょう？
 あー 👏 👏
 しゃー行くぞ
+> (⇒各種MIX)
 
-# Yoshi Ikuzo / 吉幾三 | Theme | 4 | Short gap gag | id=yoshiikuzo
+# Yoshi Ikuzo / 吉幾三 | Theme | 0 |  | id=yoshiikuzo
 【発動】吉幾三
 テレビもねぇ ラジオもねぇ
 クルマもそれほど走ってねぇ
 ピアノもねぇ バーもねぇ
 お巡り毎日ぐーるぐる
 
-# Mori Mitsuko Koujou / 森光子 口上 | Koujou | 16 | Gag outro | id=morimitsuko
+# Mori Mitsuko Koujou / 森光子 口上 | Koujou | 0 |  | phrases | id=morimitsuko
 言いたいことは
-ない
+△△ない
 森光子
 森光子
 
@@ -859,13 +923,15 @@ export const SEED_TEXT = String.raw`
 [も り み つ
 こー]
 
-# Encore Call / アンコール | Basic | 4 | Encore | id=encore
+# Encore Call / アンコール | Basic | 0 |  | id=encore
+> (各種MIX⇒)
 アンコール
 アンコール
 アンコール
 しゃー行くぞ
+> (⇒各種MIX)
 
-# Zettai Ryouiki / 絶対領域なやつ | Koujou | 8 | Second verse A-melody | id=zettai
+# Zettai Ryouiki / 絶対領域なやつ | Koujou | 0 |  | phrases | id=zettai
 完！ 全！
 聖！ 域！
 絶対領域
@@ -886,7 +952,7 @@ export const SEED_TEXT = String.raw`
 センターフライ
 アイキャンフライ
 
-# Pan MIX / パン | Theme | 8 | Interlude after verse 2 | id=pan
+# Pan MIX / パン | Theme | 0 |  | id=pan
 パンパンパン
 ポケモンパン
 フレッシュブレッド
@@ -907,7 +973,7 @@ export const SEED_TEXT = String.raw`
 ドキンの妹
 コキンちゃん
 
-# Pan MIX 2 / パン2 | Theme | 8 | Interlude after verse 2 | id=pan-2
+# Pan MIX 2 / パン2 | Theme | 0 |  | id=pan-2
 パンパンパン
 ポケモンパン
 フレッシュブレッド
@@ -918,49 +984,48 @@ export const SEED_TEXT = String.raw`
 ヤマザキ春の
 パン祭り
 
-# Bunmeido / 文明堂 | Theme | 4 | Short gap gag | id=bunmeido
-文明堂
+# Bunmeido / 文明堂 | Theme | 0 |  | id=bunmeido
 カステラ1番
 電話は2番
 3時のおやつは
 文明堂
 
-# Excalibur / エクスカリバー | Theme | 8 | Interlude | id=excalibur
+# Excalibur / エクスカリバー | Theme | 0 |  | id=excalibur
 サガ ムウ
 氷河 魔鈴
 アイオリア 釈迦
 もう一度俺に光を見せてくれ
 目覚めよ我がエクスカリバー
 
-# Pegasus / ペガサス | Theme | 8 | Interlude | id=pegasus
+# Pegasus / ペガサス | Theme | 0 |  | id=pegasus
 【発動】ペガサス
 フェニックス ドラゴン
 キグナス アンドロメダ
 アテナ 燃え上れ
-俺の 小宇宙(コスモ)
+俺の小宇宙(おれのコスモ)
 ○○は俺が守る
 
-# Magic MIX / 魔法 | Theme | 4 | Short gap | id=magic
+# Magic MIX / 魔法 | Theme | 0 |  | id=magic
 メラ イオ ヒャド
 パルプンテ
 エクスペクト
 パトローナム
 
-# Burning / バーニング | Theme | 8 | Interlude | id=burning
+# Burning / バーニング | Theme | 0 |  | id=burning
 【発動】あーーーー
 バーニング バーニング
 バーニング バーニング
 バーニング バーニング
 燃えるぜ バーニング
 
-# Gundam Seed / ガンダム種 | Theme | 8 | Interlude | id=gundam
+# Gundam Seed / ガンダム種 | Theme | 0 |  | id=gundam
 【発動】俺がガンダムだ
 ストライク イージス
 ブリッツ バスター
 デュエル ジャスティス
 フリーダム
 
-# Men MIX / 麺MIX | Theme | 8 | Interlude | id=men
+# Men MIX / 麺MIX | Theme | 0 |  | id=men
 麺麺麺麺
 ジャージャー麺
 つるっと喉越し
@@ -971,7 +1036,7 @@ export const SEED_TEXT = String.raw`
 赤いーきつねと
 緑のたぬき
 
-# Pizza MIX / ピザMIX | Theme | 8 | Interlude | id=pizza
+# Pizza MIX / ピザMIX | Theme | 0 |  | id=pizza
 【発動】しゃー焼くぞ
 ビスマルク バンビーノ
 カプリチョーザ リモーネ
@@ -979,7 +1044,7 @@ export const SEED_TEXT = String.raw`
 マルゲリータ ジェノア
 [クアトロフォルマッジョ]
 
-# Tokioli Mermaid / 時折マーメイド | Advanced | 16 | Interlude | b2 | id=mermaid
+# Tokioli Mermaid / 時折マーメイド | Advanced | 0 |  | id=mermaid
 除去 飛
 化繊 振動
 海女 繊維
@@ -996,7 +1061,8 @@ export const SEED_TEXT = String.raw`
 海鵜 舞
 農場
 
-# Accele Finale Japa Kahen / アッチェレ終幕ジャパ可変 | Advanced | 16 | Finale | b4 | id=accele
+# Accele Finale Japa Kahen / アッチェレ終幕ジャパ可変 | Advanced | 16 |  | b4 | id=accele
+> Uses the MCH chant rows. Its speed markers apply to displayed rows 8–10 at 4×, not to the whole chant. The article groups calls differently and marks separate 2×, 4×, and song-dependent passages. Slower delivery can extend the 16-bar form by two or more bars.
 農場 舞
 海鵜 跳
 除去 飛 化繊 振動
@@ -1005,10 +1071,10 @@ export const SEED_TEXT = String.raw`
 虎 火
 虎 火
 虎 虎 虎 虎
-虎 火 人造 繊維 海女 振(←倍倍速)動
+虎 火 人造 繊維 海女 振動
 
-海女 振 海女 振 海女 振(←倍倍速)動
-海女 繊 海女 繊(←倍倍速) 人造 火
+海女 振 海女 振 海女 振動
+海女 繊 海女 繊 人造 火
 虎 火 人造 繊維
 海女 振動
 
@@ -1017,18 +1083,18 @@ export const SEED_TEXT = String.raw`
 海鵜 舞
 農場
 
-# Eto / 干支 | Theme | 8 | Interlude | id=eto
+# Eto / 干支 | Theme | 0 |  | id=eto
 子(ね) 丑(うし)
 寅(とら) 卯(う)
 子(ね) 丑(うし) 寅(とら) 卯(う)
 辰(たつ) 巳(み)
 
-午(うま) 未(ひつじ)
+午(うま) 未(ひつ)
 申(さる) 酉(とり)
-午(うま) 未(ひつじ) 申(さる) 酉(とり)
+午(うま) 未(ひつ) 申(さる) 酉(とり)
 戌(いぬ) 亥(い)
 
-# Seiza / 星座 | Theme | 8 | Interlude | id=seiza
+# Seiza / 星座 | Theme | 0 |  | id=seiza
 【発動】ギャラクシー
 カプリコ ヴェルソー
 ポワッソン ベリエ
@@ -1037,7 +1103,7 @@ export const SEED_TEXT = String.raw`
 ヴィエルジュ バランス
 スコルピオン サジッテール
 
-# Douyou / 童謡 | Theme | 8 | Interlude | id=douyou
+# Douyou / 童謡 | Theme | 0 |  | id=douyou
 グー チョキ パー で
 グー チョキ パー で
 何作ろう？
@@ -1058,7 +1124,7 @@ export const SEED_TEXT = String.raw`
 金剛山
 翔襲叉
 
-# Sankaku Kansuu / 三角関数 | Theme | 8 | Interlude | id=sankaku
+# Sankaku Kansuu / 三角関数 | Theme | 0 |  | id=sankaku
 俺とお前の
 赤い糸
 おーれの俺の
@@ -1074,7 +1140,7 @@ export const SEED_TEXT = String.raw`
 トライアングル
 ドリーマー
 
-# Gachikoi Koujou (Short) / ガチ恋（ショート） | Koujou | 8 | Short interlude or outro | id=gachikoi-short
+# Gachikoi Koujou (Short) / ガチ恋（ショート） | Koujou | 0 |  | phrases | id=gachikoi-short
 言いたいことが
 あるんだよ
 やっぱり○○
@@ -1086,7 +1152,7 @@ export const SEED_TEXT = String.raw`
 愛してる
 [あ い し て るー]
 
-# Gachikoi Koujou (Shin) / ガチ恋口上（真） | Koujou | 16 | Emotional interlude | id=gachikoi-shin
+# Gachikoi Koujou (Shin) / ガチ恋口上（真） | Koujou | 0 |  | phrases | id=gachikoi-shin
 言いたいことがあるけれど
 うまく言葉にできなくて
 好き好き目を見て言えたなら
@@ -1098,9 +1164,8 @@ export const SEED_TEXT = String.raw`
 君だけの僕でいたいんだ
 [いたいんだ]
 
-# Gachikoi Kahen 3-Ren / ガチ恋可変3連 | Advanced | 16 | Long interlude | id=gachikoi-kahen
-言いたいことが ファ
-イボワイパー
+# Gachikoi Kahen 3-Ren / ガチ恋可変3連 | Advanced | 0 |  | id=gachikoi-kahen
+言いたいことが ファイボワイパー
 やっぱり タイガー
 タタタタ タイガー
 
@@ -1120,7 +1185,7 @@ export const SEED_TEXT = String.raw`
 イエッタイガー
 [イエッタイガー]
 
-# Sakura Namiki Koujou (Hachimitsu Emperor) / 桜並木の口上（蜂蜜★皇帝） | Koujou | 16 | Group original | id=sakura-namiki
+# Sakura Namiki Koujou (Hachimitsu Emperor) / 桜並木の口上（蜂蜜★皇帝） | Koujou | 0 |  | phrases | id=sakura-namiki
 桜並木の
 風に舞い
 メルヘンロックに
@@ -1136,7 +1201,7 @@ export const SEED_TEXT = String.raw`
 We are 蜂蜜
 エンペラー
 
-# Gachikoi (Manekecha: Arikitari na Kotoba de) / ガチ恋（まねケチャありきたりな言葉で） | Koujou | 16 | Emotional interlude | id=gachikoi-mane
+# Gachikoi (Manekecha: Arikitari na Kotoba de) / ガチ恋（まねケチャありきたりな言葉で） | Koujou | 0 |  | phrases | id=gachikoi-mane
 言いたいことが
 あるんだよ
 やっぱり○○
@@ -1157,13 +1222,16 @@ We are 蜂蜜
 ここから先は
 また後で
 ま た あ と でー
+> (⇒落ちサビ)
+世界で一番愛してる
 
-# Manekecha Kimi ga Waraeba / まねケチャ君が笑えば（深瀬加入期） | Koujou | 16 | Group original | id=manekecha-kimi
+# Manekecha Kimi ga Waraeba / まねケチャ君が笑えば（深瀬加入期） | Koujou | 0 |  | phrases | id=manekecha-kimi
 美優 千愛
 凛ちゃん
 玲緒菜 美桜(みーお)
 まねきケチャ
 
+# Manekecha Kimiwazurai / まねケチャきみわずらい | Koujou | 0 |  | phrases | id=manekecha-kimiwazurai
 美優がかわいい
 超かわいい
 千愛がかわいい
@@ -1179,7 +1247,7 @@ We are 蜂蜜
 全員かわいい
 超かわいい
 
-# Iroha-uta Koujou (chuLa) / いろは唄口上（chuLa） | Koujou | 16 | Group original | id=iroha
+# Iroha-uta Koujou (chuLa) / いろは唄口上（chuLa） | Koujou | 0 |  | phrases | id=iroha
 色は匂えど
 散りぬるを
 我が世誰ぞ
@@ -1200,7 +1268,7 @@ We are 蜂蜜
 咲かせて魅せよ
 五星ノ華
 
-# Gachikoi MIX / ガチ恋MIX | Koujou | 16 | Chained into 3-ren | id=gachikoi-mix
+# Gachikoi MIX / ガチ恋MIX | Koujou | 0 |  | phrases | id=gachikoi-mix
 言いたいことが
 あるんだよ
 やっぱり○○
@@ -1219,7 +1287,7 @@ We are 蜂蜜
 しゃー行くぞ
 (⇒アイヌ)
 
-# Gorgeous Koujou / ゴージャス口上 | Koujou | 16 | Emotional interlude | id=gorgeous
+# Gorgeous Koujou / ゴージャス口上 | Koujou | 0 |  | phrases | id=gorgeous
 言いたいことが
 レボリューション
 やっぱり君は
@@ -1241,7 +1309,7 @@ Want you Want you
 マダガスカル
 [マ ダ ガ ス カ ル]
 
-# Mazakon Koujou / マザコン | Koujou | 16 | Gag outro | id=mazakon
+# Mazakon Koujou / マザコン | Koujou | 0 |  | phrases | id=mazakon
 言いたいことが
 あるんだよ
 やっぱり○○
@@ -1263,7 +1331,7 @@ Want you Want you
 食べたいよ
 [た べ た い よー]
 
-# Yamiame / 病雨 | Theme | 8 | Interlude | id=yamiame
+# Yamiame / 病雨 | Theme | 0 |  | id=yamiame
 【発動】よっしゃキメるぞ
 デパス ブロン
 マイスリー レキソ
@@ -1272,13 +1340,13 @@ Want you Want you
 [イエッ まんげ
 エターナル]
 
-# Juri-tatari / ジュリ祟 | Theme | 4 | Short gap | id=juritatari
+# Juri-tatari / ジュリ祟 | Theme | 0 |  | id=juritatari
 ドル ユーロ
 ポンド ペソ
 ウォン 円 元
 バブリー
 
-# BANZAI JAPAN Koujou / BANZAI JAPAN | Koujou | 16 | Group original | id=banzai
+# BANZAI JAPAN Koujou / BANZAI JAPAN | Koujou | 0 |  | phrases | id=banzai
 大和の歌姫
 舞い降りて
 BANZAI JAPANの
@@ -1294,15 +1362,18 @@ BANZAI JAPANの
 皆で声出し
 よっしゃ行くぞ
 
-# Camoufla Koi no Mahou / カモフラ恋の魔法 | Koujou | 4 | After chorus | id=camoufla
+# Camoufla Koi no Mahou / カモフラ恋の魔法 | Koujou | 0 |  | phrases | id=camoufla
+> After the opening chorus: まだまだ解けない 恋の魔法. After the first chorus: そろそろ解けるよ 恋の魔法. After the final chorus: やっぱり解けない 恋の魔法. These placements are specific to this source's song call.
 まだまだ解けない
 恋の魔法
+
 そろそろ解けるよ
 恋の魔法
+
 やっぱり解けない
 恋の魔法
 
-# Mikeneko (Original) / 三毛猫（初期） | Koujou | 16 | Group original | id=mikeneko
+# Mikeneko (Original) / 三毛猫（初期） | Koujou | 0 |  | phrases | id=mikeneko
 言いたいことが
 あるんだよ
 やっぱり三毛猫
@@ -1327,8 +1398,9 @@ BANZAI JAPANの
 人生歩もう
 世界で一番
 しゃー行くぞ
+> (⇒アイヌ)
 
-# Mikeneko (Rebuild) / 三毛猫（リビルド中） | Koujou | 16 | Group original | id=mikeneko-rebuild
+# Mikeneko (Rebuild) / 三毛猫（リビルド中） | Koujou | 0 |  | phrases | id=mikeneko-rebuild
 言いたいことが
 あるんだよ
 やっぱり三毛猫
@@ -1353,12 +1425,12 @@ BANZAI JAPANの
 人生歩もう
 世界で一番
 しゃー行くぞ
+> (⇒アイヌ)
 
-# Chape Tora Taiga Call / チャペ虎タイガー | Basic | 4 | Outro (short instrumental) | id=chape-tora
-世界で一番
-愛して止まない
-○○に捧げる
+# Fever Call / フィーバーコール | Theme | 0 |  | id=chape-tora
 チャペ虎タイガー
-チャペ×8
-I LOVE YOU！
+オニツカタイガー
+ブラックサンダー
+怒りの獣神(いかりのじゅうしん)
+サンダーライガー
 `;

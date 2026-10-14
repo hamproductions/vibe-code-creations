@@ -1,3 +1,4 @@
+import { rowsOf } from './parse.js';
 // Quiz engine helpers: queue building, speed (baisoku) resolution, banks and rhythm options.
 import { STATUS, isDue } from './srs.js';
 import { distractors } from './interference.js';
@@ -29,6 +30,7 @@ export function resolveSpeed(setting, mix, progress) {
 export function buildQueue(mixes, progressMap, { now = Date.now(), newLimit = 5, newUsed = 0, max = 30, onlyIds = null } = {}) {
   const due = [], fresh = [];
   for (const m of mixes) {
+    if (!onlyIds && (m.excerptOf || m.sourcePending)) continue;
     if (onlyIds && !onlyIds.includes(m.id)) continue;
     const p = progressMap.get(m.id);
     if (!p) continue;
@@ -46,6 +48,7 @@ export function countQueue(mixes, progressMap, opts) {
   const now = opts.now ?? Date.now();
   let due = 0, fresh = 0;
   for (const m of mixes) {
+    if (m.excerptOf || m.sourcePending) continue;
     const p = progressMap.get(m.id);
     if (!p) continue;
     if (p.status === STATUS.NOT_LEARNED) fresh++;
@@ -88,4 +91,22 @@ export function makeOptions({ mix, seq, i, vocab, siblings, rng = Math.random, c
 export function dayKey(ts = Date.now()) {
   const d = new Date(ts);
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+}
+
+export function chantLines(mix) {
+  return rowsOf(mix.sequence.length, mix.layout).flat().map(indices => ({ tokens: indices.map(i => mix.sequence[i]), readings: indices.map(i => mix.reading[i]) }));
+}
+export function lineExercises(queue, mixes, { mode = 'choice', limit = 3, rng = Math.random } = {}) {
+  const catalog = mixes.filter(m => !m.excerptOf && !m.sourcePending).flatMap(chantLines);
+  const key = line => line.tokens.join(' ');
+  return queue.flatMap(item => {
+    const lines = chantLines(item.mix);
+    const count = mode === 'lines' ? lines.length : Math.min(limit, lines.length);
+    const positions = count === 1 ? [0] : Array.from({ length: count }, (_, i) => Math.round(i * (lines.length - 1) / (count - 1)));
+    return positions.map(index => {
+      const answer = lines[index], seen = new Set([key(answer)]);
+      const alternatives = mode === 'lines' ? [] : [...lines.slice(index + 1), ...lines.slice(0, index).reverse(), ...catalog].filter(line => { const k = key(line); if (seen.has(k)) return false; seen.add(k); return true; }).slice(0, 3);
+      return { mix: item.mix, index, total: lines.length, context: lines.slice(Math.max(0, index - 2), index), answer, options: shuffle([answer, ...alternatives], rng) };
+    });
+  });
 }

@@ -1107,6 +1107,55 @@ input.invalid {
         height: 190px;
     }
 
+    .layout.guided-active .live-piece-preview {
+        top: 8px;
+        right: 8px;
+        width: 150px;
+        padding: 8px;
+        gap: 6px;
+    }
+
+    .layout.guided-active .live-piece-meta {
+        display: none;
+    }
+
+    .layout.guided-active .live-cubie {
+        width: 126px;
+        height: 78px;
+    }
+
+    .layout.guided-active .live-facet {
+        width: 52px;
+        height: 52px;
+        border-width: 2px;
+    }
+
+    .layout.guided-active .live-cubie.edge .live-facet:nth-child(1) {
+        left: 8px;
+        top: 18px;
+    }
+
+    .layout.guided-active .live-cubie.edge .live-facet:nth-child(2) {
+        left: 58px;
+        top: 18px;
+    }
+
+    .layout.guided-active .live-cubie.corner .live-facet:nth-child(1) {
+        left: 36px;
+        top: 2px;
+        height: 32px;
+    }
+
+    .layout.guided-active .live-cubie.corner .live-facet:nth-child(2) {
+        left: 8px;
+        top: 32px;
+    }
+
+    .layout.guided-active .live-cubie.corner .live-facet:nth-child(3) {
+        left: 58px;
+        top: 32px;
+    }
+
     .layout.guided-active .scramble,
     .layout.guided-active .viewer-head {
         display: none;

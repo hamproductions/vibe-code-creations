@@ -1,89 +1,68 @@
-// First-run onboarding: language/script → experience level → "what do you know?" checklist.
-import { store, updateSettings, bulkMark } from './state.js';
-import { LEVELS, LEVEL_SETTINGS, knownSlugs, nextUp } from './seed.js';
+import { store, updateSettings } from './state.js';
 import { setLang, t } from './i18n.js';
-import { esc, $, $$, mixName, toast } from './ui.js';
+import { esc, $, tokHtml, rowsOf, mixName } from './ui.js';
 
-let O = null;
+let O = null, previousFocus = null;
 const root = () => $('#onboard');
-const LV_ICON = { beginner: '🌱', regular: '🎤', veteran: '🔥', master: '👑' };
 
 export function startOnboarding() {
-  const st = store.get(), s = st.settings;
-  O = { step: 1, lang: s.lang, script: s.script || 'jp', oshi: s.oshi || '', level: s.level || 'beginner', known: new Set() };
-  pickLevel(O.level);
+  const s = store.get().settings;
+  O = { lang: s.lang, script: s.onboarded ? s.script : 'both', returnTab: store.get().tab, saving: false };
+  previousFocus = document.activeElement;
   let el = root();
   if (!el) { el = document.createElement('div'); el.id = 'onboard'; document.body.appendChild(el); }
+  $('#app').inert = true;
+  $('#sheetRoot').inert = true;
   document.body.style.overflow = 'hidden';
   render();
 }
-function pickLevel(l) {
-  O.level = l;
-  const slugs = new Set(knownSlugs(l, store.get().mixes));
-  O.known = new Set(store.get().mixes.filter(m => slugs.has(m.slug)).map(m => m.id));
-}
-const seg = (k, opts, cur) => `<div class="seg big">${opts.map(([v, l]) => `<button data-ob="set" data-k="${k}" data-v="${v}" class="${cur === v ? 'on' : ''}">${l}</button>`).join('')}</div>`;
 
 function render() {
   setLang(O.lang);
-  const el = root(), mixes = store.get().mixes;
-  let body = '';
-  if (O.step === 1) {
-    body = `<h1>${t('onbWelcome')}</h1><p class="muted">${t('onbSub')}</p>
-      <div class="field"><label>${t('language')}</label>${seg('lang', [['en', 'English'], ['ja', '日本語']], O.lang)}</div>
-      <div class="field"><label>${t('readHow')}</label>${seg('script', [['jp', t('readJp')], ['romaji', t('readRomaji')], ['both', t('readBoth')]], O.script)}</div>
-      <div class="field"><label for="ob-oshi">${t('oshi')}</label><input id="ob-oshi" class="input" value="${esc(O.oshi)}" placeholder="○○" autocomplete="off"><div class="help">${t('oshiHelp')}</div></div>`;
-  } else if (O.step === 2) {
-    body = `<h1>${t('onbStep2')}</h1><div class="levels">${LEVELS.map(l => `<button class="level ${O.level === l ? 'on' : ''}" data-ob="level" data-v="${l}"><span class="lv-i">${LV_ICON[l]}</span><span><b>${t('lv' + l[0].toUpperCase() + l.slice(1))}</b><br><span class="muted small">${t('lv' + l[0].toUpperCase() + l.slice(1) + 'D')}</span></span></button>`).join('')}</div>`;
-  } else {
-    const ls = LEVEL_SETTINGS[O.level];
-    const row = m => `<label class="krow"><input type="checkbox" data-ob="known" data-id="${m.id}" ${O.known.has(m.id) ? 'checked' : ''}><span>${esc(mixName(m))}</span><span class="muted small">${t('bars', { n: m.timing })}</span></label>`;
-    const tier = tr => { const items = mixes.filter(m => m.source === 'seed' && m.tier === tr); return `<div class="tier-h"><h2>${tr === 1 ? '★ ' : ''}${t('tier' + tr)}</h2><button class="chip" data-ob="tier-all" data-v="${tr}">${t('allTier')}</button><button class="chip" data-ob="tier-none" data-v="${tr}">${t('selNone')}</button></div>${items.map(row).join('')}`; };
-    const next = nextUp(O.level, mixes.filter(m => m.source === 'seed'), O.known, 4);
-    body = `<h1>${t('onbStep3')}</h1><p class="muted small">${t('onbKnownHelp')}</p>
-      <div class="panel"><div class="small muted" style="margin-bottom:8px">${t('onbPlan')}</div><div class="tags" style="margin:0"><span class="tag pink">${t('perDay', { n: ls.newPerDay })}</span><span class="tag cy">${t(ls.mode === 'bank' ? 'tapBank' : ls.mode === 'rhythm' ? 'rhythm' : 'mixed')}</span><span class="tag">${t('speed')}: ${ls.speed === 'auto' ? t('auto') : t('off')}</span><span class="tag">${ls.bpm} BPM</span></div></div>
-      <div class="panel"><div class="small muted" style="margin-bottom:6px">${t('onbNextUp')}</div>${next.map(m => `<div>▸ ${esc(mixName(m))}</div>`).join('')}</div>
-      <div id="klist">${tier(1)}${tier(2)}</div>`;
-  }
-  el.innerHTML = `<div class="ob-wrap fadein"><div class="ob-dots">${[1, 2, 3].map(n => `<i class="${n <= O.step ? 'on' : ''}"></i>`).join('')}</div>${body}
-    <div class="ob-nav">${O.step > 1 ? `<button class="btn" data-ob="back">${t('back')}</button>` : '<span></span>'}
-    <span class="small muted" id="kcount">${O.step === 3 ? t('knownCount', { n: O.known.size }) : ''}</span>
-    <button class="btn primary" data-ob="${O.step === 3 ? 'finish' : 'next'}">${O.step === 3 ? t('finish') : t('continue')}</button></div>
-    <div style="text-align:center;margin-top:10px"><button class="chip" data-ob="skip">${t('skipSetup')}</button></div></div>`;
+  const m = store.get().mixes.find(m => m.slug === 'standard');
+  const settings = { ...store.get().settings, script: O.script };
+  root().innerHTML = `<div class="ob-wrap" role="dialog" aria-modal="true" aria-labelledby="guide-title">
+    <div class="sheet-h"><h1 id="guide-title">${t('guideTitle')}</h1><button class="x" data-ob="close" aria-label="${t('close')}">×</button></div>
+    <p class="guide-intro">${t('guideIntro')}</p>
+    <div class="guide-example"><h2>${esc(mixName(m))}</h2><p class="small muted">${t('guideExample')}</p>
+      ${rowsOf(m.sequence.length, m.layout).map(st => `<div class="stanza">${st.map(r => `<div class="line">${r.map(i => tokHtml(m.sequence[i], m.reading[i], settings)).join('')}</div>`).join('')}</div>`).join('')}
+    </div>
+    <div class="guide-facts"><p class="muted">${t('guideWhen')}</p><p class="muted">${t('guideMethod')}</p></div>
+    <div class="guide-settings"><label>${t('language')}<select class="input" data-ob-setting="lang"><option value="en" ${O.lang === 'en' ? 'selected' : ''}>English</option><option value="ja" ${O.lang === 'ja' ? 'selected' : ''}>日本語</option></select></label></div>
+    <div class="guide-choices"><button class="btn" data-ob="browse">${t('browseLibrary')}</button><button class="btn" data-ob="learn">${t('openLearningPath')}</button></div></div>`;
+  $('.ob-wrap .x', root()).focus({ preventScroll: true });
 }
 
-async function finish(apply = true) {
-  const ids = [...O.known];
-  if (apply) {
-    await updateSettings({ lang: O.lang, script: O.script, oshi: O.oshi.trim(), level: O.level, onboarded: true, ...LEVEL_SETTINGS[O.level] });
-    if (ids.length) await bulkMark(ids, 'known');
-  } else await updateSettings({ onboarded: true });
-  close();
-  store.set({ tab: 'practice' });
-  toast(ids.length && apply ? t('marked', { n: ids.length }) : t('finish'));
-}
-function close() {
-  root()?.remove(); O = null; document.body.style.overflow = '';
+async function finish(destination = 'close') {
+  if (!O || O.saving) return;
+  O.saving = true;
+  const tab = destination === 'browse' ? 'codex' : destination === 'learn' ? 'practice' : O.returnTab;
+  await updateSettings({ lang: O.lang, script: O.script, onboarded: true, mode: 'flashcard' });
+  root()?.remove(); O = null;
+  $('#app').inert = false;
+  $('#sheetRoot').inert = false;
+  document.body.style.overflow = '';
+  previousFocus?.focus();
+  store.set({ tab });
 }
 
 document.addEventListener('click', e => {
   const b = e.target.closest('[data-ob]');
-  if (!b || !O) return;
-  const a = b.dataset.ob, v = b.dataset.v;
-  if (a === 'set') { O[b.dataset.k] = v; if (b.dataset.k === 'lang') setLang(v); const o = $('#ob-oshi'); if (o) O.oshi = o.value; render(); }
-  else if (a === 'level') { pickLevel(v); render(); }
-  else if (a === 'next') { const o = $('#ob-oshi'); if (o) O.oshi = o.value; O.step++; render(); root().scrollTop = 0; }
-  else if (a === 'back') { O.step--; render(); }
-  else if (a === 'skip') finish(false);
-  else if (a === 'finish') finish(true);
-  else if (a === 'tier-all' || a === 'tier-none') {
-    store.get().mixes.filter(m => m.source === 'seed' && m.tier === +v).forEach(m => (a === 'tier-all' ? O.known.add(m.id) : O.known.delete(m.id)));
-    const y = root().scrollTop; render(); root().scrollTop = y;
-  }
+  if (b && O) finish(b.dataset.ob);
 });
 document.addEventListener('change', e => {
-  const c = e.target.closest('[data-ob="known"]');
-  if (!c || !O) return;
-  c.checked ? O.known.add(c.dataset.id) : O.known.delete(c.dataset.id);
-  const k = $('#kcount'); if (k) k.textContent = t('knownCount', { n: O.known.size });
+  if (!O || !e.target.dataset.obSetting) return;
+  O[e.target.dataset.obSetting] = e.target.value;
+  const key = e.target.dataset.obSetting;
+  render();
+  $(`[data-ob-setting="${key}"]`, root()).focus();
+});
+document.addEventListener('keydown', e => {
+  if (!O) return;
+  if (e.key === 'Escape') { e.preventDefault(); finish(); }
+  if (e.key === 'Tab') {
+    const items = [...root().querySelectorAll('button, select')], first = items[0], last = items.at(-1);
+    if (e.shiftKey && document.activeElement === first) { e.preventDefault(); last.focus(); }
+    else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first.focus(); }
+  }
 });

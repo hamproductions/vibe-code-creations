@@ -1,366 +1,282 @@
-// Practice: setup screen + quiz sessions (Tap Bank / Rhythm), SRS grading, results.
-import { nextUp } from './seed.js';
-import { store, getVocab, getSiblings, updateSettings } from './state.js';
-import { saveProgress, logReview, getMeta, setMeta } from './db.js';
-import { STATUS, applyGrade, gradeRecall, gradeRhythm, judgeTap, rhythmWindows, describeInterval } from './srs.js';
-import { buildQueue, countQueue, makeBank, makeOptions, seqFor, readingFor, resolveSpeed, tokenMs, parMs, dayKey } from './engine.js';
-import { ensureAudio, audioNow, click, blip, buzz } from './audio.js';
-import { esc, $, $$, tokHtml, tokText, rowsOf, mixName, mixSub, trig, toast, fmtMs, pct, oshiSub } from './ui.js';
-import { t, getLang } from './i18n.js';
+import { toHiragana } from '../vendor/wanakana.mjs';
+import { store } from './state.js';
+import { saveProgress, logReview, savePracticeResults, getMeta, setMeta } from './db.js';
+import { STATUS, STATUS_ORDER, applyGrade } from './srs.js';
+import { buildQueue, countQueue, dayKey, lineExercises } from './engine.js';
+import { esc, $, tokHtml, rowsOf, mixName, mixSub, trig, toast, learningNotes, statusBadge, catalogFilters } from './ui.js';
+import { t } from './i18n.js';
 
-let S = null; // active session
+let S = null;
+let quizSize = 1;
+let practiceMode = 'choice';
+let lineLimit = 3;
+const selected = new Set();
+const picker = { q: '', status: STATUS.LEARNING, cat: 'all', tier: 'all' };
 export const sessionActive = () => !!S;
 const view = () => $('#view');
+const RATINGS = [
+  { key: 'again', hint: 'againHelp', grade: 0, status: STATUS.LEARNING, days: 0 },
+  { key: 'markLearning', hint: 'learningHelp', grade: 3, status: STATUS.LEARNING, days: 1 },
+  { key: 'markKnown', hint: 'learnedHelp', grade: 4, status: STATUS.REMEMBERED, days: 3 },
+  { key: 'markMastered', hint: 'masteredHelp', grade: 5, status: STATUS.MASTERED, days: 30 },
+];
 
 async function newUsedToday() {
   const v = await getMeta('newToday');
-  return v && v.day === dayKey() ? v.count : 0;
-}
-async function bumpNew() {
-  const n = (await newUsedToday()) + 1;
-  await setMeta('newToday', { day: dayKey(), count: n });
+  return v?.day === dayKey() ? v.count : 0;
 }
 
-// ---------------------------------------------------------------- setup screen
 export async function renderSetup() {
-  const st = store.get(), s = st.settings;
-  const newUsed = await newUsedToday();
+  const st = store.get(), newUsed = await newUsedToday();
   if (store.get().session || store.get().tab !== 'practice') return;
-  const c = countQueue(st.mixes, st.progress, { newLimit: s.newPerDay, newUsed });
-  const mastered = [...st.progress.values()].filter(p => p.status === STATUS.MASTERED).length;
-  const known = new Set([...st.progress.values()].filter(p => p.status !== STATUS.NOT_LEARNED).map(p => p.mixId));
-  const picks = nextUp(s.level || 'beginner', st.mixes.filter(m => m.source === 'seed'), known, 4);
-  const suggest = picks.length ? `<div class="panel"><div class="small muted" style="margin-bottom:8px">${t('suggested')}</div><div class="chips" style="flex-wrap:wrap">${picks.map(m => `<button class="chip" data-act="d-practice" data-id="${m.id}">▶ ${esc(mixName(m))}</button>`).join('')}</div></div>` : '';
-  const seg = (name, opts, cur) => `<div class="seg big" role="group">${opts.map(([v, l]) => `<button data-act="set" data-k="${name}" data-v="${v}" class="${String(cur) === String(v) ? 'on' : ''}">${l}</button>`).join('')}</div>`;
-  view().innerHTML = `<div class="fadein">
-    <div class="panel hero"><div class="stats4">
-      <div class="stat"><b>${c.due}</b><span>${t('due')}</span></div>
-      <div class="stat"><b>${c.fresh}</b><span>${t('newCards')}</span></div>
-      <div class="stat"><b>${mastered}</b><span>${t('mastered')}</span></div>
-      <div class="stat"><b>${[...st.progress.values()].filter(p => p.status !== STATUS.NOT_LEARNED).length}</b><span>${t('collected')}</span></div>
-    </div>
-    <div style="margin-top:16px">${c.due + c.fresh ? '' : `<p class="muted small">${t('nothingDue')}</p>`}
-    <button class="btn primary block" data-act="s-start" ${c.due + c.fresh ? '' : 'disabled'}>${t('startSession')}</button></div></div>
-    ${suggest}
-    <div class="field"><label>${t('mode')}</label>${seg('mode', [['bank', t('tapBank')], ['rhythm', t('rhythm')], ['mixed', t('mixed')]], s.mode)}<div class="help">${t('modeHelp')}</div></div>
-    <div class="field"><label>${t('speed')}</label>${seg('speed', [['off', t('off')], ['2', '2×'], ['4', '4×'], ['auto', t('auto')]], s.speed)}<div class="help">${t('speedHelp')}</div></div>
-    <div class="field"><label>${t('tempo')}: <b id="bpmv">${s.bpm}</b></label><input type="range" min="50" max="180" step="5" value="${s.bpm}" data-act="bpm" aria-label="${t('tempo')}"></div>
+  const c = countQueue(st.mixes, st.progress, { newLimit: 0, newUsed });
+  const queue = buildQueue(st.mixes, st.progress, { newLimit: 0, newUsed, max: quizSize });
+  view().innerHTML = `<div class="practice-home fadein">
+    <div class="page-heading"><h1>${t('chooseMix')}</h1><p class="muted">${t('chooseMixHelp')}</p></div>
+    <div class="practice-mode"><div class="mode-field"><label for="practice-mode">${t('mode')}</label><select class="input" id="practice-mode">${[['choice', 'multipleChoice'], ['lines', 'lineFlashcards'], ['flashcard', 'fullChantRecall']].map(([value, label]) => `<option value="${value}" ${practiceMode === value ? 'selected' : ''}>${t(label)}</option>`).join('')}</select></div>${practiceMode === 'choice' ? `<div class="mode-field"><label for="line-limit">${t('questionsPerMix')}</label><select class="input" id="line-limit">${[1, 3, 5].map(n => `<option value="${n}" ${lineLimit === n ? 'selected' : ''}>${n}</option>`).join('')}</select></div>` : ''}<p class="small muted">${t(practiceMode === 'choice' ? 'choiceModeHelp' : practiceMode === 'lines' ? 'lineModeHelp' : 'recallIntro')}</p></div>
+    <div class="practice-picker-layout"><section class="practice-picker">
+      <input class="input" id="practice-q" type="search" placeholder="${esc(t('search'))}" aria-label="${esc(t('search'))}" value="${esc(picker.q)}">
+      <div id="practice-status" class="status-filter" role="group" aria-label="${t('yourProgress')}"></div>
+      ${catalogFilters('practice', picker)}
+      <div class="picker-summary"><span id="practice-count" class="small muted"></span><button class="chip" data-act="p-reset">${t('clearFilters')}</button></div>
+      <div id="practice-list" class="practice-list"></div>
+    </section><aside class="practice-selection">
+      <details class="panel selection-summary" ${innerWidth >= 960 ? 'open' : ''}><summary id="selection-title">${t('selectedMix')}</summary><div id="practice-selected"></div></details><div id="practice-actions" class="practice-actions"></div>
+      <details class="panel review-plan"><summary>${t('dailyReview')} · ${c.due}</summary><p class="muted">${t('reviewPlan', { due: c.due })}</p>
+        <label for="quiz-size">${t('quizSize')}</label><select id="quiz-size" class="input">${[1, 3, 5].map(n => `<option value="${n}" ${n === quizSize ? 'selected' : ''}>${t('quizCount', { n })}</option>`).join('')}</select>
+        ${queue.length ? `<ol class="queue-preview">${queue.map(item => `<li>${esc(mixName(item.mix))}</li>`).join('')}</ol>` : `<p class="small muted">${t('nothingDue')}</p>`}
+        <button class="btn block" data-act="s-start" ${queue.length ? '' : 'disabled'}>${t('startFlashcards')}</button><p class="small muted">${t('sessionLimit')}</p>
+      </details>
+    </aside></div>
   </div>`;
+  renderPicker();
 }
 
-// ---------------------------------------------------------------- session control
-export async function startSession(onlyIds = null) {
+function renderPicker() {
   const st = store.get();
-  ensureAudio();
-  const newUsed = await newUsedToday();
-  const queue = buildQueue(st.mixes, st.progress, { newLimit: st.settings.newPerDay, newUsed, onlyIds });
+  const available = st.mixes.filter(m => !m.excerptOf && !m.sourcePending);
+  const ids = new Set(available.map(m => m.id));
+  for (const id of selected) if (!ids.has(id)) selected.delete(id);
+  const query = picker.q.trim().toLowerCase(), q = toHiragana(query);
+  const list = available.filter(m => {
+    if (picker.status !== 'all' && st.progress.get(m.id).status !== picker.status) return false;
+    if (picker.cat !== 'all' && m.category !== picker.cat) return false;
+    if (picker.tier !== 'all' && m.tier !== +picker.tier) return false;
+    const text = [m.name, m.jp, m.slug, ...(m.aliases || []), ...m.sequence, ...m.reading].join(' ').toLowerCase();
+    return !q || text.includes(query) || toHiragana(text).includes(q);
+  });
+  $('#practice-status').innerHTML = ['all', ...STATUS_ORDER].map(status => `<button class="status-choice ${picker.status === status ? 'on' : ''}" data-act="p-status" data-v="${status}" aria-pressed="${picker.status === status}">${status === 'all' ? t('all') : t(status)}<span>${status === 'all' ? available.length : available.filter(m => st.progress.get(m.id).status === status).length}</span></button>`).join('');
+  $('#practice-count').textContent = t('pickerCount', { n: list.length });
+  $('#practice-list').innerHTML = list.length ? list.map(m => `<div class="practice-item ${selected.has(m.id) ? 'chosen' : ''}"><label><input type="checkbox" data-practice-id="${m.id}" ${selected.has(m.id) ? 'checked' : ''}><span><b>${esc(mixName(m))}</b>${statusBadge(st.progress.get(m.id).status)}<span class="small muted">${t(m.category)}${m.timing ? ' · ' + t('bars', { n: m.timing }) : ''}</span></span></label><button class="chip" data-act="open" data-id="${m.id}">${t('viewChant')}</button></div>`).join('') : `<div class="empty">${t('empty')}</div>`;
+  const chosen = available.filter(m => selected.has(m.id));
+  $('#selection-title').textContent = t('selectedMix') + ' · ' + chosen.length;
+  $('#practice-actions').innerHTML = `<button class="btn primary block" data-act="p-start" ${chosen.length ? '' : 'disabled'}>${t('practiceSelected', { n: chosen.length })}</button>`;
+  $('#practice-selected').innerHTML = `<p class="selection-count">${t('selected', { n: chosen.length })}</p>${chosen.length ? `<ul class="selected-mixes">${chosen.map(m => `<li><span>${esc(mixName(m))}</span><button data-act="p-remove" data-id="${m.id}" aria-label="${esc(t('removeSelection', { name: mixName(m) }))}">×</button></li>`).join('')}</ul>` : `<p class="small muted">${t('selectionEmpty')}</p>`}${chosen.length ? `<button class="chip" data-act="p-clear">${t('selNone')}</button>` : ''}`;
+}
+
+export async function startSession(onlyIds = null) {
+  if (S) return;
+  const st = store.get(), newUsed = await newUsedToday();
+  if (S) return;
+  if (onlyIds) onlyIds = [...new Set(onlyIds.map(id => { const m = st.mixes.find(m => m.id === id); return m?.excerptOf ? st.mixes.find(parent => parent.slug === m.excerptOf).id : id; }))];
+  const queue = buildQueue(st.mixes, st.progress, { newLimit: 0, newUsed, onlyIds, max: onlyIds ? onlyIds.length : quizSize });
   if (!queue.length) { toast(t('nothingDue')); return; }
-  S = { queue, idx: 0, results: [], cur: null, raf: 0, timers: [], total: queue.length };
+  S = { queue, mode: practiceMode, units: practiceMode === 'flashcard' ? [] : lineExercises(queue, st.mixes, { mode: practiceMode, limit: lineLimit }), idx: 0, results: [], phase: '', saving: false, cur: null };
   document.addEventListener('keydown', onKey);
-  view().onpointerdown = onPointer;
   store.set({ session: true, tab: 'practice' });
   nextCard();
 }
 
 export function endSession() {
-  if (S) { cancelAnimationFrame(S.raf); S.timers.forEach(clearTimeout); }
   S = null;
   document.removeEventListener('keydown', onKey);
-  view().onpointerdown = null;
   store.set({ session: false });
 }
 
-const fresh = id => store.get().progress.get(id);
+export function refreshSession() {
+  if (!S || S.saving) return;
+  if (S.phase === 'done') showDone();
+  else if (S.mode !== 'flashcard') renderLineExercise();
+  else renderCard(S.phase);
+}
 
 function head() {
-  const done = Math.min(S.idx, S.queue.length);
-  return `<div class="sess-head"><div class="small muted">${Math.min(S.idx + 1, S.queue.length)} / ${S.queue.length}</div>
-    <div class="pbar"><i style="width:${pct(done, S.queue.length)}%"></i></div>
+  return `<div class="sess-head"><span class="small muted">${t('cardPosition', { n: S.idx + 1, total: S.mode === 'flashcard' ? S.queue.length : S.units.length })}</span>
     <button class="chip" data-act="s-quit">${t('quit')}</button></div>`;
 }
-function initLine(mix, s) {
-  if (!mix.initiator && !mix.initiatorJp) return '';
-  const jp = oshiSub(mix.initiatorJp || mix.initiator, s), ro = mix.initiator || '';
-  const txt = s.script === 'romaji' ? ro : s.script === 'both' && ro && ro !== jp ? `${jp} · ${ro}` : jp;
-  return `<div class="init">🔔 ${esc(txt)}</div>`;
-}
-function cue(item, extra = '') {
-  const m = item.mix, s = store.get().settings;
-  const p = fresh(m.id);
-  return `<div class="cue"><h2>${esc(mixName(m))}</h2>
-    <div class="tags" style="margin:6px 0"><span class="tag pink">${t('bars', { n: m.timing })}</span><span class="tag cy">${esc(trig(m))}</span>
-    ${m.baisoku ? `<span class="tag">⚡ ${t('baisokuTag')}</span>` : ''}${p.status === STATUS.NOT_LEARNED ? `<span class="tag t1">★ ${t('newCards')}</span>` : ''}${extra}</div>
-    ${initLine(m, s)}</div>`;
-}
-function stanzaHtml(mix, toks, ros, layout, cls = 'tok', s) {
-  return rowsOf(toks.length, layout).map(st => `<div class="stanza">${st.map(r => `<div class="line">${r.map(i => tokHtml(toks[i], ros[i], s, cls)).join('')}</div>`).join('')}</div>`).join('');
+
+function chant(toks, ros, layout) {
+  return rowsOf(toks.length, layout).map(st => `<div class="stanza">${st.map(r => `<div class="line">${r.map(i => tokHtml(toks[i], ros[i], store.get().settings)).join('')}</div>`).join('')}</div>`).join('');
 }
 
 function nextCard() {
-  cancelAnimationFrame(S.raf);
+  if (S.mode !== 'flashcard') {
+    if (S.idx >= S.units.length) return finishLineExercises();
+    S.cur = S.units[S.idx]; S.phase = S.mode; S.answerIndex = null; renderLineExercise(); return;
+  }
   if (S.idx >= S.queue.length) return showDone();
-  const item = S.queue[S.idx];
-  S.cur = { item, studied: false };
-  const p = fresh(item.mix.id);
-  if (p.status === STATUS.NOT_LEARNED) renderStudy();
-  else beginRecall();
+  S.cur = S.queue[S.idx];
+  const p = store.get().progress.get(S.cur.mix.id);
+  renderCard(p.status === STATUS.NOT_LEARNED ? 'study' : 'recall');
 }
 
-function renderStudy() {
-  const { item } = S.cur, m = item.mix, s = store.get().settings;
-  const withExt = s.includeExt && m.extension?.length;
-  view().innerHTML = `<div class="sess fadein">${head()}${cue(item)}
-    <div class="panel"><div class="small muted" style="margin-bottom:6px">${t('study')} — ${t('studyHint')}</div>
-      ${stanzaHtml(m, m.sequence, m.reading, m.layout, 'tok', s)}
-      ${withExt ? `<div class="small muted">${t('extension')}</div>${stanzaHtml(m, m.extension, m.extReading, m.extLayout, 'tok ext', s)}` : ''}
-    </div>
-    ${m.notes?.length ? `<p class="notes">${m.notes.map(esc).join('<br>')}</p>` : ''}
-    <div class="btns"><button class="btn primary block" data-act="s-ready">${t('ready')}</button><button class="btn block" data-act="s-skip">${t('skip')}</button></div></div>`;
+function exerciseLine(line) {
+  return `<div class="line">${line.tokens.map((token, i) => tokHtml(token, line.readings[i], store.get().settings)).join('')}</div>`;
 }
-
-function beginRecall() {
-  const { item } = S.cur, s = store.get().settings, p = fresh(item.mix.id);
-  const seq = seqFor(item.mix, s), ro = readingFor(item.mix, s);
-  const mult = resolveSpeed(s.speed, item.mix, p);
-  let mode = s.mode;
-  if (mode === 'mixed') mode = p.status === STATUS.REMEMBERED || p.status === STATUS.MASTERED ? 'rhythm' : 'bank';
-  Object.assign(S.cur, { seq, ro, mult, mode, bpm: s.bpm, hinted: false });
-  if (mode === 'rhythm') renderRhythmIntro(); else renderBank();
+function renderLineExercise() {
+  const unit = S.cur, feedback = S.phase === 'line-feedback', revealed = S.phase === 'line-reveal';
+  const correct = feedback && S.cur.options[S.answerIndex] === S.cur.answer;
+  view().innerHTML = `<div class="sess flash-session">${head()}<article class="flashcard">
+    <div class="flash-heading"><span class="small muted">${t(S.mode === 'choice' ? 'multipleChoice' : 'lineFlashcards')} · ${t('linePosition', { n: unit.index + 1, total: unit.total })}</span><h1>${esc(mixName(unit.mix))}</h1></div>
+    <section class="line-context"><p class="small muted">${t(unit.index ? 'previousLines' : 'firstLine')}</p>${unit.context.map(exerciseLine).join('')}</section>
+    ${S.mode === 'choice' ? `<h2>${t(unit.index ? 'chooseNextLine' : 'chooseFirstLine')}</h2><div class="line-options">${unit.options.map((option, index) => `<button class="line-option ${feedback && option === unit.answer ? 'correct' : feedback && index === S.answerIndex ? 'incorrect' : ''}" data-act="s-choice" data-v="${index}" ${feedback ? 'disabled' : ''}><span class="option-number">${index + 1}</span>${exerciseLine(option)}${feedback && option === unit.answer ? `<span class="answer-label">${t('correctAnswer')}</span>` : ''}</button>`).join('')}</div>${feedback ? `<p class="answer-feedback" role="status">${t(correct ? 'correctAnswer' : 'incorrectAnswer')}</p><button class="btn primary block" data-act="s-line-next">${t(S.idx + 1 === S.units.length ? 'finishQuiz' : 'next')}</button>` : ''}` : `<p>${t('recallLine')}</p>${revealed ? `<div class="flash-answer">${exerciseLine(unit.answer)}</div><div class="btns"><button class="btn" data-act="s-line-grade" data-v="0">${t('lineForgot')}</button><button class="btn primary" data-act="s-line-grade" data-v="1">${t('lineRemembered')}</button></div>` : `<button class="btn primary block" data-act="s-line-reveal">${t('showLine')}</button>`}`}
+    </article></div>`;
+  window.scrollTo(0, 0);
 }
-
-// ---------------------------------------------------------------- tap bank
-function slotHtml(i, c, s) {
-  return `<span class="slot" data-i="${i}">·</span>`;
+function advanceLine(correct) {
+  S.results.push({ mix: S.cur.mix, correct }); S.idx++; nextCard();
 }
-function renderBank() {
-  const c = S.cur, s = store.get().settings, m = c.item.mix, p = fresh(m.id);
-  c.bank = makeBank({ mix: m, seq: c.seq, vocab: getVocab(), siblings: getSiblings(m), status: p.status });
-  Object.assign(c, { pos: 0, errors: 0, t0: 0, done: false });
-  c.limit = c.mult > 1 ? Math.round(2500 + c.seq.length * tokenMs(c.bpm, c.mult) * 2.2) : 0;
-  const lay = rowsOf(c.seq.length, c.item.mix.layout.length && c.seq.length === m.sequence.length ? m.layout : (s.includeExt ? [...m.layout, 0, ...m.extLayout] : m.layout));
-  view().innerHTML = `<div class="sess fadein">${head()}${cue(c.item, c.mult > 1 ? `<span class="tag" style="color:var(--gold)">⚡ ${c.mult}×</span>` : '')}
-    ${c.limit ? '<div class="timer"><i id="tbar"></i></div>' : ''}
-    <div class="slots" id="slots" aria-label="${t('yourSeq')}">${lay.map(st => st.map(r => `<div class="line">${r.map(i => slotHtml(i)).join('')}</div>`).join('')).join('<div style="height:4px"></div>')}</div>
-    <div class="row-actions"><span class="small muted">${t('bankTitle')} · ${t('tapStart')}</span><button class="chip" data-act="s-hint">💡 ${t('hint')}</button></div>
-    <div class="bank" id="bank">${c.bank.map((b, k) => { const x = tokText(b.t, null, s); return `<button class="tile" data-act="tile" data-k="${k}"><span class="a">${esc(x.a)}</span>${x.b ? `<span class="b">${esc(x.b)}</span>` : ''}</button>`; }).join('')}</div></div>`;
-  markCurSlot();
-}
-const slotEl = i => $(`#slots .slot[data-i="${i}"]`);
-function markCurSlot() { $$('#slots .slot.cur').forEach(e => e.classList.remove('cur')); slotEl(S.cur.pos)?.classList.add('cur'); }
-
-function tapTile(k, el) {
-  const c = S.cur, s = store.get().settings;
-  if (c.done) return;
-  if (!c.t0) { c.t0 = performance.now(); if (c.limit) bankTimer(); }
-  const tile = c.bank[k];
-  if (tile.t === c.seq[c.pos]) {
-    const sl = slotEl(c.pos), x = tokText(c.seq[c.pos], c.ro[c.pos], s);
-    sl.classList.add('f'); sl.innerHTML = `<span class="a">${esc(x.a)}</span>${x.b ? `<span class="b">${esc(x.b)}</span>` : ''}`;
-    c.pos++;
-    if (s.sound) blip('ok');
-    if (c.pos >= c.seq.length) return finishBank(true);
-    markCurSlot();
-    sl.nextElementSibling || sl.scrollIntoView?.({ block: 'nearest' });
-  } else {
-    c.errors++;
-    el.classList.remove('shake'); void el.offsetWidth; el.classList.add('shake');
-    if (s.sound) blip('wrong');
-    if (s.haptics) buzz(40);
+async function finishLineExercises() {
+  const session = S;
+  session.saving = true; session.phase = 'line-saving';
+  view().innerHTML = `<div class="panel" role="status">${t('savingResults')}</div>`;
+  const totals = new Map();
+  for (const result of session.results) {
+    if (!totals.has(result.mix.id)) totals.set(result.mix.id, { mix: result.mix, correct: 0, total: 0 });
+    const total = totals.get(result.mix.id); total.total++; total.correct += result.correct ? 1 : 0;
   }
-}
-function bankTimer() {
-  const c = S.cur;
-  const tick = () => {
-    if (!S || S.cur !== c || c.done) return;
-    const left = 1 - (performance.now() - c.t0) / c.limit;
-    const bar = $('#tbar'); if (bar) bar.style.transform = `scaleX(${Math.max(0, left)})`;
-    if (left <= 0) return finishBank(false, true);
-    S.raf = requestAnimationFrame(tick);
-  };
-  S.raf = requestAnimationFrame(tick);
-}
-function hint() {
-  const c = S.cur;
-  if (!c || c.mode !== 'bank' || c.done) return;
-  c.hinted = true;
-  const k = c.bank.findIndex(b => b.t === c.seq[c.pos]);
-  const el = $(`.tile[data-k="${k}"]`); if (el) { el.classList.remove('hint'); void el.offsetWidth; el.classList.add('hint'); }
-}
-function finishBank(completed, timeout = false) {
-  const c = S.cur;
-  if (c.done) return; c.done = true;
-  cancelAnimationFrame(S.raf);
-  const ms = c.t0 ? performance.now() - c.t0 : 0, n = c.seq.length;
-  const grade = gradeRecall({ n, errors: c.errors, completed, progress: c.pos / n, hinted: c.hinted, elapsedMs: ms, parMs: parMs(n, c.bpm, c.mult) });
-  if (S.cur.item.mix && store.get().settings.sound) blip(completed ? 'done' : 'wrong');
-  record({ grade, mode: 'bank', ms, detail: { errors: c.errors, completed, timeout, n, pos: c.pos, hinted: c.hinted } });
-}
-
-// ---------------------------------------------------------------- rhythm mode
-function renderRhythmIntro() {
-  const c = S.cur, s = store.get().settings;
-  view().innerHTML = `<div class="sess fadein">${head()}${cue(c.item, c.mult > 1 ? `<span class="tag" style="color:var(--gold)">⚡ ${c.mult}×</span>` : '')}
-    <div class="panel"><p style="margin:0 0 6px"><b>${t('rhythm')}</b> · ${c.bpm} BPM${c.mult > 1 ? ` · ${c.mult}×` : ''}</p><p class="muted small" style="margin:0">${t('pickRight')}</p></div>
-    <div class="btns"><button class="btn primary block" data-act="s-rstart">${t('go')}</button><button class="btn block" data-act="s-skip">${t('skip')}</button></div></div>`;
-}
-function startRhythm() {
-  const c = S.cur, s = store.get().settings, m = c.item.mix;
-  ensureAudio();
-  const n = c.seq.length, beat = 60000 / c.bpm, tm = tokenMs(c.bpm, c.mult), lead = 450;
-  const start = performance.now() + lead, T0 = start + 4 * beat;
-  const vocab = getVocab(), sib = getSiblings(m);
-  Object.assign(c, { n, beat, tm, start, T0, cur: -99, taken: [], judg: [], lastBeat: -1, done: false,
-    opts: c.seq.map((_, i) => (c.seq[i] === '👏' ? [c.seq[i]] : makeOptions({ mix: m, seq: c.seq, i, vocab, siblings: sib }))) });
-  if (s.sound) {
-    const base = audioNow() + lead / 1000;
-    const beats = 4 + Math.ceil((n * tm) / beat) + 2;
-    for (let k = 0; k < beats; k++) click(base + (k * beat) / 1000, k % 4 === 0, k < 4 ? 0.3 : 0.14);
-  }
-  const lay = rowsOf(n, m.layout.length && n === m.sequence.length ? m.layout : []);
-  view().innerHTML = `<div class="sess">${head()}<div class="cue" style="margin-bottom:4px"><h2>${esc(mixName(m))}</h2>${initLine(m, s)}</div>
-    <div class="rh"><div class="metro" id="metro">…</div><div class="judge" id="judge"></div>
-    <div class="slots" id="slots" style="width:100%;max-height:22dvh">${lay.map(st => st.map(r => `<div class="line">${r.map(i => slotHtml(i)).join('')}</div>`).join('')).join('<div style="height:4px"></div>')}</div>
-    <div class="opts" id="opts"></div></div></div>`;
-  S.raf = requestAnimationFrame(loopRhythm);
-}
-function loopRhythm(now) {
-  const c = S.cur; if (!c || c.done) return;
-  S.raf = requestAnimationFrame(loopRhythm);
-  if (now >= c.start) {
-    const bi = Math.floor((now - c.start) / c.beat);
-    if (bi !== c.lastBeat) {
-      c.lastBeat = bi;
-      const mt = $('#metro');
-      if (mt) {
-        mt.classList.remove('beat', 'accent'); void mt.offsetWidth; mt.classList.add('beat'); if (bi % 4 === 0) mt.classList.add('accent');
-        mt.textContent = bi < 4 ? String(bi + 1) : bi * c.beat < (c.T0 - c.start) + c.n * c.tm ? '♪' : '';
-      }
+  try {
+    const progressRows = [], reviews = [], now = Date.now();
+    for (const result of totals.values()) {
+      const prev = store.get().progress.get(result.mix.id);
+      const grade = Math.round(result.correct / result.total * 5), interval = prev.interval || 1;
+      progressRows.push({ ...prev, status: prev.status === STATUS.NOT_LEARNED ? STATUS.LEARNING : prev.status, interval, due: now + interval * 86400000, lastReviewed: now, reviews: (prev.reviews || 0) + 1, lastGrade: grade });
+      reviews.push({ mixId: result.mix.id, ts: now, grade, mode: session.mode, ms: 0 });
     }
+    await savePracticeResults(progressRows, reviews);
+    const progress = new Map(store.get().progress);
+    for (const row of progressRows) progress.set(row.mixId, row);
+    store.set({ progress });
+  } catch (e) {
+    if (S === session) { session.saving = false; view().innerHTML = `<div class="panel"><p>${t('progressSaveError')}</p><button class="btn" data-act="s-save-lines">${t('retrySave')}</button></div>`; }
+    console.error(e); return;
   }
-  const cur = Math.floor((now - c.T0) / c.tm + 0.5);
-  if (cur !== c.cur) {
-    for (let i = Math.max(c.cur, 0); i < Math.min(cur, c.n); i++) finalizeSlot(i);
-    c.cur = cur;
-    if (cur >= c.n) return finishRhythm();
-    if (cur >= 0) showOptions(cur);
+  if (S !== session) return;
+  session.saving = false; session.phase = 'done'; showDone();
+}
+function showLineDone() {
+  const totals = new Map();
+  for (const result of S.results) {
+    if (!totals.has(result.mix.id)) totals.set(result.mix.id, { mix: result.mix, correct: 0, total: 0 });
+    const total = totals.get(result.mix.id); total.total++; total.correct += result.correct ? 1 : 0;
   }
-}
-function showOptions(i) {
-  const c = S.cur, s = store.get().settings;
-  const box = $('#opts'); if (!box) return;
-  box.innerHTML = c.opts[i].map((tk, k) => { const x = tokText(tk, null, s); return `<button class="opt" data-act="opt" data-k="${k}"><kbd>${k + 1}</kbd><span class="a">${esc(x.a)}</span>${x.b ? `<span class="b">${esc(x.b)}</span>` : ''}</button>`; }).join('');
-  const sl = slotEl(i); sl?.classList.add('cur'); sl?.scrollIntoView?.({ block: 'nearest' });
-}
-function paintSlot(i, j) {
-  const c = S.cur, s = store.get().settings, sl = slotEl(i); if (!sl) return;
-  const x = tokText(c.seq[i], c.ro[i], s);
-  sl.classList.remove('cur'); sl.classList.add('f', 'j-' + j);
-  sl.innerHTML = `<span class="a">${esc(x.a)}</span>${x.b ? `<span class="b">${esc(x.b)}</span>` : ''}`;
-}
-function finalizeSlot(i) {
-  const c = S.cur;
-  if (c.taken[i]) return;
-  c.taken[i] = true; c.judg[i] = 'miss';
-  paintSlot(i, 'miss'); say('miss');
-  if (store.get().settings.sound) blip('wrong');
-}
-function say(j, dt) {
-  const el = $('#judge'); if (!el) return;
-  const extra = dt != null && j !== 'perfect' && Math.abs(dt) > 25 ? ` <small>${dt < 0 ? t('early') : t('late')}</small>` : '';
-  el.className = 'judge ' + j; el.innerHTML = t(j) + extra;
-}
-function tapOpt(k, el) {
-  const c = S.cur, s = store.get().settings;
-  if (!c || c.done || c.cur < 0 || c.cur >= c.n || c.taken[c.cur]) return;
-  const i = c.cur, now = performance.now() - (s.latency || 0);
-  const dt = now - (c.T0 + i * c.tm);
-  c.taken[i] = true;
-  const right = c.opts[i][k] === c.seq[i];
-  const j = right ? judgeTap(dt, c.tm) : 'wrong';
-  const jj = j === 'miss' ? 'ok' : j;
-  c.judg[i] = right ? jj : 'wrong';
-  el.classList.add(right ? 'right' : 'bad');
-  if (!right) $$('.opt').forEach(o => { if (c.opts[i][+o.dataset.k] === c.seq[i]) o.classList.add('right'); });
-  paintSlot(i, c.judg[i]); say(c.judg[i], dt);
-  if (s.sound) blip(right ? (jj === 'perfect' ? 'perfect' : 'ok') : 'wrong');
-  if (!right && s.haptics) buzz(40);
-}
-function finishRhythm() {
-  const c = S.cur;
-  if (c.done) return; c.done = true; cancelAnimationFrame(S.raf);
-  const j = Array.from({ length: c.n }, (_, i) => c.judg[i] || 'miss');
-  const grade = gradeRhythm(j);
-  const counts = j.reduce((o, x) => (o[x] = (o[x] || 0) + 1, o), {});
-  if (store.get().settings.sound) blip(grade >= 3 ? 'done' : 'wrong');
-  record({ grade, mode: 'rhythm', ms: Math.round(c.n * c.tm), detail: { counts, n: c.n } });
+  view().innerHTML = `<div class="flash-session"><section class="panel"><h1>${t('sessionDone')}</h1><div class="revlist">${[...totals.values()].map(result => `<div class="it"><span>${esc(mixName(result.mix))}</span><b>${result.correct} / ${result.total}</b></div>`).join('')}</div><p class="small muted">${t('lineProgressHelp')}</p><div class="btns"><button class="btn primary" data-act="s-quit">${t('backToPractice')}</button></div></section></div>`;
 }
 
-// ---------------------------------------------------------------- results
-async function record({ grade, mode, ms, detail }) {
-  const c = S.cur, m = c.item.mix, prev = fresh(m.id);
-  const next = applyGrade(prev, grade, Date.now(), ms);
+function renderCard(phase) {
+  S.phase = phase;
+  const m = S.cur.mix, s = store.get().settings, visible = phase !== 'recall';
+  const start = m.initiatorJp || m.initiator;
+  view().innerHTML = `<div class="sess flash-session">${head()}
+    <article class="flashcard"><div class="flash-heading"><span class="small muted">${t(phase === 'study' ? 'study' : phase === 'recall' ? 'recallPrompt' : 'checkRecall')}</span>
+      <h1>${esc(mixName(m))}</h1><p class="muted">${esc(mixSub(m))}</p>
+      ${m.trigger_context ? `<p class="flash-context">${esc(trig(m))}</p>` : ''}</div>
+      ${visible ? `<div class="flash-answer">${start ? `<div class="init">${tokHtml(start, m.initiator, s)}</div>` : ''}
+        ${chant(m.sequence, m.reading, m.layout)}
+        ${m.extension?.length ? `<p class="small muted">${t('longerVariantHelp')}</p>` : ''}
+        ${learningNotes(m).length ? `<p class="notes">${learningNotes(m).map(esc).join('<br>')}</p>` : ''}</div>` : `<div class="recall-space"><p>${t('recallInstruction')}</p><span class="small muted">${t('recallNoTimer')}</span></div>`}
+      ${phase === 'study' ? `<p class="muted">${t('fullStudyHint')}</p><button class="btn primary block" data-act="s-ready">${t('tryRecall')}</button>` : phase === 'recall' ? `<button class="btn primary block" data-act="s-reveal">${t('showChant')}</button>` : `<div class="assessment"><p>${t('assessmentPrompt')}</p><div class="rating-grid">${RATINGS.map((r, i) => `<button class="rating" data-act="s-rate" data-v="${i}"><span><kbd>${i + 1}</kbd><b>${t(r.key)}</b></span><span class="small muted">${t(r.hint)}</span></button>`).join('')}</div></div>`}
+    </article><p class="small muted shortcut">${t(phase === 'reveal' ? 'ratingKeys' : 'revealKey')}</p></div>`;
+  window.scrollTo(0, 0);
+}
+
+async function rate(index) {
+  if (!S || S.phase !== 'reveal' || S.saving) return;
+  const rating = RATINGS[index];
+  if (!rating) return;
+  const session = S, m = session.cur.mix, prev = store.get().progress.get(m.id), now = Date.now();
+  session.saving = true;
+  view().querySelectorAll('[data-act="s-rate"]').forEach(b => { b.disabled = true; });
+  const next = { ...applyGrade(prev, rating.grade, now), status: rating.status, interval: rating.days, due: now + (rating.days ? rating.days * 86400000 : 600000) };
+  try {
+    await saveProgress(next);
+    await logReview({ mixId: m.id, ts: now, grade: rating.grade, mode: 'flashcard', ms: 0 });
+    if (prev.status === STATUS.NOT_LEARNED) await setMeta('newToday', { day: dayKey(), count: (await newUsedToday()) + 1 });
+  } catch (e) {
+    if (S === session) {
+      session.saving = false;
+      view().querySelectorAll('[data-act="s-rate"]').forEach(b => { b.disabled = false; });
+      toast(t('progressSaveError'));
+    }
+    console.error(e);
+    return;
+  }
   const progress = new Map(store.get().progress); progress.set(m.id, next);
   store.set({ progress });
-  try { await saveProgress(next); await logReview({ mixId: m.id, ts: Date.now(), grade, mode, ms: Math.round(ms), speed: c.mult, bpm: c.bpm }); if (prev.status === STATUS.NOT_LEARNED) await bumpNew(); } catch (e) { console.warn(e); }
-  S.results.push({ mix: m, grade, mode, prevStatus: prev.status, status: next.status });
-  if (grade < 3 && !c.item.relearn) S.queue.push({ ...c.item, relearn: true });
-  if (next.status === STATUS.MASTERED && prev.status !== STATUS.MASTERED) setTimeout(() => toast(t('masteredToast'), 3200), 400);
-  renderResult({ grade, next, detail, ms, mode });
+  if (S !== session) return;
+  session.results.push({ mix: m, rating: index });
+  session.idx++;
+  session.saving = false;
+  nextCard();
 }
-const nextText = p => (p.interval === 0 ? t('minutes10') : getLang() === 'ja' ? `${p.interval}${t('days')}` : `${p.interval} ${p.interval === 1 ? t('day') : t('days')}`);
-function renderResult({ grade, next, detail, ms, mode }) {
-  const c = S.cur, m = c.item.mix;
-  const last = S.idx + 1 >= S.queue.length;
-  let stats;
-  if (mode === 'bank') {
-    const acc = pct(detail.n, detail.n + detail.errors);
-    stats = `<div class="stat"><b>${acc}%</b><span>${t('accuracy')}</span></div><div class="stat"><b>${detail.errors}</b><span>${t('errors')}</span></div><div class="stat"><b>${fmtMs(ms)}</b><span>${t('time')}</span></div><div class="stat"><b>${nextText(next)}</b><span>${t('nextReview')}</span></div>`;
-  } else {
-    const k = detail.counts;
-    stats = `<div class="stat"><b class="g5">${k.perfect || 0}</b><span>${t('perfect')}</span></div><div class="stat"><b class="g3">${(k.good || 0) + (k.ok || 0)}</b><span>${t('good')}/${t('ok')}</span></div><div class="stat"><b class="g1">${(k.miss || 0) + (k.wrong || 0)}</b><span>${t('miss')}</span></div><div class="stat"><b>${nextText(next)}</b><span>${t('nextReview')}</span></div>`;
-  }
-  view().innerHTML = `<div class="sess fadein">${head()}<div class="result">
-    <div class="small muted">${esc(mixName(m))}${detail.timeout ? ' · ' + t('timeUp') : ''}</div>
-    <div class="gradebig">${grade}</div><div class="gradename g${grade}">${t('gradeNames' + grade)}</div>
-    <div class="panel"><div class="stats4">${stats}</div></div>
-    <div class="panel" style="text-align:left">${stanzaHtml(m, c.seq, c.ro, m.layout.length && c.seq.length === m.sequence.length ? m.layout : [], 'tok', store.get().settings)}</div>
-    <div class="btns" style="justify-content:center"><button class="btn primary" data-act="s-next">${last && !S.queue.slice(S.idx + 1).length ? t('finish') : t('next')}</button></div></div></div>`;
-}
+
 function showDone() {
-  const r = S.results, avg = r.length ? r.reduce((a, x) => a + x.grade, 0) / r.length : 0;
-  view().innerHTML = `<div class="sess fadein"><div class="result"><h2>${t('sessionDone')}</h2>
-    <div class="gradebig">${avg.toFixed(1)}</div><div class="gradename">${t('avgGrade')}</div>
-    <div class="revlist">${r.map(x => `<div class="it"><span>${esc(mixName(x.mix))}</span><b class="g${x.grade}">${x.grade}${x.prevStatus === STATUS.NOT_LEARNED ? ' ★' : ''}${x.status === STATUS.MASTERED && x.prevStatus !== STATUS.MASTERED ? ' ✨' : ''}</b></div>`).join('')}</div>
-    <div class="btns" style="justify-content:center"><button class="btn primary" data-act="s-quit">${t('close')}</button></div></div></div>`;
+  if (S.mode !== 'flashcard') return showLineDone();
+  S.phase = 'done';
+  const latest = new Map(S.results.map(r => [r.mix.id, r]));
+  view().innerHTML = `<div class="flash-session"><section class="panel"><h1>${t('sessionDone')}</h1>
+    <p class="muted">${t('sessionDoneHelp')}</p><div class="revlist">${[...latest.values()].map(r => `<div class="it"><span>${esc(mixName(r.mix))}</span><b>${t(RATINGS[r.rating].key)}</b></div>`).join('')}</div>
+    <div class="btns">${[...latest.values()].some(r => r.rating === 0) ? `<button class="btn primary" data-act="s-retry">${t('retryMissed')}</button>` : ''}<button class="btn" data-act="s-quit">${t('backToPractice')}</button><button class="btn" data-act="tab" data-v="codex">${t('browseLibrary')}</button></div></section></div>`;
 }
 
-// ---------------------------------------------------------------- input routing
-function onPointer(e) {
-  const b = e.target.closest('[data-act]');
-  if (!b || !S) return;
-  const act = b.dataset.act;
-  if (act === 'tile' && S.cur?.mode === 'bank') { e.preventDefault(); tapTile(+b.dataset.k, b); }
-  else if (act === 'opt' && S.cur?.mode === 'rhythm') { e.preventDefault(); tapOpt(+b.dataset.k, b); }
-}
 function onKey(e) {
-  if (!S || !S.cur) return;
-  if (S.cur.mode === 'rhythm' && /^[1-4]$/.test(e.key)) { const b = $(`.opt[data-k="${+e.key - 1}"]`); if (b) tapOpt(+e.key - 1, b); }
+  if (!S || S.saving || e.repeat || e.altKey || e.ctrlKey || e.metaKey || /INPUT|TEXTAREA|SELECT|BUTTON/.test(e.target.tagName)) return;
+  if (S.mode !== 'flashcard') {
+    if (S.mode === 'choice' && S.phase === 'choice' && /^[1-4]$/.test(e.key)) { e.preventDefault(); chooseLine(+e.key - 1); }
+    else if (e.code === 'Space' && S.mode === 'lines' && S.phase === 'lines') { e.preventDefault(); S.phase = 'line-reveal'; renderLineExercise(); }
+    return;
+  }
+  if (e.code === 'Space' && ['study', 'recall'].includes(S.phase)) { e.preventDefault(); renderCard(S.phase === 'study' ? 'recall' : 'reveal'); }
+  else if (S.phase === 'reveal' && /^[1-4]$/.test(e.key)) { e.preventDefault(); rate(+e.key - 1); }
 }
 
-/** click-driven session actions */
+function chooseLine(index) {
+  if (!S || S.phase !== 'choice' || !S.cur.options[index]) return;
+  S.answerIndex = index; S.phase = 'line-feedback'; renderLineExercise();
+}
+
 export function practiceAction(act, el) {
-  switch (act) {
-    case 's-start': startSession(); return true;
-    case 's-quit': endSession(); store.set({ tab: 'practice' }); return true;
-    case 's-ready': S.cur.item.studied = true; beginRecall(); return true;
-    case 's-hint': hint(); return true;
-    case 's-rstart': startRhythm(); return true;
-    case 's-skip': S.idx++; nextCard(); return true;
-    case 's-next': S.idx++; nextCard(); return true;
-    case 'tile': case 'opt': return true; // handled on pointerdown
-    case 'set': { const k = el.dataset.k; updateSettings({ [k]: el.dataset.v === 'off' || isNaN(+el.dataset.v) ? el.dataset.v : +el.dataset.v }).then(renderSetup); return true; }
+  if (act === 'p-status') { picker.status = el.dataset.v; renderPicker(); return true; }
+  if (act === 'p-remove') { selected.delete(el.dataset.id); renderPicker(); return true; }
+  if (act === 'p-clear') { selected.clear(); renderPicker(); return true; }
+  if (act === 'p-reset') { Object.assign(picker, { q: '', status: STATUS.LEARNING, cat: 'all', tier: 'all' }); renderSetup(); return true; }
+  if (act === 'p-start') { if (selected.size) startSession(store.get().mixes.filter(m => selected.has(m.id)).map(m => m.id)); return true; }
+  if (act === 's-retry' && S?.phase === 'done') {
+    const ids = [...new Map(S.results.map(r => [r.mix.id, r])).values()].filter(r => r.rating === 0).map(r => r.mix.id);
+    endSession(); startSession(ids); return true;
   }
+  if (act === 's-start') { startSession(); return true; }
+  if (act === 's-quit') { endSession(); store.set({ tab: 'practice' }); return true; }
+  if (!S) return false;
+  if (act === 's-choice') { chooseLine(+el.dataset.v); return true; }
+  if (act === 's-line-next' && S.phase === 'line-feedback') { advanceLine(S.cur.options[S.answerIndex] === S.cur.answer); return true; }
+  if (act === 's-line-reveal' && S.phase === 'lines') { S.phase = 'line-reveal'; renderLineExercise(); return true; }
+  if (act === 's-line-grade' && S.phase === 'line-reveal') { advanceLine(el.dataset.v === '1'); return true; }
+  if (act === 's-save-lines' && !S.saving) { finishLineExercises(); return true; }
+  if (act === 's-ready' && S.phase === 'study') { renderCard('recall'); return true; }
+  if (act === 's-reveal' && S.phase === 'recall') { renderCard('reveal'); return true; }
+  if (act === 's-rate') { rate(+el.dataset.v); return true; }
   return false;
 }
-export function onBpmInput(el) { $('#bpmv').textContent = el.value; }
-export function onBpmChange(el) { updateSettings({ bpm: +el.value }); }
+
+document.addEventListener('change', e => {
+  const el = e.target;
+  if (el.id === 'practice-mode') { practiceMode = el.value; renderSetup(); }
+  else if (el.id === 'line-limit') { lineLimit = +el.value; }
+  else if (el.id === 'quiz-size') { quizSize = +el.value; renderSetup(); }
+  else if (el.dataset.practiceId) { el.checked ? selected.add(el.dataset.practiceId) : selected.delete(el.dataset.practiceId); renderPicker(); }
+  else if (el.id === 'practice-cat' || el.id === 'practice-tier') { picker[el.id.slice(9)] = el.value; renderPicker(); }
+});
+document.addEventListener('input', e => { if (e.target.id === 'practice-q') { picker.q = e.target.value; renderPicker(); } });
+
+matchMedia('(max-width: 959px)').addEventListener('change', () => { if (store.get().tab === 'practice' && !store.get().session) renderSetup(); });

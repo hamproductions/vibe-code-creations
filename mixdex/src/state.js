@@ -4,7 +4,7 @@ import { buildVocab, siblingTokens } from './interference.js';
 
 export const store = createStore({
   ready: false, mixes: [], progress: new Map(), settings: { ...DEFAULT_SETTINGS },
-  tab: 'codex', q: '', fCat: 'all', fStatus: 'all', fTier: 'all', sort: 'learn', session: false,
+  tab: 'home', q: '', fCat: 'all', fStatus: 'all', fTier: 'all', sort: 'learn', session: false,
 });
 
 let vocabCache = null, vocabFor = null;

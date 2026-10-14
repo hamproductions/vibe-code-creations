@@ -25,11 +25,11 @@ export function parseBody(text) {
   let initiator = null;
   let baisoku = 0;
 
-  s = s.replace(/【発動】([^\n]*)/g, (_, w) => { initiator = w.trim(); return ''; });
+  s = s.replace(/【発動】([^\n]*)/g, (_, w) => { initiator = [initiator, w.trim()].filter(Boolean).join('\n'); return ''; });
   s = s.replace(/【([^】]*)】([^\n]*)/g, (_, tag, w) => { notes.push(tag + ' ' + w.trim()); return ''; });
   s = s.replace(/\((?:⇒|←)([^)]*)\)/g, (m, n) => { notes.push(m.slice(1, -1)); if (/倍/.test(m)) baisoku = Math.max(baisoku, /倍倍/.test(m) ? 4 : 2); return ''; });
   s = s.replace(/\[倍速\]/g, () => { baisoku = Math.max(baisoku, 2); return ''; });
-  s = s.replace(/\((?:クラップ|パン|👏)\)/g, ' ' + CLAP + ' ').replace(/👏/g, ' ' + CLAP + ' ');
+  s = s.replace(/\((?:クラップ|パン|👏)\)/g, ' ' + CLAP + ' ');
   s = s.replace(/△/g, ' ');
 
   const rows = []; // {toks:[{t,r?}], ext:bool}
@@ -124,7 +124,8 @@ export function parseSeedFile(raw) {
     const f = e.head.split('|').map(x => x.trim());
     const [nm, category, timing, trigger, ...rest] = f;
     const flags = rest.join(' ');
-    const [en, jp = ''] = nm.split(' / ');
+    const split = nm.lastIndexOf(' / ');
+    const en = split < 0 ? nm : nm.slice(0, split), jp = split < 0 ? '' : nm.slice(split + 3);
     const body = e.body.filter(l => !l.startsWith('>')).join('\n').trim();
     const comments = e.body.filter(l => l.startsWith('>')).map(l => l.slice(1).trim());
     return { name: en.trim(), jp: jp.trim(), category, timing: +timing, trigger, flags, comments, body };
