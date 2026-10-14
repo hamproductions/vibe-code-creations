@@ -35,10 +35,46 @@ async function boot() {
   }
   if (storageMode() === 'memory') { const w = $('#storageWarn'); w.hidden = false; w.textContent = t('storageMem'); }
   store.subscribe(() => schedule());
+  const first = parseRoute();
+  if (first.tab !== store.get().tab) store.set({ tab: first.tab });
   render();
+  if (first.mix) openMix(first.mix, false);
   if (!store.get().settings.onboarded) startOnboarding();
   if ('serviceWorker' in navigator && location.protocol.startsWith('http')) navigator.serviceWorker.register('sw.js').catch(() => {});
 }
+
+// ------------------------------------------------------------------ routing (#/codex, #/practice, #/stats, #/settings, #/mix/<slug|id>)
+const TABS = ['codex', 'practice', 'stats', 'settings'];
+let detailId = null, detailPushed = false;
+const findMix = key => store.get().mixes.find(m => m.slug === key || m.id === key);
+function parseRoute() {
+  const [a, b] = decodeURIComponent(location.hash.replace(/^#\/?/, '')).split('/');
+  if (a === 'mix' && b && findMix(b)) return { tab: 'codex', mix: findMix(b).id };
+  return { tab: TABS.includes(a) ? a : 'codex', mix: null };
+}
+const routeOf = tab => '#/' + tab;
+function openMix(id, push = true) {
+  const m = findMix(id);
+  if (!m) return;
+  if (push && !detailId) { history.pushState(null, '', '#/mix/' + encodeURIComponent(m.slug)); detailPushed = true; }
+  else if (!push) { history.replaceState(null, '', '#/mix/' + encodeURIComponent(m.slug)); detailPushed = false; }
+  detailId = m.id;
+  openDetail(m.id);
+}
+// leave the mix route without closing the sheet again (used when another action takes over)
+function leaveMixRoute(hash) { if (detailId) { history.replaceState(null, '', hash); detailId = null; } }
+function onDetailClosed() {
+  if (!detailId) return;
+  detailId = null;
+  if (detailPushed) history.back(); else history.replaceState(null, '', routeOf(store.get().tab));
+}
+window.addEventListener('hashchange', () => {
+  if (!store.get().ready) return;
+  const r = parseRoute();
+  if (!r.mix && detailId) { detailId = null; closeSheet(); }
+  if (r.tab !== store.get().tab) { if (sessionActive()) endSession(); store.set({ tab: r.tab }); lastTab = null; render(); }
+  if (r.mix && r.mix !== detailId) { detailId = null; openMix(r.mix, false); }
+});
 
 let raf = 0;
 const schedule = () => { cancelAnimationFrame(raf); raf = requestAnimationFrame(render); };
@@ -66,6 +102,7 @@ function render() {
   else if (st.tab === 'stats') renderStats();
   else if (changed || !$('#oshi')) renderSettings();
   if (changed) window.scrollTo(0, 0);
+  if (!detailId && parseRoute().tab !== st.tab) history.replaceState(null, '', routeOf(st.tab));
 }
 
 // ------------------------------------------------------------------ codex
@@ -167,7 +204,7 @@ function openDetail(id) {
     ${m.notes?.length ? `<p class="notes">${m.notes.map(esc).join('<br>')}</p>` : ''}
     ${fresh ? '' : `<div class="panel"><div class="stats4"><div class="stat"><b>${p.streak}</b><span>Streak</span></div><div class="stat"><b>${p.easeFactor.toFixed(1)}</b><span>Ease</span></div><div class="stat"><b>${p.interval}</b><span>${t('days')}</span></div><div class="stat"><b>${due}</b><span>${t('nextReview')}</span></div></div></div>`}
     <div class="btns"><button class="btn primary" data-act="d-practice" data-id="${id}">${fresh ? t('unlockStudy') : t('practiceThis')}</button>
-    ${m.source === 'custom' ? `<button class="btn" data-act="d-edit" data-id="${id}">${t('editMix')}</button>` : ''}</div>`);
+    ${m.source === 'custom' ? `<button class="btn" data-act="d-edit" data-id="${id}">${t('editMix')}</button>` : ''}</div>`, { onClose: onDetailClosed });
 }
 
 // ------------------------------------------------------------------ editor (custom mixes)
@@ -303,15 +340,15 @@ document.addEventListener('click', async e => {
   if (act === 'tile' || act === 'opt') return;
   if (practiceAction(act, b)) return;
   switch (act) {
-    case 'tab': if (sessionActive()) endSession(); store.set({ tab: v }); lastTab = null; render(); break;
+    case 'tab': if (sessionActive()) endSession(); if (location.hash !== routeOf(v)) history.pushState(null, '', routeOf(v)); store.set({ tab: v }); lastTab = null; render(); break;
     case 'lang': updateSettings({ lang: v }); break;
-    case 'open': if (selMode) { sel.has(id) ? sel.delete(id) : sel.add(id); renderGrid(); } else openDetail(id); break;
+    case 'open': if (selMode) { sel.has(id) ? sel.delete(id) : sel.add(id); renderGrid(); } else openMix(id); break;
     case 'sel-toggle': selMode = !selMode; sel.clear(); renderCodex(); break;
     case 'sel-visible': visibleIds.forEach(x => sel.add(x)); renderGrid(); break;
     case 'sel-none': sel.clear(); renderGrid(); break;
     case 'sel-tier': store.get().mixes.filter(m => m.tier === +v).forEach(m => sel.add(m.id)); renderGrid(); break;
     case 'sel-mark': { const n = await bulkMark([...sel], v); sel.clear(); renderGrid(); toast(t('marked', { n })); break; }
-    case 'sel-practice': { const ids = [...sel]; selMode = false; sel.clear(); store.set({ tab: 'practice' }); await startSession(ids); break; }
+    case 'sel-practice': { const ids = [...sel]; selMode = false; sel.clear(); store.set({ tab: 'practice' }); history.replaceState(null, '', routeOf('practice')); await startSession(ids); break; }
     case 'sel-copy': {
       const txt = store.get().mixes.filter(m => sel.has(m.id)).map(m => mixToText(m, rowsOf)).join('\n\n');
       try { await navigator.clipboard.writeText(txt); toast(t('copied')); } catch { openBulkText(); $('#e-bulk').value = txt; $('#e-bulk').dispatchEvent(new Event('input')); }
@@ -332,8 +369,8 @@ document.addEventListener('click', async e => {
     case 'f-cat': F.cat = v; renderGrid(); break;
     case 'f-status': F.status = v; renderGrid(); break;
     case 'f-trend': F.trend = !F.trend; renderGrid(); break;
-    case 'd-practice': closeSheet(); if (sessionActive()) endSession(); store.set({ tab: 'practice' }); await startSession([id]); break;
-    case 'd-edit': closeSheet(); setTimeout(() => openEditor(id), 280); break;
+    case 'd-practice': leaveMixRoute(routeOf('practice')); closeSheet(); if (sessionActive()) endSession(); store.set({ tab: 'practice' }); await startSession([id]); break;
+    case 'd-edit': leaveMixRoute(routeOf('codex')); closeSheet(); setTimeout(() => openEditor(id), 280); break;
     case 'add-mix': openEditor(); break;
     case 'e-save': saveEditor(id || null); break;
     case 'e-del': if (confirm(t('deleteMix') + '?')) { await deleteMix(id); const d = await loadAll(); store.set(d); closeSheet(); } break;

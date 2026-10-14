@@ -4,6 +4,7 @@ Offline-first PWA: a Pokédex-style codex of idol-live MIX / koujou chants plus 
 
 - **Onboarding** – language/script → Beginner / Regular / Veteran / Master → tick what you already know; suggests settings + next-up mixes. Re-run from Settings.
 - **Codex** – 124 seeded mixes in 3 priority tiers (Essential / Common / Deep Cuts). Nothing is locked; mastered cards get a foil effect. **Select** mode bulk-marks Known / Learning / Mastered / New, practises the selection, or copies it as text.
+- **Deep links** – hash routes: `#/codex`, `#/practice`, `#/stats`, `#/settings`, `#/mix/<slug>` (e.g. `#/mix/standard`). Back/forward work; the manifest has Practice and Stats shortcuts.
 - **Bulk text editor** (Settings) – paste/export many mixes in the seed DSL (same `id=` updates).
 - **Practice** – Tap Bank and Rhythm (metronome) modes, baisoku 2×/4× speed, interference decoys built from linguistically similar words.
 - **SRS** – SM-2 style (`status`, `interval`, `easeFactor`, `streak`), grades 0–5 from accuracy + speed/timing.
