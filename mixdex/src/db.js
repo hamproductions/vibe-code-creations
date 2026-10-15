@@ -118,6 +118,7 @@ export async function importAll(data) {
   const seedIds = new Set(buildSeed().map(m => m.id));
   const customIds = new Set();
   for (const m of data.custom) {
+    if (m?.chantBody != null && typeof m.chantBody !== 'string') invalid();
     if (!object(m) || typeof m.id !== 'string' || !m.id || seedIds.has(m.id) || customIds.has(m.id) || m.source !== 'custom' || typeof m.slug !== 'string' || typeof m.name !== 'string' || !m.name.trim() || typeof m.jp !== 'string' || !['Basic', 'Language Variant', 'Advanced', 'Koujou', 'Theme'].includes(m.category) || !Number.isFinite(m.timing) || m.timing < 1 || m.timing > 64 || !strings(m.sequence) || !m.sequence.length || !strings(m.reading) || m.reading.length !== m.sequence.length || !layout(m.layout, m.sequence.length) || !strings(m.extension) || !strings(m.extReading) || m.extReading.length !== m.extension.length || !layout(m.extLayout, m.extension.length) || !strings(m.notes) || typeof m.trigger_context !== 'string') invalid();
     customIds.add(m.id);
   }

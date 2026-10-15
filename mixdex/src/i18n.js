@@ -1,4 +1,4 @@
-import { NOTES_JA, SOURCES_JA } from './catalogJa.js';
+import { NOTES_JA, NOTES_EN, SOURCES_JA } from './catalogJa.js';
 
 // UI strings (EN / 日本語). Chant content has its own script toggle (kana / romaji / both).
 const D = {
@@ -23,13 +23,13 @@ const D = {
     basicPath: 'Start with the three basics', basicPathHelp: 'Standard, Japanese, then Ainu. Choose any step; your progress is yours to set.',
     quizSize: 'Quiz size', quizCount: '{n} MIX', retryMissed: 'Retry forgotten MIX', dailyReview: 'Quick review quiz', reviewPlan: '{due} MIX due for review',
     startFlashcards: 'Start quiz', sessionLimit: 'Only the listed MIX. The quiz ends after your chosen number.',
-    chooseMix: 'Choose MIX to practice', chooseMixHelp: 'Search the entire library. Select one or more MIX, then practice exactly those chants.', browseLibrary: 'Browse MIX',
+    chooseMix: 'Choose MIX to practice', chooseMixHelp: 'Search the entire library. Select one or more MIX, then practice exactly those chants. Excerpts are practiced through their complete MIX; source-pending entries are not practiced.', browseLibrary: 'Browse MIX',
     cardPosition: 'Card {n} of {total}', recallPrompt: 'Recall', checkRecall: 'Check your recall',
     recallInstruction: 'Say the complete chant aloud, or recall it in your head.', recallNoTimer: 'Take your time. Reveal when you are ready to check.',
     fullStudyHint: 'Read the complete chant, then try it without looking.', tryRecall: 'Hide chant and try recall', showChant: 'Show chant',
     assessmentPrompt: 'How well did you recall the whole chant?', againHelp: 'Forgot or got it wrong · mark for review',
     learningHelp: 'Needed a hint or hesitated · review tomorrow', learnedHelp: 'Recalled correctly · review in 3 days', masteredHelp: 'Can recall confidently · review in 30 days',
-    ratingKeys: 'Rate with keys 1–4', revealKey: 'Space to hide or reveal', againQueued: 'Reset to Learning. Try the whole chant again.',
+    ratingKeys: 'Keys: 1 forgot · 2 remembered', revealKey: 'Space to reveal', hideKey: 'Space to hide and recall', lineRatingKeys: 'Keys: 1 forgot · 2 remembered', againQueued: 'Reset to Learning. Try the whole chant again.',
     progressSaveError: 'Progress could not be saved. Try again.', sessionDoneHelp: 'Your ratings are saved. Change them any time in the library.', backToPractice: 'Back to practice',
     yourProgress: 'Your progress', manualProgressHelp: 'Set this yourself. No practice session required.',
     guideTitle: 'Find or learn a MIX', guideIntro: 'Search for a call you heard, check its sources and variants, or learn it by recalling the full chant.',
@@ -65,7 +65,7 @@ const D = {
     language: 'Language', chantScript: 'Chant script', scriptJp: 'Kana', scriptRomaji: 'Romaji', scriptBoth: 'Both',
     oshi: 'Oshi name', oshiHelp: 'Replaces ○○ in koujou lines.', newPerDay: 'New mixes per day', includeExt: 'Include optional endings',
     sound: 'Sound', haptics: 'Vibration', latency: 'Tap latency offset (ms)',
-    sourceNotes: 'Source transcription notes', accelePerformance: 'Use 4× speed from 虎 火 人造 繊維 海女 振動 through 海女 繊 海女 繊 人造 火. Slower arrangements can exceed 16 bars.', finishQuiz: 'Finish quiz', multipleChoice: 'Multiple choice', lineFlashcards: 'Line flashcards', fullChantRecall: 'Full-chant recall', questionsPerMix: 'Questions per MIX', choiceModeHelp: 'Choose the next source line. Only selected MIX are tested.', lineModeHelp: 'Recall and reveal each source line in order.', linePosition: 'Line {n} of {total}', previousLines: 'Previous lines', firstLine: 'Start of chant', chooseFirstLine: 'Which line starts this MIX?', chooseNextLine: 'Which line comes next?', recallLine: 'Recall the next line before revealing it.', showLine: 'Reveal line', lineForgot: 'Forgot', lineRemembered: 'Remembered', correctAnswer: 'Correct', incorrectAnswer: 'Incorrect — the correct line is highlighted.', lineProgressHelp: 'Line practice does not mark the full chant as mastered. Existing progress is kept; new MIX become Learning.', savingResults: 'Saving results…', retrySave: 'Retry saving', viewChant: 'View chant', selectionEmpty: 'Select MIX from the list. Your selection stays while searching and filtering.', removeSelection: 'Remove {name}', practiceSelected: 'Practice selected ({n})', selectedMix: 'Selected MIX', pickerCount: '{n} MIX shown', clearFilters: 'Reset filters', shareMix: 'Share MIX · QR', shareTitle: 'Share this MIX', copyLink: 'Copy link', shareLink: 'Direct link', qrHelp: 'Scan to open this exact MIX. The recipient needs access to this site.', linkMissing: 'This MIX is not in your library.', mainNavigation: 'Main navigation', sort: 'Sort', mixCount: '{n} MIX records', indexeddb: 'Saved on this device', memory: 'Temporary storage', backupHelp: 'Export settings, progress, review history and custom MIX as JSON. Import merges matching records; existing records absent from the file are kept.', importError: 'Invalid or unsupported backup. No data was imported.', backupFailed: 'Backup could not be saved.', startFailed: 'Could not start the app.', selectionHelp: 'Select cards, then choose a progress status below.', backup: 'Import / export data', exportData: 'Export backup', importData: 'Import backup', reset: 'Reset all progress', resetConfirm: 'Erase all progress and custom mixes?',
+    sourceNotes: 'Source transcription notes', accelePerformance: 'Use 4× speed from Tora Hi Jinzou Seni Ama Shindou through Ama Sen Ama Sen Jinzou Hi. Slower arrangements can exceed 16 bars.', finishQuiz: 'Finish quiz', multipleChoice: 'Multiple choice', lineFlashcards: 'Line flashcards', fullChantRecall: 'Full-chant recall', questionsPerMix: 'Questions per MIX', choiceModeHelp: 'Choose each next source line in order. New MIX start with a study card. Only selected MIX are tested.', lineModeHelp: 'Recall and reveal each source line in order. New MIX start with a study card.', linePosition: 'Line {n} of {total}', previousLines: 'Previous lines', firstLine: 'Start of chant', chooseFirstLine: 'Which line starts this MIX?', chooseNextLine: 'Which line comes next?', recallLine: 'Recall the next line before revealing it.', showLine: 'Reveal line', lineForgot: 'Forgot', lineRemembered: 'Remembered', correctAnswer: 'Correct', incorrectAnswer: 'Incorrect — the correct line is highlighted.', lineProgressHelp: 'Line practice does not mark the full chant as mastered. Existing progress is kept; new MIX become Learning.', savingResults: 'Saving results…', retrySave: 'Retry saving', viewChant: 'View chant', selectionEmpty: 'Select MIX from the list. Your selection stays while searching and filtering.', removeSelection: 'Remove {name}', practiceSelected: 'Practice selected ({n})', selectedMix: 'Selected MIX', pickerCount: '{n} MIX shown', clearFilters: 'Reset filters', shareMix: 'Share MIX · QR', shareTitle: 'Share this MIX', copyLink: 'Copy link', shareLink: 'Direct link', qrHelp: 'Scan to open this exact MIX. The recipient needs access to this site.', linkMissing: 'This MIX is not in your library.', mainNavigation: 'Main navigation', sort: 'Sort', mixCount: '{n} MIX records', indexeddb: 'Saved on this device', memory: 'Temporary storage', backupHelp: 'Export settings, progress, review history and custom MIX as JSON. Import merges matching records; existing records absent from the file are kept.', importError: 'Invalid or unsupported backup. No data was imported.', backupFailed: 'Backup could not be saved.', startFailed: 'Could not start the app.', selectionHelp: 'Selection lists every version separately. Select cards, then set progress or practice them below.', backup: 'Import / export data', exportData: 'Export backup', importData: 'Import backup', reset: 'Reset all progress', resetConfirm: 'Erase all progress and custom mixes?',
     addMix: 'Add custom mix', editMix: 'Edit mix', deleteMix: 'Delete', save: 'Save', cancel: 'Cancel', close: 'Close',
     mixName: 'Name', mixJp: 'Japanese name', mixTiming: 'Bars', mixTrigger: 'When it hits', mixChant: 'Chant',
     chantHelp: 'One phrase per line, blank line between stanzas. [brackets] = optional ending, 虎×4 repeats, (クラップ) = clap.',
@@ -89,6 +89,14 @@ const D = {
     bulkText: 'Bulk add / edit mixes (text)', bulkHelp: 'One mix per block, starting with "# Name / 日本語名 | Category | Bars | When it hits | id=slug". Same id = update. Blank line = stanza break, [brackets] = optional ending, 虎×4 = repeat.',
     bulkPreview: '{n} mixes found', bulkApply: 'Import', bulkLoad: 'Load my custom mixes', bulkExample: 'Insert example', bulkSaved: '{n} mixes saved', bulkBad: 'Nothing parsed — check the header lines start with "# "',
     custom: 'Custom', baisokuTag: 'Baisoku', dragHint: '',
+    allLines: 'All lines', emptyLearning: 'No MIX are in Learning yet. Choose a new MIX to start.', showNewMix: 'Show new MIX', showAllMix: 'Show all MIX',
+    lineStudyHint: 'This MIX is new. Read the complete chant first; the questions follow its source lines in order.', startQuestions: 'Start questions', startLineCards: 'Start line cards', spaceContinue: 'Space to continue',
+    recallFirstLine: 'Recall the first line before revealing it.', lineMissedHelp: 'Read this line again, then continue when you are ready.', finishSession: 'Finish',
+    recallForgot: 'Forgot', recallForgotHelp: 'Missed or mixed up a part · review again in 10 min', recallRemembered: 'Remembered', recallRememberedHelp: 'Recalled the whole chant · next review scheduled automatically',
+    setStatusInstead: 'Set progress manually instead',
+    yourAnswer: 'Your answer', reviewCount: '{n} reviews', dueNow: 'Due now', variantCountOne: '1 variant', excerptCountOne: '1 excerpt', startedCount: '{n} of {total} MIX started',
+    choiceKeys: 'Keys 1–4 to answer', enterNext: 'Enter to continue', revealLineKey: 'Space to reveal the line', choiceScore: '{n} of {total} correct', lineScore: '{n} of {total} lines remembered', practiceAgain: 'Practice again', bulkPreviewOne: '1 mix found', lapseCount: '{n}× lapse', barsRange: 'Bars must be a whole number from 1 to 64.', bulkInvalid: 'Fix category ({cats}) or bars (1–64) in: {names}', lineCheck: 'Did you remember this line?', reviewLine: 'Review this line', recentLowScore: 'Low recent score', viewChantOf: 'View chant: {name}', nothingWeak: 'Nothing needs extra work right now.',
+    addTier: 'Add a priority group…', setProgress: 'Set progress…', nameChantRequired: 'Enter a name and at least one chant line.', customShareHelp: 'Custom MIX exist only on this device. The recipient will not have this MIX unless you send them a backup.',
   },
   ja: {
     home: 'ホーム', codex: '図鑑', practice: '学習', stats: '成績', settings: '設定',
@@ -111,13 +119,13 @@ const D = {
     basicPath: 'まずは基本の3種類', basicPathHelp: 'スタンダード・日本語・アイヌ語は学習の入口。順番は自由で、進捗も自分で設定できます。',
     quizSize: '出題数', quizCount: '{n}件', retryMissed: '忘れたMIXだけ再挑戦', dailyReview: '短い復習クイズ', reviewPlan: '復習対象 {due}件',
     startFlashcards: 'クイズを始める', sessionLimit: '表示されたMIXだけ出題。指定した件数で終了します。',
-    chooseMix: '練習するMIXを選ぶ', chooseMixHelp: '全MIXから検索。練習したい項目を選び、選んだMIXだけ練習できます。', browseLibrary: 'MIX図鑑を見る',
+    chooseMix: '練習するMIXを選ぶ', chooseMixHelp: '全MIXから検索。練習したい項目を選び、選んだMIXだけ練習できます。抜粋はMIX全体で練習し、出典確認中の項目は練習対象外です。', browseLibrary: 'MIX図鑑を見る',
     cardPosition: '{total}件中 {n}件目', recallPrompt: '思い出す', checkRecall: '答え合わせ',
     recallInstruction: 'コール全体を声に出すか、頭の中で思い出そう。', recallNoTimer: '時間制限なし。思い出してから答えを表示。',
     fullStudyHint: 'コール全体を読んでから、見ずに思い出そう。', tryRecall: '隠して思い出す', showChant: 'コールを表示',
     assessmentPrompt: 'コール全体をどのくらい思い出せた？', againHelp: '忘れた・間違えた · 復習対象にする',
     learningHelp: 'ヒントが必要・迷った · 明日復習', learnedHelp: '正しく思い出せた · 3日後に復習', masteredHelp: '自信を持って思い出せる · 30日後に復習',
-    ratingKeys: '1〜4キーで評価', revealKey: 'スペースキーで隠す・表示', againQueued: '学習中に戻しました。全体をもう一度思い出そう。',
+    ratingKeys: '1キー：忘れた · 2キー：思い出せた', revealKey: 'スペースキーで表示', hideKey: 'スペースキーで隠して思い出す', lineRatingKeys: '1キー：思い出せなかった · 2キー：思い出せた', againQueued: '学習中に戻しました。全体をもう一度思い出そう。',
     progressSaveError: '進捗を保存できませんでした。再試行してください。', sessionDoneHelp: '評価を保存しました。図鑑からいつでも変更できます。', backToPractice: '練習に戻る',
     yourProgress: 'あなたの進捗', manualProgressHelp: '練習せずに、自分で設定できます。',
     guideTitle: 'MIXを探す・学ぶ', guideIntro: '聞いたコールを探し、出典や派生を確認。覚えたいMIXは、コール全体を思い出す練習ができます。',
@@ -153,7 +161,7 @@ const D = {
     language: '言語', chantScript: 'コールの表記', scriptJp: 'かな', scriptRomaji: 'ローマ字（英語表示時）', scriptBoth: '両方（英語表示時）',
     oshi: '推しの名前', oshiHelp: '口上の○○に入ります。', newPerDay: '1日の新規MIX数', includeExt: '追加エンディングも含める',
     sound: '効果音', haptics: 'バイブ', latency: 'タップ遅延補正 (ms)',
-    sourceNotes: '出典・表記の補足', accelePerformance: '「虎 火 人造 繊維 海女 振動」から「海女 繊 海女 繊 人造 火」まで4倍速。遅く唱える構成では16小節を超えることがあります。', finishQuiz: 'クイズを終了', multipleChoice: '選択式クイズ', lineFlashcards: '1行ずつフラッシュカード', fullChantRecall: '全文を思い出す', questionsPerMix: '1MIXあたりの出題数', choiceModeHelp: '次の行を選ぶクイズ。選んだMIXだけ出題します。', lineModeHelp: '出典の行順に、1行ずつ思い出して答えを表示します。', linePosition: '{total}行中 {n}行目', previousLines: '直前の行', firstLine: 'コールの始まり', chooseFirstLine: '最初の行は？', chooseNextLine: '次に続く行は？', recallLine: '答えを見る前に、次の1行を思い出そう。', showLine: 'この行の答えを見る', lineForgot: '思い出せなかった', lineRemembered: '思い出せた', correctAnswer: '正解', incorrectAnswer: '不正解。正しい行を表示しています。', lineProgressHelp: '行ごとの練習では全文の習得状態を変更しません。新規MIXは学習中になります。', savingResults: '結果を保存中…', retrySave: '保存を再試行', viewChant: 'コールを見る', selectionEmpty: '一覧からMIXを選んでください。検索や絞り込みを変えても選択は保持されます。', removeSelection: '{name}の選択を解除', practiceSelected: '選んだ{n}件を練習', selectedMix: '選んだMIX', pickerCount: '{n}件表示', clearFilters: '絞り込みを解除', shareMix: 'MIXを共有・QR', shareTitle: 'このMIXを共有', copyLink: 'リンクをコピー', shareLink: '直接リンク', qrHelp: '読み取るとこのMIXが開きます。相手もこのサイトにアクセスできる必要があります。', linkMissing: 'このMIXは図鑑にありません。', mainNavigation: 'メインナビゲーション', sort: '並び順', mixCount: 'MIX {n}件', indexeddb: '端末に保存', memory: '一時保存', backupHelp: '設定・進捗・復習履歴・カスタムMIXをJSONで保存。読み込み時は同じ項目を更新し、ファイルにない既存項目は保持します。', importError: '無効なバックアップ、または未対応の形式です。データは読み込まれていません。', backupFailed: 'バックアップを保存できませんでした。', startFailed: 'アプリを起動できませんでした。', selectionHelp: 'カードを選び、下のボタンで進捗を変更できます。', backup: 'データの読み込み・書き出し', exportData: 'バックアップを書き出す', importData: 'バックアップを読み込む', reset: '進捗をすべてリセット', resetConfirm: '進捗とカスタムMIXをすべて消去しますか？',
+    sourceNotes: '出典・表記の補足', accelePerformance: '「虎 火 人造 繊維 海女 振動」から「海女 繊 海女 繊 人造 火」まで4倍速。遅く唱える構成では16小節を超えることがあります。', finishQuiz: 'クイズを終了', multipleChoice: '選択式クイズ', lineFlashcards: '1行ずつフラッシュカード', fullChantRecall: '全文を思い出す', questionsPerMix: '1MIXあたりの出題数', choiceModeHelp: '出典の行順に、次の行を選ぶクイズ。新規MIXは最初に全文を確認します。選んだMIXだけ出題します。', lineModeHelp: '出典の行順に、1行ずつ思い出して答えを表示します。新規MIXは最初に全文を確認します。', linePosition: '{total}行中 {n}行目', previousLines: '直前の行', firstLine: 'コールの始まり', chooseFirstLine: '最初の行は？', chooseNextLine: '次に続く行は？', recallLine: '答えを見る前に、次の1行を思い出そう。', showLine: 'この行の答えを見る', lineForgot: '思い出せなかった', lineRemembered: '思い出せた', correctAnswer: '正解', incorrectAnswer: '不正解。正しい行を表示しています。', lineProgressHelp: '行ごとの練習では全文の習得状態を変更しません。新規MIXは学習中になります。', savingResults: '結果を保存中…', retrySave: '保存を再試行', viewChant: 'コールを見る', selectionEmpty: '一覧からMIXを選んでください。検索や絞り込みを変えても選択は保持されます。', removeSelection: '{name}の選択を解除', practiceSelected: '選んだ{n}件を練習', selectedMix: '選んだMIX', pickerCount: '{n}件表示', clearFilters: '絞り込みを解除', shareMix: 'MIXを共有・QR', shareTitle: 'このMIXを共有', copyLink: 'リンクをコピー', shareLink: '直接リンク', qrHelp: '読み取るとこのMIXが開きます。相手もこのサイトにアクセスできる必要があります。', linkMissing: 'このMIXは図鑑にありません。', mainNavigation: 'メインナビゲーション', sort: '並び順', mixCount: 'MIX {n}件', indexeddb: '端末に保存', memory: '一時保存', backupHelp: '設定・進捗・復習履歴・カスタムMIXをJSONで保存。読み込み時は同じ項目を更新し、ファイルにない既存項目は保持します。', importError: '無効なバックアップ、または未対応の形式です。データは読み込まれていません。', backupFailed: 'バックアップを保存できませんでした。', startFailed: 'アプリを起動できませんでした。', selectionHelp: '選択中は全バージョンを個別に表示します。カードを選び、下で進捗の変更や練習ができます。', backup: 'データの読み込み・書き出し', exportData: 'バックアップを書き出す', importData: 'バックアップを読み込む', reset: '進捗をすべてリセット', resetConfirm: '進捗とカスタムMIXをすべて消去しますか？',
     addMix: 'カスタムMIXを追加', editMix: 'MIXを編集', deleteMix: '削除', save: '保存', cancel: 'キャンセル', close: '閉じる',
     mixName: '名前', mixJp: '日本語名', mixTiming: '小節数', mixTrigger: '入るタイミング', mixChant: 'コール',
     chantHelp: '1行1フレーズ、連の間は空行。[ ]＝追加エンディング、虎×4＝繰り返し、(クラップ)＝手拍子。',
@@ -177,6 +185,14 @@ const D = {
     bulkText: 'MIXを一括追加・編集（テキスト）', bulkHelp: '1MIXにつき1ブロック。先頭は「# 名前 / 日本語名 | カテゴリ | 小節 | タイミング | id=スラッグ」。同じidは上書き。空行＝連の区切り、[ ]＝追加エンディング、虎×4＝繰り返し。',
     bulkPreview: '{n}件を検出', bulkApply: '取り込む', bulkLoad: '自分のMIXを読み込む', bulkExample: '例を挿入', bulkSaved: '{n}件を保存', bulkBad: '解析できませんでした。見出しは「# 」で始めてください',
     custom: 'カスタム', baisokuTag: '倍速', dragHint: '',
+    allLines: '全行', emptyLearning: '学習中のMIXはまだありません。新規MIXを選んで始めましょう。', showNewMix: '新規MIXを表示', showAllMix: 'すべてのMIXを表示',
+    lineStudyHint: 'このMIXは新規です。まず全文を確認しましょう。問題は出典の行順に進みます。', startQuestions: '問題を始める', startLineCards: '行カードを始める', spaceContinue: 'スペースキーで次へ',
+    recallFirstLine: '答えを見る前に、最初の1行を思い出そう。', lineMissedHelp: 'この行をもう一度確認して、準備ができたら次へ進みましょう。', finishSession: '終了',
+    recallForgot: '忘れた', recallForgotHelp: '一部を忘れた・間違えた · 10分後に復習', recallRemembered: '思い出せた', recallRememberedHelp: '全体を思い出せた · 次の復習は自動で設定',
+    setStatusInstead: '進捗を手動で設定する',
+    yourAnswer: 'あなたの回答', reviewCount: '復習{n}件', dueNow: '今すぐ', variantCountOne: '派生 1件', excerptCountOne: '抜粋 1件', startedCount: '{total}件中 {n}件に着手',
+    choiceKeys: '1〜4キーで回答', enterNext: 'Enterキーで次へ', revealLineKey: 'スペースキーで答えを表示', choiceScore: '{total}問中 {n}問正解', lineScore: '{total}行中 {n}行を思い出せた', practiceAgain: 'もう一度練習', bulkPreviewOne: '1件を検出', lapseCount: 'ミス{n}回', barsRange: '小節数は1〜64の整数で入力してください。', bulkInvalid: 'カテゴリ（{cats}）または小節数（1〜64）を修正：{names}', lineCheck: 'この行を思い出せた？', reviewLine: 'この行を確認', recentLowScore: '直近の結果が低め', viewChantOf: '{name}のコールを見る', nothingWeak: '今のところ要練習のMIXはありません。',
+    addTier: '優先度グループを追加…', setProgress: '進捗を設定…', nameChantRequired: '名前とコールを1行以上入力してください。', customShareHelp: 'カスタムMIXはこの端末にだけ保存されています。バックアップを送らない限り、相手にはこのMIXがありません。',
   },
 };
 
@@ -189,6 +205,7 @@ const TRIGGER_JA = [
   [/After the forward Konton MIX/i, '正順の混沌MIXの後'],
   [/Often the second A-melody; other placements also occur/i, '2番Aメロで使われることが多く、ほかの場所でも使われます'],
   [/Often the pre-intro/i, '前奏前の部分で使われることが多いです'],
+  [/^Pre-intro$/i, '前奏前'],
   [/First Instrumental Intro/i, '最初の前奏'], [/Song start/i, '曲の冒頭'], [/Second Interlude \(before verse 2\)/i, '2番前の間奏'], [/Second interlude/i, '2番前の間奏'],
   [/Long interlude between verse 1 and 2/i, '1番2番間の長い間奏'], [/Long interlude/i, '長い間奏'], [/Longest interlude/i, '最長の間奏'], [/Long outro/i, '長いアウトロ'],
   [/Outro \(Ending\)/i, 'アウトロ'], [/Outro \(short instrumental\)/i, '短いアウトロ'], [/Extended Outro/i, '長いアウトロ'], [/Outro/i, 'アウトロ'],
@@ -214,4 +231,4 @@ export function t(key, vars) {
   return s;
 }
 
-export const trCatalog = s => getLang() === 'ja' ? NOTES_JA[s] ?? SOURCES_JA[s] ?? s : s;
+export const trCatalog = s => getLang() === 'ja' ? NOTES_JA[s] ?? SOURCES_JA[s] ?? s : NOTES_EN[s] ?? s;

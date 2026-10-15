@@ -1,8 +1,8 @@
 export const NOTES_JA = {
   "Uses the MCH row grouping and ファイヤー spelling. Sho writes ファイアー and groups the calls into fewer rows. The Faibo, Waipa tail stretches it to 10 bars.": "MCHの改行と「ファイヤー」表記を採用。Shoは「ファイアー」と表記し、より少ない行にまとめています。末尾にファイボ・ワイパーを加えると10小節になります。",
   "The 8-bar form ends at 化繊. Add 飛 除去 for the 10-bar form. A compressed 化繊飛除去 ending is a separate variant.": "8小節版は化繊で終わります。飛・除去を加えると10小節版になります。化繊飛除去をまとめて唱える終わり方は別の派生です。",
-  "An 8-bar Ainu version, commonly taught alongside Standard and Japanese MIX. Uses MCH row grouping; MCH spells the last call ミューホントゥスケ, while Sho/Wiki use ミョーホントゥスケ. The 10-bar version uses a different ending.": "スタンダード・日本語MIXとともに紹介される8小節のアイヌ語版。MCHの改行を採用し、末尾もMCHの「ミューホントゥスケ」表記を使用。ShoとWikiでは「ミョーホントゥスケ」です。10小節版は末尾が異なります。",
-  "Follows the MCH row breaks: ウィスペ ケスィ and スィスゥパー stay separate after トゥスケ. Sho groups チャペ through キナ on one row and spells the final call スィスパー; the Wiki spells it スィスゥパ. The 8-bar Zenkyou form instead ends with ミョーホントゥスケ.": "MCHの改行に従い、トゥスケの後の「ウィスペ ケスィ」と「スィスゥパー」を別行にしています。Shoはチャペからキナまでを1行にまとめ、末尾を「スィスパー」、Wikiは「スィスゥパ」と表記。8小節の全協版はミョーホントゥスケで終わります。",
+  "An 8-bar Ainu version, commonly taught alongside Standard and Japanese MIX. Uses MCH row grouping; MCH spells the last call ミューホントゥスケ, while Sho/Wiki use ミョーホントゥスケ. The 10-bar version uses a different ending.": "スタンダード・日本語MIXとともに紹介される8小節のアイヌ語版。MCHの改行を採用。末尾の表記はMCHが「ミューホントゥスケ」、ShoとWikiが「ミョーホントゥスケ」です。10小節版は末尾が異なります。",
+  "Follows the MCH row breaks: ウィスペ ケスィ and スィスゥパー stay separate after トゥスケ. Sho groups チャペ through キナ on one row and spells the final call スィスパー; the Wiki spells it スィスゥパ. The 8-bar Zenkyou form instead ends with ミョーホントゥスケ.": "MCHの改行に従い、トゥスケの後の「ウィスペ ケスィ」と「スィスゥパー」を別行にしています。Shoはチャペからキナまでを1行にまとめ、末尾を「スィスパー」、Wikiは「スィスゥパ」と表記。8小節のゼンキョウ版はミョーホントゥスケで終わります。",
   "The six ワ calls lead into ワールドカオス and the complete chant. The 8-bar form ends at 翔襲叉; the 10-bar form adds 黒雲 無常 世界混沌. Gyaku-uchi is a reverse-order variant, including a foldback version after the forward chant.": "ワを6回唱え、ワールドカオスから全文につなぎます。8小節版は翔襲叉で終了し、10小節版は黒雲・無常・世界混沌を追加。逆打ちには、正順の後に折り返す版もあります。",
   "A 16-bar MIX combining Standard, Japanese, Ainu, and Enchou phrases. The article/Sho form keeps ミョーホントゥスケ👏ワイパー fused; the Wiki transcription omits the clap and separates more calls. Article/Sho spell イェッタイガー; Wiki/MCH spell イエッタイガー.": "スタンダード・日本語・アイヌ語・園長のフレーズを組み合わせた16小節MIX。記事とShoでは「ミョーホントゥスケ👏ワイパー」がつながっています。Wikiは手拍子を省略し、より細かく区切っています。記事とShoは「イェッタイガー」、WikiとMCHは「イエッタイガー」表記です。",
   "The chant follows the MCH memo's rows. Sho documents 「はい、せーの！」 as an optional pre-intro starter and groups the chant into fewer rows.": "MCHの改行を採用。Shoでは前奏前の任意の合図として「はい、せーの！」を紹介し、コールをより少ない行にまとめています。",
@@ -10,7 +10,7 @@ export const NOTES_JA = {
   "The MCH form combines Latolata and Sagozo sections and includes eight 栄養 calls. The Wiki lists separate Latolata-full, Sagozo, 3-ren, Perfect, and variable forms. Timing is not established for this transcription.": "MCH版はラトラーターとサゴーゾを組み合わせ、栄養を8回唱えます。Wikiにはラトラーター完全版・サゴーゾ・3連・パーフェクト・可変が別々に掲載されています。この書き起こしの尺は確定していません。",
   "Often used over the second A-melody, with other placements depending on the song.": "2番Aメロで使われることが多く、曲によってほかの場所でも使われます。",
   "The article describes a 12-bar form and a longer form after the separate うりゃおい/clap starter. Its tentative history links early-2010s use to Idol College's \"Seifuku Koi Monogatari\" and later use to Nijicon's \"Paradoxical Complex\"; the author explicitly warns that this history may be inaccurate.": "記事には12小節版と、別のうりゃおい・手拍子の合図に続く長い版が掲載されています。由来について、2010年代前半のアイドルカレッジ「制服恋物語」と、その後の虹コン「パラドキシカル・コンプレックス」に言及していますが、著者自身が誤りの可能性を明記しています。",
-  "Replace ○○ with your oshi (set the name in Settings). Fans often shout 「なになにー？」 between lines and 「絶対結婚しようなー！」 at the end.": "○○には推しの名前を入れます（設定で変更）。行の間に「なになにー？」、最後に「絶対結婚しようなー！」と返すことがあります。",
+  "Replace ○○ with your oshi (set the name in Settings). Fans often shout 「なになにー？」 between lines and 「絶対結婚しような！」 at the end.": "○○には推しの名前を入れます（設定で変更）。行の間に「なになにー？」、最後に「絶対結婚しような！」と返すことがあります。",
   "By Takeutin. \"三生オタク\" = a fan reborn with every oshi change. 丸の内 is the creator's old Nagoya address. Many derivatives exist (see the Yoji-con list).": "Takeutin作。「三生オタク」は推し変のたびに生まれ変わるファンを指します。丸の内は作者が以前住んでいた名古屋の住所。派生も多数あります（四字コン一覧を参照）。",
   "Yoruba is spoken in south-west Nigeria. Its \"除去\" slot is ヨ, which makes the reverse form (Gachikoi Yoruba) slot neatly into a Gachi Koi cancel.": "ヨルバ語はナイジェリア南西部で使われる言語。「除去」にあたるコールが「ヨ」のため、逆順版（ガチ恋ヨルバ）をガチ恋のキャンセルにつなげられます。",
   "Uses the MCH chant rows. Its speed markers apply to displayed rows 8–10 at 4×, not to the whole chant. The article groups calls differently and marks separate 2×, 4×, and song-dependent passages. Slower delivery can extend the 16-bar form by two or more bars.": "MCHの改行を採用。4倍速の指定は表示上の8〜10行目に適用され、全文への指定ではありません。記事では区切りが異なり、2倍・4倍・曲によって速度が変わる箇所を別々に指定。遅く唱えると16小節版が2小節以上長くなる場合があります。",
@@ -50,4 +50,14 @@ export const SOURCES_JA = {
   "Idol Sengoku Jidai: Pan MIX": "アイドル戦国時代：パンMIX",
   "Onshitsuha: 2025 MIX roundup": "音質派：2025年MIXまとめ",
   "Masakimch: Tanbo no Yousu": "Masakimch：田んぼの様子"
+};
+
+export const NOTES_EN = {
+  "(各種MIX⇒)": "(Other MIX →)",
+  "(⇒各種MIX)": "(→ other MIX)",
+  "⇒スタンダード": "→ Standard MIX",
+  "⇒ジャパニーズ": "→ Japanese MIX",
+  "⇒アイヌ": "→ Ainu MIX",
+  "(⇒落ちサビ)": "(→ Ochisabi)",
+  "(⇒アイヌ)": "(→ Ainu MIX)"
 };

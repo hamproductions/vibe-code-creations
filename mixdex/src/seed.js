@@ -2,7 +2,7 @@ import { parseBody, parseSeedFile } from './parse.js';
 import { SEED_TEXT } from './seedText.js';
 import { toRomaji } from './romaji.js';
 
-export const SEED_VERSION = 49;
+export const SEED_VERSION = 51;
 
 // Priority tiers: 1 = Essential, 2 = Extended catalog, 3 = Deep cuts
 // Order here is the recommended learning order and drives the codex + new-card queue.
@@ -112,7 +112,7 @@ const CORE = [
     layout: [2, 2, 2, 2, 1], notes: ['Follows the MCH row breaks: ウィスペ ケスィ and スィスゥパー stay separate after トゥスケ. Sho groups チャペ through キナ on one row and spells the final call スィスパー; the Wiki spells it スィスゥパ. The 8-bar Zenkyou form instead ends with ミョーホントゥスケ.'],
   },
   {
-    slug: 'ainu-zenkyou', name: 'Ainu MIX (Zenkyou / Myohon)', jp: 'アイヌ語MIX（全叫・ミョーホン）', category: 'Basic', timing: 8,
+    slug: 'ainu-zenkyou', name: 'Ainu MIX (Zenkyou / Myohon)', jp: 'アイヌ語MIX（ゼンキョウ・ミョーホン）', category: 'Basic', timing: 8,
     trigger_context: 'Outro / after Japanese MIX / third intro', initiator: 'Aa, sha ikuzo!', initiatorJp: 'あー、しゃー行くぞ！',
     seq: P('チャペ|Chape,アペ|Ape,カラ|Kara,キナ|Kina,ララ|Rara,トゥスケ|Tusuke,ミョーホントゥスケ|Myohontusuke'),
     layout: [2, 2, 2, 1], notes: ['An 8-bar Ainu version, commonly taught alongside Standard and Japanese MIX. Uses MCH row grouping; MCH spells the last call ミューホントゥスケ, while Sho/Wiki use ミョーホントゥスケ. The 10-bar version uses a different ending.'],
@@ -147,7 +147,7 @@ const CORE = [
       '俺と一緒に|Ore to issho ni,人生歩もう|Jinsei ayumou,世界で一番|Sekai de ichiban,愛してる|Aishiteru'),
     ext: P('あ|A,い|I,し|SHI,て|TE,るー|RU'),
     layout: [1, 1, 1, 1, 0, 1, 1, 1, 1, 0, 1, 1, 1, 1, 0, 1, 1, 1, 1], extLayout: [4, 1],
-    notes: ['Replace ○○ with your oshi (set the name in Settings). Fans often shout 「なになにー？」 between lines and 「絶対結婚しようなー！」 at the end.'],
+    notes: ['Replace ○○ with your oshi (set the name in Settings). Fans often shout 「なになにー？」 between lines and 「絶対結婚しような！」 at the end.'],
   },
   {
     slug: 'bismarck', name: 'Bismarck Koujou', jp: 'ビスマルク口上', category: 'Koujou', timing: 12, tokenization: 'phrases',
@@ -190,6 +190,7 @@ function fromText(e, opts = {}) {
     extension: p.extension, extReading: rd(p.extension, p.extHint), extLayout: p.extLayout, extTiming: 0,
     trigger_context: e.trigger, initiator: p.initiator ? toRomaji(p.initiator) : '', initiatorJp: p.initiator || '',
     baisoku: bais, notes: [...e.comments, ...p.notes], source: opts.source || 'seed', core: false, tokenization: flags.phrases ? 'phrases' : 'terms', sourcePending: !!flags.pending,
+    ...(opts.source === 'custom' ? { chantBody: [...e.comments.map(n => '> ' + n), e.body].join('\n') } : {}),
   };
 }
 
@@ -260,6 +261,7 @@ export function nextUp(level, mixes, knownIds, n = 5) {
 export function mixToText(m, rowsOf) {
   const flags = [`id=${m.slug}`, m.baisoku ? 'b' + m.baisoku : '', m.tokenization === 'phrases' ? 'phrases' : '', m.sourcePending ? 'pending' : ''].filter(Boolean).join(' | ');
   const head = `# ${m.name}${m.jp ? ' / ' + m.jp : ''} | ${m.category} | ${m.timing} | ${m.trigger_context || '—'} | ${flags}`;
+  if (m.source === 'custom' && typeof m.chantBody === 'string') return head + '\n' + m.chantBody;
   const stanzas = (toks, layout) => rowsOf(toks.length, layout).map(st => st.map(r => r.map(i => toks[i]).join(' ')).join('\n'));
   const out = [head, ...(m.notes || []).map(n => '> ' + n)];
   if (m.initiatorJp) out.push(...m.initiatorJp.split('\n').map(line => '【発動】' + line));

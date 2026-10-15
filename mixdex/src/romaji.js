@@ -92,15 +92,16 @@ export function toRomaji(token) {
   const flush = () => { if (buf) { parts.push({ t: kanaWord(kataToHira(buf)), kata: /[ァ-ヿ]/.test(buf) }); buf = ''; } };
   for (let i = 0; i < chars.length;) {
     const c = chars[i];
-    if (hasKanji(c)) {
+    let hit = null;
+    for (let L = Math.min(KEYS_MAX, chars.length - i); L >= 1; L--) {
+      const key = chars.slice(i, i + L).join('');
+      if (KANJI[key]) { hit = key; break; }
+    }
+    if (hit) {
       flush();
-      let hit = null;
-      for (let L = Math.min(KEYS_MAX, chars.length - i); L >= 1; L--) {
-        const key = chars.slice(i, i + L).join('');
-        if (KANJI[key]) { hit = key; break; }
-      }
-      if (hit) { parts.push({ t: kanaWord(kataToHira(KANJI[hit])), kj: true }); i += [...hit].length; }
-      else { parts.push({ t: c, kj: true, unknown: true }); i++; }
+      parts.push({ t: kanaWord(kataToHira(KANJI[hit])), kj: true }); i += [...hit].length;
+    } else if (hasKanji(c)) {
+      flush(); parts.push({ t: c, kj: true, unknown: true }); i++;
     } else if (isKana(c) && c !== '・') { buf += c; i++; }
     else { flush(); parts.push({ t: c === '・' ? '-' : c, raw: true }); i++; }
   }

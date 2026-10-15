@@ -1,10 +1,13 @@
-import { toRomaji as wkRomaji } from '../vendor/wanakana.mjs';
+import { toRomaji as wkRomaji, toHiragana, toKatakana } from '../vendor/wanakana.mjs';
 import { toRomaji } from './romaji.js';
 import { KANJI } from './kanjiDict.js';
 import { t, getLang, trTrigger } from './i18n.js';
 import { getVocab } from './state.js';
 import { rowsOf } from './parse.js';
 
+export const kanaKey = s => s.split(/(\s+)/).map(word => toHiragana(toKatakana(word))).join('');
+export const searchQuery = s => s.normalize('NFKC').trim().toLowerCase();
+export const tightKey = s => s.replace(/[\s\-_.,、。・･]+/g, '');
 export const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 export const $ = (sel, el = document) => el.querySelector(sel);
 export const $$ = (sel, el = document) => [...el.querySelectorAll(sel)];
@@ -32,7 +35,7 @@ const roShow = (token, ro, settings) => {
   if (token === '👏') return '(clap)';
   let r = roOf(token, ro);
   if (settings?.oshi && token.includes('○')) {
-    const nm = /[a-zA-Z]/.test(settings.oshi) ? settings.oshi : wkRomaji(settings.oshi);
+    const nm = /[a-zA-Z一-鿿々]/.test(settings.oshi) ? settings.oshi : wkRomaji(settings.oshi);
     r = r.replace(/○○/g, nm).replace(/\[Name\]/g, nm);
   }
   return cap(r);
@@ -46,11 +49,11 @@ export function tokText(token, ro, settings) {
   if (mode === 'both') return { a: jp, b: jp === rom ? '' : rom };
   return { a: jp, b: '' };
 }
-const rubyKeys = Object.keys(KANJI).sort((a, b) => b.length - a.length);
+const rubyKeys = Object.keys(KANJI).filter(key => /[一-鿿々]/.test(key)).sort((a, b) => b.length - a.length);
 const rubyText = text => {
   let html = '';
   for (let i = 0; i < text.length;) {
-    const key = /[一-鿿々]/.test(text[i]) && rubyKeys.find(key => text.startsWith(key, i));
+    const key = rubyKeys.find(key => text.startsWith(key, i));
     if (key) { html += `<ruby>${esc(key)}<rt>${esc(KANJI[key])}</rt></ruby>`; i += key.length; }
     else { html += esc(text[i]).replace(/\n/g, '<br>'); i++; }
   }

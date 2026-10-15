@@ -101,12 +101,13 @@ export function lineExercises(queue, mixes, { mode = 'choice', limit = 3, rng = 
   const key = line => line.tokens.join(' ');
   return queue.flatMap(item => {
     const lines = chantLines(item.mix);
-    const count = mode === 'lines' ? lines.length : Math.min(limit, lines.length);
-    const positions = count === 1 ? [0] : Array.from({ length: count }, (_, i) => Math.round(i * (lines.length - 1) / (count - 1)));
+    const count = mode === 'lines' || !limit ? lines.length : Math.min(limit, lines.length);
+    const first = Math.floor(rng() * (lines.length - count + 1));
+    const positions = Array.from({ length: count }, (_, i) => first + i);
     return positions.map(index => {
-      const answer = lines[index], seen = new Set([key(answer)]);
+      const answer = lines[index], context = lines.slice(Math.max(0, index - 2), index), seen = new Set([answer, ...context].map(key));
       const alternatives = mode === 'lines' ? [] : [...lines.slice(index + 1), ...lines.slice(0, index).reverse(), ...catalog].filter(line => { const k = key(line); if (seen.has(k)) return false; seen.add(k); return true; }).slice(0, 3);
-      return { mix: item.mix, index, total: lines.length, context: lines.slice(Math.max(0, index - 2), index), answer, options: shuffle([answer, ...alternatives], rng) };
+      return { mix: item.mix, index, total: lines.length, context, answer, options: shuffle([answer, ...alternatives], rng) };
     });
   });
 }
