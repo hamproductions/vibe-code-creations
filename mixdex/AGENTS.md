@@ -21,3 +21,4 @@
 - Verify browser behavior in one isolated named agent-browser session. Prefix commands with `AGENT_BROWSER_ARGS="--use-mock-keychain,--password-store=basic,--mute-audio"`; inspect screenshots, scroll before clicking offscreen controls, and never navigate non-HTTP links.
 - Run existing engine, seed, and roundtrip checks with `UV_THREADPOOL_SIZE=1`. `tests/smoke.mjs` targets an obsolete practice flow and does not verify current learning behavior.
 - Preserve inherited dirty changes. Commit, push, deployment, PRs, and external writes require explicit current-turn authorization.
+- Distinguish repository ownership from the authenticated GitHub user. When explicitly instructed to push the existing origin as hamzaabamboo, verify CLI and SSH authentication and push; do not substitute an ownership transfer or fork.

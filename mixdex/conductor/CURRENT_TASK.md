@@ -4,7 +4,8 @@
 - 前Goalのコンテンツ再監査は完了。現在の依頼はMIXDEX変更をmainへcommit/pushし、作業ツリーをcleanにする。Goalは再開しない。
 - 閉じた参照集合：既存コード、`conductor/data-source-audit.md`、保存MCH、既存で対応付けられたSho・Seesaa MIX Wiki・音質派・Ameba。関連組織や別プロジェクトへ広げない。
 - 今turnでcommit/pushとclean化を許可。deploy/PR/外部投稿・本番書込み・OS/音声設定変更は未許可。新規テストファイルは追加しない。
-- 先にoriginをfetch済み。mainとorigin/mainは0/0。originはhamproductions所有で、/codeのhamzaabamboo限定規則と一致しない。push先の明示的例外が必要か確認し、許可前に別所有者へpushしない。
+- 最新の指示は認証ユーザーをhamzaabambooに切り替え、既存originへpushすること。リポジトリ所有権の移管・fork・remote変更は行わない。
+- origin fetch済み。既存main commitは55bd78d。gh認証はhamzaabambooへ切替済み。同ユーザーは既存originへpush権限あり。
 - commit identityはTanyawat Vittayapalotai <hamzaabamboo@gmail.com>。監査メディアはcommitせず保存し、対象ディレクトリをローカルGit除外へ登録する。
 - 既存の未コミット変更を保持。前GoalのUX作業は完了済みで、今回のコンテンツ監査の代わりにはしない。
 - 終了条件：今回の確定修正を実行・画面確認・独立レビューし、出典で解決できない読みは明示する。追加資料の許可待ちは解決済みと扱わない。
@@ -40,7 +41,7 @@
 - `git diff --check` 成功。最終バージョンで構文・差分・機密パターン確認も成功。
 
 ## 環境と所有権
-- enclosing checkout `main`、HEAD `1632c90132f970205d82f27426fd2de5b45dcbdc`。今turnでorigin fetch済み。変更をmainへ保存し、origin所有者の限定例外を確認してからpushする。
+- enclosing checkout `main`、HEAD `1632c90132f970205d82f27426fd2de5b45dcbdc`。今turnでorigin fetch済み。変更は55bd78dとしてmainへcommit済み。最新指示で既存originへのpushを許可。
 - 継承dirty：AGENTS/README/app/db/engine/i18n/practice/seed/state/ui/style/SW/task、practice-audit。今回追加：catalogJa/kanjiDict/romaji/content-audit、上記対象の追記。別パスを操作しない。
 - 既存4176サーバーPID24860は他の継続作業由来。変更・停止しない。初回画面でモジュール読込みが止まった原因は未確定。
 - 今回所有：`python3 -m http.server 4177 --bind 127.0.0.1`、exec session34875。停止済み。4177にLISTENなし。
@@ -55,5 +56,12 @@
 - 外部は対応済みのガチ恋記事、Sho、MIX Wikiの対象記述のみ。Wiki全4308行を読了とは扱わない。
 
 ## 即時の次アクション
-MIXDEXの追跡済み変更は既存三チェック、構文、差分、機密パターンを検証してmainへ保存する対象。監査メディアは保存したままGitローカル除外を適用。次はorigin所有者の限定例外を確認してpushし、fetch後の同期とcleanを確認する。
+MIXDEXの追跡済み変更は既存三チェック、構文、差分、機密パターンを検証してmainへ保存する対象。監査メディアは保存したままGitローカル除外を適用。次は認証ユーザーを確認して既存originへpushし、fetch後の同期とcleanを確認する。
 既存の参照集合内での再監査・確定修正・検証・清掃を完了。報告書は `dogfood-output/content-audit/report.md`。千愛・皆での未解決点は追加資料の任意範囲確認が未回答のため明示。回答があれば許可範囲だけで追加検証する。
+
+## 修正ゲート
+- 誤り：remoteの所有組織とGitHubの認証ユーザーを同一視し、不要な確認でpushを止めた。
+- 根拠：ghの認証は別ユーザーだったが、hamzaabambooへ切替後に既存repoへのadmin/push権限を確認。
+- 規則：所有権の移管と認証ユーザーの切替を区別し、明示された既存originへのpushを実行する。
+- 対応：ghをhamzaabambooへ切替。SSHユーザーを確認し、mainへpushする。
+- 読取：get-your-shit-together1–27をEOFまで確認。
