@@ -1,0 +1,145 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Free Pair, decoded</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<header class="top">
+  <div>
+    <h1>Free Pair, decoded</h1>
+    <p class="lede">The trainer never checks edge orientation. It asks one thing: after your alg, is another pair one <code>R U R'</code>-sized insert from solved?</p>
+    <p class="small"><a href="zones.html">Touch zone cheat sheet, every alg</a></p>
+  </div>
+  <button id="theme" type="button" aria-label="Switch colour theme">Theme</button>
+</header>
+<main>
+
+<section id="test">
+  <h2>What counts as free</h2>
+  <p>Read from <code>freePairTrainer.js</code>. A pair in BL, BR or FL is free when any U turn plus one of four inserts solves it. Turn so the target slot is front right and you get exactly these shapes, each with white on a side and never on top. Any U turn of the shape still counts.</p>
+  <div class="shapes" id="shapes"></div>
+  <p class="small muted" style="margin-top:14px">Shown for the FR slot with the top view unfolded, so the outer strips are the side stickers of the top layer. Pair colours are bright, everything else is blank. Say it as: <b>joined</b> means pair already built with white on its end. <b>Split</b> means corner and edge sit far apart and the edge's top colour matches the corner's non-white side colour. The <a href="zones.html#rule">exact test</a> covers both in one rule.</p>
+</section>
+
+<section id="why">
+  <h2>Why it feels impossible</h2>
+  <p>It is not easy, and the numbers say why. Every row of the <b>All Algorithms</b> preset, crossed with every setup the trainer can generate, gives 14,637 positions.</p>
+  <div class="scroll"><table>
+    <thead><tr><th>Measured over all 14,637 positions</th><th class="num">Result</th></tr></thead>
+    <tbody>
+      <tr><td>Guess randomly</td><td class="num">30.5%</td></tr>
+      <tr><td>Always pick the shortest alg</td><td class="num">31.4%</td></tr>
+      <tr><td>Use the touch-zone rules below, then guess</td><td class="num">41.3%</td></tr>
+      <tr><td>Add the white test, tracking only the corner</td><td class="num">52.4%</td></tr>
+      <tr><td>Pair is already free before your alg</td><td class="num">19.5%</td></tr>
+      <tr><td>Both pair pieces start in the top layer</td><td class="num">68.7%</td></tr>
+    </tbody>
+  </table></div>
+  <p style="margin-top:12px">So no favourite alg exists. In four out of five positions the alg has to <b>build</b> the free pair, so you cannot get there by leaving it alone. Zones take you to 41% with no tracking, and following the corner alone reaches 52%. Past that you need both pieces through each alg. That is a tracking skill, and it is the thing being trained.</p>
+</section>
+
+<section id="flow">
+  <h2>Decision flow</h2>
+  <div class="flow">
+    <svg viewBox="0 0 760 520" role="img" aria-label="Flow chart: find pair, test shape, use touch zone or replay">
+      <defs><marker id="ah" viewBox="0 0 8 8" refX="7" refY="4" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0L8 4L0 8" fill="none" stroke="#8a867c"/></marker></defs>
+      <rect class="box" x="230" y="10" width="300" height="52" rx="6"/><text x="380" y="32" text-anchor="middle">Find the pale pieces on top.</text><text x="380" y="51" text-anchor="middle">Which slot has lost its pale stickers?</text>
+      <path d="M380 62V92" marker-end="url(#ah)"/>
+      <rect class="box ask" x="230" y="92" width="300" height="52" rx="6"/><text x="380" y="114" text-anchor="middle">Does the pair already match a shape</text><text x="380" y="133" text-anchor="middle">(joined or split, white on a side)?</text>
+      <path d="M230 118H130V180" marker-end="url(#ah)"/><text class="lab" x="140" y="110">yes, 19.5%</text>
+      <path d="M530 118H630V180" marker-end="url(#ah)"/><text class="lab" x="550" y="110">no, 80.5%</text>
+      <rect class="box" x="10" y="180" width="240" height="72" rx="6"/><text x="130" y="205" text-anchor="middle">Pick an alg whose touch zone</text><text x="130" y="224" text-anchor="middle">misses both pieces.</text><text class="lab" x="130" y="243" text-anchor="middle">Zero failures across all cases</text>
+      <path d="M130 252V290" marker-end="url(#ah)"/>
+      <rect class="box ask" x="30" y="290" width="200" height="52" rx="6"/><text x="130" y="312" text-anchor="middle">Did such an alg exist?</text><text class="lab" x="130" y="331" text-anchor="middle">About half of correct answers</text>
+      <path d="M130 342V440" marker-end="url(#ah)"/><text class="lab" x="138" y="394">yes</text>
+      <path d="M230 316H380V350" marker-end="url(#ah)"/><text class="lab" x="270" y="308">no</text>
+      <rect class="box" x="510" y="180" width="240" height="72" rx="6"/><text x="630" y="205" text-anchor="middle">Cross out algs that miss both pieces.</text><text x="630" y="224" text-anchor="middle">They can never fix the pair.</text><text class="lab" x="630" y="243" text-anchor="middle">Zero exceptions, removes 1 in 10 wrong</text>
+      <path d="M630 252V386H530" marker-end="url(#ah)"/>
+      <rect class="box" x="270" y="350" width="260" height="72" rx="6"/><text x="400" y="375" text-anchor="middle">Replay survivors on the two pieces.</text><text x="400" y="394" text-anchor="middle">Shared opening moves: track once.</text><text class="lab" x="400" y="413" text-anchor="middle">Stop when the result matches a shape</text>
+      <path d="M400 422V470H252" marker-end="url(#ah)"/>
+      <rect class="end" x="10" y="440" width="240" height="60" rx="6"/><text class="onend" x="130" y="466" text-anchor="middle">Answer.</text><text class="onend" x="130" y="485" text-anchor="middle">Insert with AUF plus 3 moves.</text>
+    </svg>
+  </div>
+</section>
+
+<section id="drill">
+  <h2>Drill</h2>
+  <p>Same generator and same check as the trainer, same colours. Bright is the cross and front right pair, pale is the other F2L pieces, grey is last layer. The lower map shows the back stickers the trainer hides. Use <code>1</code> to <code>9</code> to answer, <code>Space</code> for the next case, and open any replay after you answer.</p>
+  <div class="controls">
+    <label>Case <select id="caseSel"></select></label>
+    <label><input type="checkbox" id="twoGen"> 2gen mode</label>
+    <label><input type="checkbox" id="hint"> Show pair</label>
+    <label><input type="checkbox" id="zones"> Show touch zones</label>
+    <button class="primary" id="next" type="button">New case</button>
+    <span class="score" id="score" aria-live="polite">0/0</span>
+  </div>
+  <div class="lab">
+    <div class="views"><div id="iso"></div><div id="top"></div><p class="small muted" id="where"></p></div>
+    <div>
+      <p id="status" class="muted small"></p>
+      <div class="algs" id="algs"></div>
+      <div class="verdict" id="verdict" aria-live="polite"></div>
+      <div class="stepper" id="stepper" hidden>
+        <h3 id="stepTitle"></h3>
+        <div class="tokens" id="tokens"></div>
+        <div class="controls">
+          <button id="prev" type="button">Back one move</button>
+          <button id="fwd" type="button">Forward one move</button>
+          <button id="play" type="button">Play</button>
+        </div>
+        <p class="small" id="stepResult"></p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="rules">
+  <h2>Heuristics, ranked</h2>
+  <ol class="rules">
+    <li><b>Touch zone beats everything when the pair is already free.</b> If an alg's only effect on both pieces is a net U turn, the shape survives. Sledge-style algs (<code>R' F R F'</code>) hit a different zone than <code>R U' R'</code>, which is why a case offers both. Tick "Show touch zones": green tiles move rigidly, red tiles get disturbed.</li>
+    <li><b>Find the pair by absence.</b> Pale pieces are in the top layer in most positions, and the other two slots stay solved. You only have one pair to locate.</li>
+    <li><b>Check white first.</b> A corner with white on top is never free. Any alg that leaves it there is wrong, which is often the fastest cut when the pair sits still.</li>
+    <li><b>Track the edge, then the corner.</b> Most moves in an alg miss the piece you are following. The replay underlines only the moves that touch either piece, so count those instead of the whole alg.</li>
+    <li><b>Use shared openings.</b> <code>(U') R U R' U2 R U' R'</code> and <code>(U') R U R' U R' F R F'</code> share four moves. Replay once to the split point, then compare the tails only.</li>
+    <li><b>Drill 2gen first.</b> That mode uses only the BR pair and only <code>R' U R</code> or <code>R' U' R</code> inserts, so the shape set drops from twelve slot and insert combinations to two. In this mode an edge with orange on top is always wrong, even when the pair looks joined.</li>
+  </ol>
+  <h3 style="margin-top:18px">Where EO fits</h3>
+  <p>EO is not part of the answer, so an edge in any orientation can pass. It is useful for one thing: it tells you which insert you will end up doing. Using F/B-axis EO on the whole cube, a good edge goes in with R or L moves, for example <code>R' U R</code> into BR, and a bad edge needs an F or B insert. <code>R</code>, <code>L</code>, <code>U</code> and <code>D</code> turns never change EO, while F, B quarter turns and M-based moves can. An alg with none of those keeps the pair's insert family the same.</p>
+</section>
+
+<section id="plan">
+  <h2>Practice order</h2>
+  <div class="scroll"><table>
+    <thead><tr><th>Stage</th><th>On solved.no</th><th>Move on when</th></tr></thead>
+    <tbody>
+      <tr><td>Shapes</td><td>Use the drill here with "Show pair" on</td><td>You name joined, split or neither at a glance</td></tr>
+      <tr><td>One case</td><td>Preset F2L01, 2gen on</td><td>You replay all algs without moving your hands</td></tr>
+      <tr><td>Every slot</td><td>Preset F2L01, 2gen off</td><td>You stop checking the same slot first</td></tr>
+      <tr><td>Short cases</td><td>Custom preset of cases you already solve fast</td><td>Your accuracy holds with Show Timer on</td></tr>
+      <tr><td>Everything</td><td>All Algorithms, redo mode "Indefinite (50-50 incorrect/new)"</td><td>Your choice</td></tr>
+    </tbody>
+  </table></div>
+  <p class="small muted" style="margin-top:10px">Pass thresholds are left to you because no benchmark data exists. The stage order is my recommendation, not something measured.</p>
+</section>
+
+<section id="table">
+  <details>
+    <summary>Best guess per case, when you run out of time</summary>
+    <p class="small muted">Share of generated positions where the alg is correct. Use this as a tiebreak only.</p>
+    <div class="scroll"><table><thead><tr><th>Case</th><th>Alg most often correct</th><th class="num">Correct</th><th class="num">Algs</th></tr></thead><tbody id="best"></tbody></table></div>
+  </details>
+</section>
+
+</main>
+<footer class="small muted">
+  Cases and rules taken from <a href="https://www.solved.no/trainers/3x3/free-pair">solved.no Free Pair Trainer</a>. EO background from <a href="https://www.speedsolving.com/wiki/index.php/ZZ_Method">Speedsolving wiki</a>.
+</footer>
+<noscript><p>The shapes and drill need JavaScript.</p></noscript>
+<script src="cube.js"></script>
+<script src="cases.js"></script>
+<script src="app.js"></script>
+</body>
+</html>

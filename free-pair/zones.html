@@ -1,0 +1,109 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Touch Zones</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs><marker id="route-head" viewBox="0 0 10 10" refX="7" refY="5" markerWidth="9" markerHeight="9" markerUnits="userSpaceOnUse" orient="auto"><path d="M0 0L10 5L0 10Z" class="route-head"/></marker></defs></svg>
+<header class="top">
+  <div>
+    <h1>Touch Zones</h1>
+    <p class="lede">Every alg picks up a few top pieces and leaves the rest locked together. Know which ones, and most of the tracking disappears.</p>
+    <p class="small"><a href="index.html">Back to the drill</a></p>
+  </div>
+  <button id="theme" type="button" aria-label="Switch colour theme">Theme</button>
+</header>
+<main>
+
+<section id="read">
+  <h2>How to read one</h2>
+  <div class="zread">
+    <div id="legend"></div>
+    <ul class="zkey">
+      <li><span class="swatch still"></span><b>Green holds.</b> These pieces keep their positions relative to each other, and nothing flips or twists. The caption gives the U turn they share.</li>
+      <li><span class="swatch moved"></span><b>Amber moves.</b> The arrow shows where the piece lands relative to green. No arrow means it stays put but flips or twists.</li>
+      <li><span class="swatch fr"></span><b>Grey is the front right pair.</b> In this case those two tiles hold the pair the alg solves, so your target pieces are never there.</li>
+      <li><span class="swatch lit"></span><b>Lit side sticker.</b> That sticker lands on top. If it is white on a corner, that corner ends white-up and the alg is dead.</li>
+      <li><span class="swatch badge-key">C</span><b>C and E.</b> The tile where a corner or edge from the front right slot comes out.</li>
+    </ul>
+  </div>
+  <p class="small muted" style="margin-top:14px">Tiles are read after any U in brackets. For <code>(U) R U' R'</code>, do the <code>U</code> first, then use the <code>R U' R'</code> map. The trainer changes that U from case to case, so one map covers them all.</p>
+</section>
+
+<section id="yours">
+  <h2>The three you asked for</h2>
+  <div class="zgrid three" id="featured"></div>
+  <p><code>R' F R F'</code> holds the same three tiles as <code>R U' R'</code>, but the pieces that leave go somewhere else. That is why a case can offer both.</p>
+</section>
+
+<section id="rule">
+  <h2>The exact test for free</h2>
+  <p>Turn U in your head so the corner sits front right. White on top is dead. Otherwise there are exactly two good edge spots.</p>
+  <div class="scroll"><table>
+    <thead><tr><th>Name</th><th>Edge is</th><th>Top colour against the corner's top colour</th></tr></thead>
+    <tbody>
+      <tr><td>Joined</td><td>Next to the corner, on the side without white</td><td>Same</td></tr>
+      <tr><td>Split</td><td>Straight across the top from the joined spot</td><td>Different</td></tr>
+    </tbody>
+  </table></div>
+  <h3 style="margin-top:18px">2gen is stricter</h3>
+  <p>2gen uses the BR pair and accepts only half of these shapes. The edge must show blue on top, so <b>an orange-top edge is dead</b> even when the pair looks perfectly joined. It also rejects two blue-top shapes that need no U turn first: corner BL with edge B, and corner BR with edge F. The real trainer does the same.</p>
+  <p class="small muted" style="margin-top:10px">The joined and split rule matched the trainer's own check on all 131,679 alg checks. Tile position alone tells you nothing: every edge spot passes for some sticker reading, and a position-only filter scores the same as random, 30.5%. Stickers decide it.</p>
+</section>
+
+<section id="slots">
+  <h2>Pieces in the slot</h2>
+  <p>A piece in the front right slot is never green, because the alg always moves it or leaves it behind. That changes the plan in 31% of positions. Other slots never come into it: a target piece only ever sits on top or in front right.</p>
+  <ul class="plain">
+    <li><b>The pair cannot be free yet.</b> Free needs both pieces on top, so skip the shape check.</li>
+    <li><b>Crossing out by zone does nothing.</b> It needs both pieces green, which cannot happen here.</li>
+    <li><b>Use the exit instead.</b> Each map's caption gives the tile and what lands on top. C and E mark the tile.</li>
+    <li><b>Then finish with the other piece.</b> If it sits on green, it holds still, so you compare one exit against one fixed piece.</li>
+  </ul>
+  <p>Example: with the corner in the slot, <code>R U R'</code> brings it out at UFR, and it is dead only if white was on the side named in the caption. Run that on each alg and you often cut one or two without tracking anything else.</p>
+</section>
+
+<section id="numbers">
+  <h2>What each shortcut is worth</h2>
+  <p>Accuracy across all 14,637 positions, picking at random from the algs each filter leaves. "White test" assumes you tracked the corner correctly through every alg.</p>
+  <div class="scroll"><table>
+    <thead><tr><th>Where the pair starts</th><th class="num">Positions</th><th class="num">Random</th><th class="num">Zones</th><th class="num">White test</th><th class="num">Both</th></tr></thead>
+    <tbody>
+      <tr><td>Both on top</td><td class="num">10,050</td><td class="num">30.8%</td><td class="num">46.5%</td><td class="num">43.0%</td><td class="num">56.4%</td></tr>
+      <tr><td>Corner in slot</td><td class="num">2,106</td><td class="num">29.6%</td><td class="num">29.6%</td><td class="num">43.0%</td><td class="num">43.0%</td></tr>
+      <tr><td>Edge in slot</td><td class="num">1,992</td><td class="num">29.4%</td><td class="num">29.4%</td><td class="num">43.0%</td><td class="num">43.0%</td></tr>
+      <tr><td>Both in slot</td><td class="num">489</td><td class="num">33.5%</td><td class="num">33.5%</td><td class="num">47.3%</td><td class="num">47.3%</td></tr>
+      <tr><td><b>All positions</b></td><td class="num"><b>14,637</b></td><td class="num"><b>30.5%</b></td><td class="num"><b>41.3%</b></td><td class="num"><b>43.1%</b></td><td class="num"><b>52.4%</b></td></tr>
+    </tbody>
+  </table></div>
+  <h3 style="margin-top:18px">Rigid pieces against the result</h3>
+  <p>Each alg option in each position, grouped by how many pair pieces stay rigid under some U turn.</p>
+  <div class="scroll"><table>
+    <thead><tr><th>Start</th><th class="num">Both rigid</th><th class="num">One rigid</th><th class="num">Neither</th></tr></thead>
+    <tbody>
+      <tr><td>Pair free</td><td class="num">100%</td><td class="num">22.0%</td><td class="num">42.0%</td></tr>
+      <tr><td>Pair not free</td><td class="num">0%</td><td class="num">27.8%</td><td class="num">29.5%</td></tr>
+      <tr><td>Share of all alg options</td><td class="num">9.6%</td><td class="num">66.6%</td><td class="num">23.8%</td></tr>
+    </tbody>
+  </table></div>
+  <p style="margin-top:12px">Two takeaways. One rigid piece is the most common result, at two in three alg options, so usually you only need to follow one piece. And a free pair does worst when an alg splits it, at 22%, against 42% when both pieces move. Moving both can carry the pair to another free shape. Moving one mostly breaks it.</p>
+  <p class="small muted">The 306 different algs here have 83 different green shapes, and most hold only one to three tiles, so learn them from the algs you use rather than as a list.</p>
+</section>
+
+<section id="everything">
+  <h2>Every alg, by case</h2>
+  <div class="controls"><label>Show <select id="jump"></select></label></div>
+  <div id="all"></div>
+</section>
+
+</main>
+<footer class="small muted">Worked out from the trainer's own rules. F2L03 is missing because it is not in the All Algorithms table.</footer>
+<script src="cube.js"></script>
+<script src="cases.js"></script>
+<script src="zonemap.js"></script>
+<script src="zones.js"></script>
+</body>
+</html>
